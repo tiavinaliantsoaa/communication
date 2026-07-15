@@ -7,6 +7,28 @@ define('LARAVEL_START', microtime(true));
 
 /*
 |--------------------------------------------------------------------------
+| Sous-dossier (déploiement OVH sur /communication)
+|--------------------------------------------------------------------------
+|
+| L'application est servie depuis https://.../communication via une
+| réécriture Apache. On retire ce préfixe de l'URI pour que le routeur
+| Laravel voie "/login" et non "/communication/login". En local (sans
+| préfixe), ce bloc est ignoré.
+|
+*/
+
+$basePath = '/communication';
+$requestUri = $_SERVER['REQUEST_URI'] ?? '';
+
+if ($requestUri === $basePath || str_starts_with($requestUri, $basePath.'/')) {
+    $trimmed = substr($requestUri, strlen($basePath));
+    $_SERVER['REQUEST_URI'] = $trimmed === '' ? '/' : $trimmed;
+    $_SERVER['SCRIPT_NAME'] = '/index.php';
+    $_SERVER['PHP_SELF'] = '/index.php';
+}
+
+/*
+|--------------------------------------------------------------------------
 | Check If The Application Is Under Maintenance
 |--------------------------------------------------------------------------
 |
