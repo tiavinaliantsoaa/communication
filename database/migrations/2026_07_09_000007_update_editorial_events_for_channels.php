@@ -10,10 +10,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('editorial_events', function (Blueprint $table) {
-            $table->string('type_contenu')->nullable()->after('categorie');
-            $table->boolean('booster')->default(false)->after('type_contenu');
-            $table->boolean('valide')->default(false)->after('statut');
-            $table->text('texte_publication')->nullable()->after('notes');
+            if (! Schema::hasColumn('editorial_events', 'type_contenu')) {
+                $table->string('type_contenu')->nullable()->after('categorie');
+            }
+            if (! Schema::hasColumn('editorial_events', 'booster')) {
+                $table->boolean('booster')->default(false)->after('type_contenu');
+            }
+            if (! Schema::hasColumn('editorial_events', 'valide')) {
+                $table->boolean('valide')->default(false)->after('statut');
+            }
+            if (! Schema::hasColumn('editorial_events', 'texte_publication')) {
+                $table->text('texte_publication')->nullable()->after('notes');
+            }
         });
 
         if (Schema::hasColumn('editorial_events', 'notes')) {
