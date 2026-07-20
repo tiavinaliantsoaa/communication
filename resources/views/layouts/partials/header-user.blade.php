@@ -5,8 +5,12 @@
                         <div class="text-sm font-semibold text-slate-900">{{ auth()->user()->name }}</div>
                         <div class="text-xs text-slate-500">{{ auth()->user()->role_label }}</div>
                     </div>
-                    <div class="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold ring-2 ring-white shadow">
-                        {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                    <div class="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold ring-2 ring-white shadow overflow-hidden">
+                        @if(auth()->user()->avatar_url)
+                            <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="h-full w-full object-cover">
+                        @else
+                            {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
+                        @endif
                     </div>
                     <svg class="w-4 h-4 text-slate-400 hidden sm:block transition-transform" :class="open && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
