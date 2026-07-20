@@ -30,7 +30,7 @@
                     <td class="px-3 py-3 text-slate-600 hidden md:table-cell">{{ $depense->objet }}</td>
                     <td class="px-3 py-3 text-slate-600 hidden lg:table-cell">{{ $depense->campagne }}</td>
                     <td class="px-3 py-3 text-right font-medium whitespace-nowrap">{{ format_ar($depense->montant) }}</td>
-                    <td class="px-3 py-3"><x-status-badge :statut="$depense->statut" /></td>
+                    <td class="px-3 py-3"><x-status-badge :statut="$depense->statut_affiche" /></td>
                     <td class="px-5 py-3">
                         <x-row-actions
                             :edit-route="route('depenses.edit', $depense)"

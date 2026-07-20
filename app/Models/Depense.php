@@ -58,7 +58,25 @@ class Depense extends Model
 
     public function getStatutLabelAttribute(): string
     {
+        if ($this->isPayePartiellement()) {
+            return 'Payé partiellement';
+        }
+
         return self::STATUTS[$this->statut] ?? $this->statut;
+    }
+
+    public function getStatutAfficheAttribute(): string
+    {
+        if ($this->isPayePartiellement()) {
+            return 'paye_partiellement';
+        }
+
+        return $this->statut;
+    }
+
+    public function isPayePartiellement(): bool
+    {
+        return $this->statut === 'paye' && $this->mode_paiement === 'acompte';
     }
 
     public function getModePaiementLabelAttribute(): ?string
