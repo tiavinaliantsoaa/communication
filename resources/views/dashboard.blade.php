@@ -199,7 +199,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             decimals = value >= 100 ? 0 : (value >= 10 ? 1 : 2);
-            const compact = value.toFixed(decimals).replace(/\.?0+$/, '');
+            let compact = value.toFixed(decimals);
+            if (compact.includes('.')) {
+                compact = compact.replace(/\.?0+$/, '');
+            }
 
             return sign + compact + suffix;
         };
