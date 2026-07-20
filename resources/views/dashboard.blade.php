@@ -179,6 +179,31 @@ document.addEventListener('DOMContentLoaded', function () {
     const repartitionData = @json($chartRepartition);
 
     if (typeof ApexCharts !== 'undefined') {
+        const formatShort = (v) => {
+            const n = Number(v) || 0;
+            const abs = Math.abs(n);
+            const sign = n < 0 ? '-' : '';
+            let value, suffix, decimals;
+
+            if (abs >= 1e12) {
+                value = abs / 1e12;
+                suffix = 'T';
+            } else if (abs >= 1e6) {
+                value = abs / 1e6;
+                suffix = 'M';
+            } else if (abs >= 1e3) {
+                value = abs / 1e3;
+                suffix = 'K';
+            } else {
+                return sign + Math.round(abs).toString();
+            }
+
+            decimals = value >= 100 ? 0 : (value >= 10 ? 1 : 2);
+            const compact = value.toFixed(decimals).replace(/\.?0+$/, '');
+
+            return sign + compact + suffix;
+        };
+
         new ApexCharts(document.querySelector('#chart-evolution'), {
             chart: { type: 'line', height: 288, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
             series: [
@@ -191,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
             xaxis: { categories: evolutionData.labels, labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
             yaxis: {
                 labels: {
-                    formatter: (v) => (v / 1000000).toFixed(0) + 'M',
+                    formatter: (v) => formatShort(v),
                     style: { colors: '#94a3b8', fontSize: '11px' }
                 }
             },
@@ -214,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             total: {
                                 show: true,
                                 label: 'Total',
-                                formatter: () => (repartitionData.total / 1000000).toFixed(2) + 'M Ar'
+                                formatter: () => formatShort(repartitionData.total) + ' Ar'
                             }
                         }
                     }
