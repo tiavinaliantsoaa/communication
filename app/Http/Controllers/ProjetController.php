@@ -13,11 +13,14 @@ use App\Models\ProjetTableau;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 class ProjetController extends Controller
 {
     public function index()
     {
+        ProjetEtiquette::ensureDefaults();
+
         $tableau = ProjetTableau::current();
         $tableau->load(['listes.cartes' => function ($q) {
             $q->with([
@@ -310,6 +313,21 @@ class ProjetController extends Controller
         $projet->etiquettes()->sync($data['etiquette_ids'] ?? []);
 
         return response()->json(['ok' => true]);
+    }
+
+    public function storeEtiquette(Request $request)
+    {
+        $data = $request->validate([
+            'nom' => ['required', 'string', 'max:100'],
+            'couleur' => ['required', 'string', Rule::in(array_keys(ProjetEtiquette::COULEURS))],
+        ]);
+
+        $etiquette = ProjetEtiquette::create($data);
+
+        return response()->json([
+            'ok' => true,
+            'etiquette' => $etiquette->toBoardArray(),
+        ], 201);
     }
 
     public function storeChecklist(Request $request, ProjetCarte $projet)

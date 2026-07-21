@@ -15,7 +15,11 @@ class ProjetSeeder extends Seeder
 {
     public function run(): void
     {
-        if (ProjetEtiquette::exists() || ProjetCarte::exists()) {
+        if (! ProjetEtiquette::exists()) {
+            ProjetEtiquette::ensureDefaults();
+        }
+
+        if (ProjetCarte::exists()) {
             return;
         }
 
@@ -34,14 +38,11 @@ class ProjetSeeder extends Seeder
 
         $listes = ProjetListe::where('projet_tableau_id', $tableau->id)->get()->keyBy('slug');
 
-        $etiquettes = collect([
-            ['nom' => 'À traiter', 'couleur' => 'yellow'],
-            ['nom' => 'Communication', 'couleur' => 'blue'],
-            ['nom' => 'Urgent & Important', 'couleur' => 'red'],
-            ['nom' => 'Terminé', 'couleur' => 'green'],
-            ['nom' => 'Partenariat', 'couleur' => 'cyan'],
-            ['nom' => 'Événement', 'couleur' => 'purple'],
-        ])->map(fn ($e) => ProjetEtiquette::create($e));
+        $etiquettes = ProjetEtiquette::all();
+        if ($etiquettes->isEmpty()) {
+            ProjetEtiquette::ensureDefaults();
+            $etiquettes = ProjetEtiquette::all();
+        }
 
         $users = User::all();
         $byInitial = [

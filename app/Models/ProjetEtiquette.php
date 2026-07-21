@@ -30,4 +30,39 @@ class ProjetEtiquette extends Model
     {
         return self::COULEURS[$this->couleur] ?? self::COULEURS['yellow'];
     }
+
+    /**
+     * Create default labels if the table is empty.
+     */
+    public static function ensureDefaults(): void
+    {
+        if (static::exists()) {
+            return;
+        }
+
+        foreach ([
+            ['nom' => 'Urgent & Important', 'couleur' => 'red'],
+            ['nom' => 'Urgent mais pas important', 'couleur' => 'yellow'],
+            ['nom' => 'Important', 'couleur' => 'blue'],
+            ['nom' => 'Pas urgent', 'couleur' => 'cyan'],
+            ['nom' => 'Ni important ni urgent', 'couleur' => 'purple'],
+            ['nom' => 'Communication', 'couleur' => 'green'],
+            ['nom' => 'À traiter', 'couleur' => 'yellow'],
+            ['nom' => 'Partenariat', 'couleur' => 'cyan'],
+            ['nom' => 'Événement', 'couleur' => 'purple'],
+            ['nom' => 'Terminé', 'couleur' => 'green'],
+        ] as $etiquette) {
+            static::create($etiquette);
+        }
+    }
+
+    public function toBoardArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'nom' => $this->nom,
+            'couleur' => $this->couleur,
+            'classes' => $this->classes,
+        ];
+    }
 }

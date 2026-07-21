@@ -273,18 +273,33 @@
                                 </div>
                             </div>
 
-                            <div x-show="showLabels" x-cloak class="rounded-lg border border-slate-200 p-3 bg-slate-50">
-                                <p class="text-xs font-semibold text-slate-600 mb-2">Étiquettes</p>
+                            <div x-show="showLabels" x-cloak class="rounded-lg border border-slate-200 p-3 bg-slate-50 space-y-2">
+                                <p class="text-xs font-semibold text-slate-600">Étiquettes disponibles</p>
+                                <p class="text-[11px] text-slate-500">Cochez pour les assigner à cette carte.</p>
                                 <div class="space-y-1">
-                                    @foreach($etiquettes as $etiquette)
-                                        <label class="flex items-center gap-2 text-sm cursor-pointer rounded px-2 py-1.5 {{ $etiquette->classes['badge'] }}">
-                                            <input type="checkbox" value="{{ $etiquette->id }}"
-                                                   :checked="card.etiquettes.some(e => e.id === {{ $etiquette->id }})"
-                                                   @change="toggleLabel({{ $etiquette->id }})">
-                                            {{ $etiquette->nom }}
+                                    <template x-for="etiquette in availableLabels" :key="etiquette.id">
+                                        <label class="flex items-center gap-2 text-sm cursor-pointer rounded px-2 py-1.5" :class="etiquette.classes.badge">
+                                            <input type="checkbox"
+                                                   :checked="card.etiquettes.some(e => e.id === etiquette.id)"
+                                                   @change="toggleLabel(etiquette.id)">
+                                            <span x-text="etiquette.nom"></span>
                                         </label>
-                                    @endforeach
+                                    </template>
+                                    <p x-show="!availableLabels.length" class="text-sm text-slate-500 py-1">Aucune étiquette pour le moment. Créez-en une ci-dessous.</p>
                                 </div>
+                                <form @submit.prevent="createLabel($event)" class="flex flex-wrap gap-2 pt-2 border-t border-slate-200">
+                                    <input type="text" name="nom" placeholder="Nouvelle étiquette…" required maxlength="100"
+                                           class="flex-1 min-w-[8rem] rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                                    <select name="couleur" class="rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                                        <option value="red">Rouge</option>
+                                        <option value="yellow">Jaune</option>
+                                        <option value="blue">Bleu</option>
+                                        <option value="green">Vert</option>
+                                        <option value="cyan">Cyan</option>
+                                        <option value="purple">Violet</option>
+                                    </select>
+                                    <button type="submit" class="rounded-lg bg-escm-primary text-white text-xs font-semibold px-3 py-2">Créer</button>
+                                </form>
                             </div>
 
                             <div x-show="showAttach" x-cloak class="rounded-lg border border-slate-200 p-3 bg-slate-50 space-y-2">
@@ -432,6 +447,7 @@ function projetBoard() {
         move: @json(route('gestion-projet.cartes.move')),
         membres: (id) => @json(url('/gestion-projet/cartes')).replace(/\/$/, '') + '/' + id + '/membres',
         etiquettes: (id) => @json(url('/gestion-projet/cartes')).replace(/\/$/, '') + '/' + id + '/etiquettes',
+        storeEtiquette: @json(route('gestion-projet.etiquettes.store')),
         checklists: (id) => @json(url('/gestion-projet/cartes')).replace(/\/$/, '') + '/' + id + '/checklists',
         checklistItems: (id) => @json(url('/gestion-projet/checklists')).replace(/\/$/, '') + '/' + id + '/items',
         toggleItem: (id) => @json(url('/gestion-projet/checklist-items')).replace(/\/$/, '') + '/' + id + '/toggle',
@@ -450,6 +466,7 @@ function projetBoard() {
         showAttach: false,
         newComment: '',
         attachUrl: '',
+        availableLabels: @json($etiquettes->map->toBoardArray()->values()),
 
         init() {
             document.querySelectorAll('.sortable-list').forEach((el) => {
@@ -583,6 +600,18 @@ function projetBoard() {
             if (idx >= 0) ids.splice(idx, 1); else ids.push(labelId);
             await this.request(routes.etiquettes(this.card.id), { method: 'POST', json: { etiquette_ids: ids } });
             this.card = await this.request(routes.show(this.card.id));
+        },
+
+        async createLabel(event) {
+            const nom = event.target.nom.value.trim();
+            const couleur = event.target.couleur.value;
+            if (!nom) return;
+            const res = await this.request(routes.storeEtiquette, { method: 'POST', json: { nom, couleur } });
+            if (res.etiquette) {
+                this.availableLabels.push(res.etiquette);
+                this.availableLabels.sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
+            }
+            event.target.reset();
         },
 
         async addChecklist() {

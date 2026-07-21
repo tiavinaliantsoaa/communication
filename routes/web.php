@@ -48,6 +48,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/move', [ProjetController::class, 'move'])->name('cartes.move');
         Route::post('/cartes/{projet}/membres', [ProjetController::class, 'syncMembres'])->name('cartes.membres');
         Route::post('/cartes/{projet}/etiquettes', [ProjetController::class, 'syncEtiquettes'])->name('cartes.etiquettes');
+        Route::post('/etiquettes', [ProjetController::class, 'storeEtiquette'])->name('etiquettes.store');
         Route::post('/cartes/{projet}/checklists', [ProjetController::class, 'storeChecklist'])->name('cartes.checklists');
         Route::post('/checklists/{checklist}/items', [ProjetController::class, 'storeChecklistItem'])->name('checklists.items');
         Route::patch('/checklist-items/{item}/toggle', [ProjetController::class, 'toggleChecklistItem'])->name('checklist-items.toggle');
