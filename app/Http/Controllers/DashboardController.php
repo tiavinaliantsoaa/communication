@@ -17,6 +17,12 @@ class DashboardController extends Controller
     {
         $annee = (int) $request->get('annee', now()->year);
         $mois = (int) $request->get('mois', now()->month);
+        if ($mois < 1 || $mois > 12) {
+            $mois = (int) now()->month;
+        }
+        if ($annee < 2020 || $annee > 2100) {
+            $annee = (int) now()->year;
+        }
 
         $snap = $budgetMensuel->forMonth($annee, $mois);
 
@@ -70,7 +76,11 @@ class DashboardController extends Controller
         $chartEvolution = $this->buildEvolutionChart($annee, $budgetMensuel);
         $chartRepartition = $this->buildRepartitionChart($depensesMois, $totalDepense);
 
-        $depensesRecentes = Depense::orderByDesc('date_depense')->limit(5)->get();
+        $depensesRecentes = Depense::whereYear('date_depense', $annee)
+            ->whereMonth('date_depense', $mois)
+            ->orderByDesc('date_depense')
+            ->limit(8)
+            ->get();
         $stocks = Stock::orderBy('article')->limit(5)->get();
 
         $alertes = $alerteService->all($annee, $mois);

@@ -82,7 +82,7 @@
     {{-- Dépenses récentes --}}
     <div class="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm">
         <div class="px-5 py-4 border-b border-slate-100">
-            <h3 class="text-sm font-semibold text-slate-900">Dépenses récentes</h3>
+            <h3 class="text-sm font-semibold text-slate-900">Dépenses — {{ ucfirst($moisLabel) }}</h3>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -97,7 +97,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                    @foreach($depensesRecentes as $depense)
+                    @forelse($depensesRecentes as $depense)
                     <tr class="hover:bg-slate-50/50">
                         <td class="px-5 py-3 text-slate-600 whitespace-nowrap">{{ $depense->date_depense->format('d/m/Y') }}</td>
                         <td class="px-3 py-3 font-medium text-slate-900">{{ $depense->fournisseur }}</td>
@@ -106,7 +106,11 @@
                         <td class="px-3 py-3 text-right font-medium text-slate-900 whitespace-nowrap">{{ format_ar($depense->montant) }}</td>
                         <td class="px-5 py-3"><x-status-badge :statut="$depense->statut_affiche" /></td>
                     </tr>
-                    @endforeach
+                    @empty
+                    <tr>
+                        <td colspan="6" class="px-5 py-8 text-center text-slate-500">Aucune dépense pour {{ ucfirst($moisLabel) }}.</td>
+                    </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>

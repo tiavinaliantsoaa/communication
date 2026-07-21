@@ -35,7 +35,19 @@ class AppServiceProvider extends ServiceProvider
                 return;
             }
 
-            $view->with('nbAlertes', app(AlerteService::class)->count());
+            $data = $view->getData();
+            $annee = (int) ($data['annee'] ?? request('annee', now()->year));
+            $mois = (int) ($data['mois'] ?? request('mois', now()->month));
+            if ($mois < 1 || $mois > 12) {
+                $mois = (int) now()->month;
+            }
+
+            $view->with([
+                'nbAlertes' => app(AlerteService::class)->count($annee, $mois),
+                'annee' => $annee,
+                'mois' => $mois,
+                'moisLabel' => $data['moisLabel'] ?? Carbon::create($annee, $mois, 1)->locale('fr')->isoFormat('MMMM YYYY'),
+            ]);
         });
     }
 }
