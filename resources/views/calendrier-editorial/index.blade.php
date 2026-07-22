@@ -722,44 +722,61 @@
     <div
         x-show="lightbox.open"
         x-cloak
-        class="fixed inset-0 z-[70] flex items-center justify-center p-4"
+        class="fixed inset-0 z-[100] flex flex-col bg-black/85"
         @keydown.escape.window="if (lightbox.open) closeLightbox()"
         @keydown.arrow-left.window="if (lightbox.open) lightboxPrev()"
         @keydown.arrow-right.window="if (lightbox.open) lightboxNext()"
     >
-        <div class="absolute inset-0 bg-black/70" @click="closeLightbox()"></div>
-        <div class="relative z-10 w-full max-w-4xl flex flex-col items-center">
-            <button type="button" @click="closeLightbox()" class="absolute -top-2 right-0 sm:-right-2 p-2 rounded-full bg-white/10 text-white hover:bg-white/20">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        {{-- Barre du haut : toujours visible --}}
+        <div class="relative z-20 flex items-center gap-3 px-4 py-3 bg-slate-950/90 border-b border-white/10 shrink-0">
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-white truncate" x-text="lightbox.items[lightbox.index]?.nom || 'Visuel'"></p>
+                <p class="text-xs text-white/55" x-show="lightbox.items.length > 1" x-text="(lightbox.index + 1) + ' / ' + lightbox.items.length"></p>
+            </div>
+            <a
+                x-show="lightbox.items[lightbox.index]"
+                :href="lightbox.items[lightbox.index]?.url"
+                :download="lightbox.items[lightbox.index]?.nom || 'visuel'"
+                class="inline-flex items-center gap-1.5 shrink-0 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-2 text-xs font-semibold text-white transition"
+            >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Télécharger
+            </a>
+            <button type="button" @click="closeLightbox()" class="shrink-0 p-2 rounded-lg text-white/80 hover:text-white hover:bg-white/10" title="Fermer">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
-            <div class="relative w-full flex items-center justify-center min-h-[40vh]">
-                <button type="button" x-show="lightbox.items.length > 1" @click="lightboxPrev()" class="absolute left-0 sm:-left-4 z-10 p-2 rounded-full bg-white/15 text-white hover:bg-white/25">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                </button>
-                <template x-for="item in (lightbox.items[lightbox.index] ? [lightbox.items[lightbox.index]] : [])" :key="lightbox.index + '-' + (item.url || '')">
-                    <img
-                        :src="item.url"
-                        :alt="item.nom || 'Visuel'"
-                        class="lightbox-img max-h-[78vh] max-w-full rounded-xl shadow-2xl object-contain bg-black/20"
-                    >
-                </template>
-                <button type="button" x-show="lightbox.items.length > 1" @click="lightboxNext()" class="absolute right-0 sm:-right-4 z-10 p-2 rounded-full bg-white/15 text-white hover:bg-white/25">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                </button>
-            </div>
-            <div class="mt-3 flex items-center gap-3 text-white/90 text-sm">
-                <span x-text="lightbox.items[lightbox.index]?.nom || ''" class="truncate max-w-[16rem]"></span>
-                <span class="text-white/60" x-show="lightbox.items.length > 1" x-text="(lightbox.index + 1) + ' / ' + lightbox.items.length"></span>
-                <a
-                    x-show="lightbox.items[lightbox.index]"
-                    :href="lightbox.items[lightbox.index]?.url"
-                    :download="lightbox.items[lightbox.index]?.nom || 'visuel'"
-                    class="inline-flex items-center gap-1 font-semibold text-sky-300 hover:text-sky-200"
+        </div>
+
+        {{-- Zone image --}}
+        <div class="relative flex-1 min-h-0 flex items-center justify-center px-12 sm:px-16 py-4" @click.self="closeLightbox()">
+            <button
+                type="button"
+                x-show="lightbox.items.length > 1"
+                @click.stop="lightboxPrev()"
+                class="absolute left-2 sm:left-4 z-10 p-2.5 rounded-full bg-black/50 text-white hover:bg-black/70 border border-white/10"
+                title="Précédent"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+
+            <template x-for="item in (lightbox.items[lightbox.index] ? [lightbox.items[lightbox.index]] : [])" :key="lightbox.index + '-' + (item.url || '')">
+                <img
+                    :src="item.url"
+                    :alt="item.nom || 'Visuel'"
+                    class="lightbox-img max-h-full max-w-full w-auto h-auto object-contain rounded-lg shadow-2xl"
+                    @click.stop
                 >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                    Télécharger
-                </a>
-            </div>
+            </template>
+
+            <button
+                type="button"
+                x-show="lightbox.items.length > 1"
+                @click.stop="lightboxNext()"
+                class="absolute right-2 sm:right-4 z-10 p-2.5 rounded-full bg-black/50 text-white hover:bg-black/70 border border-white/10"
+                title="Suivant"
+            >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
         </div>
     </div>
 </div>
@@ -775,7 +792,7 @@
         animation: visuelZoomIn 0.28s cubic-bezier(0.22, 1, 0.36, 1);
     }
     @keyframes visuelZoomIn {
-        from { opacity: 0; transform: scale(0.86); }
+        from { opacity: 0; transform: scale(0.92); }
         to { opacity: 1; transform: scale(1); }
     }
 </style>
