@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Fournisseur;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class FournisseurController extends Controller
@@ -28,7 +29,17 @@ class FournisseurController extends Controller
             'service' => ['nullable', 'string', 'max:255'],
         ]);
 
-        Fournisseur::create($validated);
+        $fournisseur = Fournisseur::create($validated);
+
+        app(ActivityLogger::class)->log(
+            'fournisseur',
+            auth()->user()->name.' a créé le fournisseur « '.$fournisseur->nom.' »',
+            auth()->user(),
+            'create',
+            'Fournisseurs',
+            route('fournisseurs.index'),
+            $fournisseur
+        );
 
         return redirect()->route('fournisseurs.index')->with('success', 'Fournisseur créé avec succès.');
     }
@@ -49,12 +60,32 @@ class FournisseurController extends Controller
 
         $fournisseur->update($validated);
 
+        app(ActivityLogger::class)->log(
+            'fournisseur',
+            auth()->user()->name.' a modifié le fournisseur « '.$fournisseur->nom.' »',
+            auth()->user(),
+            'update',
+            'Fournisseurs',
+            route('fournisseurs.index'),
+            $fournisseur
+        );
+
         return redirect()->route('fournisseurs.index')->with('success', 'Fournisseur mis à jour avec succès.');
     }
 
     public function destroy(Fournisseur $fournisseur)
     {
+        $nom = $fournisseur->nom;
         $fournisseur->delete();
+
+        app(ActivityLogger::class)->log(
+            'fournisseur',
+            auth()->user()->name.' a supprimé le fournisseur « '.$nom.' »',
+            auth()->user(),
+            'delete',
+            'Fournisseurs',
+            route('fournisseurs.index')
+        );
 
         return redirect()->route('fournisseurs.index')->with('success', 'Fournisseur supprimé avec succès.');
     }

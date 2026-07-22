@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Budget;
 use App\Models\BudgetAnnuel;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -46,7 +47,17 @@ class BudgetAnnuelController extends Controller
             ]);
         }
 
-        BudgetAnnuel::create($validated);
+        $budget = BudgetAnnuel::create($validated);
+
+        app(ActivityLogger::class)->log(
+            'budget_annuel',
+            auth()->user()->name.' a créé le budget annuel '.$budget->annee.' ('.format_ar($budget->montant).')',
+            auth()->user(),
+            'create',
+            'Budget annuel',
+            route('budget-annuels.index'),
+            $budget
+        );
 
         return redirect()->route('budget-annuels.index')->with('success', 'Budget annuel créé avec succès.');
     }
@@ -74,12 +85,33 @@ class BudgetAnnuelController extends Controller
 
         $budgetAnnuel->update($validated);
 
+        app(ActivityLogger::class)->log(
+            'budget_annuel',
+            auth()->user()->name.' a modifié le budget annuel '.$budgetAnnuel->annee.' ('.format_ar($budgetAnnuel->montant).')',
+            auth()->user(),
+            'update',
+            'Budget annuel',
+            route('budget-annuels.index'),
+            $budgetAnnuel
+        );
+
         return redirect()->route('budget-annuels.index')->with('success', 'Budget annuel mis à jour avec succès.');
     }
 
     public function destroy(BudgetAnnuel $budgetAnnuel)
     {
+        $annee = $budgetAnnuel->annee;
+        $montant = $budgetAnnuel->montant;
         $budgetAnnuel->delete();
+
+        app(ActivityLogger::class)->log(
+            'budget_annuel',
+            auth()->user()->name.' a supprimé le budget annuel '.$annee.' ('.format_ar($montant).')',
+            auth()->user(),
+            'delete',
+            'Budget annuel',
+            route('budget-annuels.index')
+        );
 
         return redirect()->route('budget-annuels.index')->with('success', 'Budget annuel supprimé avec succès.');
     }

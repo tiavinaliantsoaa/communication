@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Budget;
 use App\Models\BudgetAnnuel;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -34,7 +35,17 @@ class BudgetController extends Controller
 
         $this->assertWithinAnnualBudget($validated['annee'], (float) $validated['montant']);
 
-        Budget::create($validated);
+        $budget = Budget::create($validated);
+
+        app(ActivityLogger::class)->log(
+            'budget',
+            auth()->user()->name.' a créé le budget de '.$budget->mois.'/'.$budget->annee.' ('.format_ar($budget->montant).')',
+            auth()->user(),
+            'create',
+            'Budget mensuel',
+            route('budgets.index'),
+            $budget
+        );
 
         return redirect()->route('budgets.index')->with('success', 'Budget créé avec succès.');
     }
@@ -58,12 +69,33 @@ class BudgetController extends Controller
 
         $budget->update($validated);
 
+        app(ActivityLogger::class)->log(
+            'budget',
+            auth()->user()->name.' a modifié le budget de '.$budget->mois.'/'.$budget->annee.' ('.format_ar($budget->montant).')',
+            auth()->user(),
+            'update',
+            'Budget mensuel',
+            route('budgets.index'),
+            $budget
+        );
+
         return redirect()->route('budgets.index')->with('success', 'Budget mis à jour avec succès.');
     }
 
     public function destroy(Budget $budget)
     {
+        $label = $budget->mois.'/'.$budget->annee;
+        $montant = $budget->montant;
         $budget->delete();
+
+        app(ActivityLogger::class)->log(
+            'budget',
+            auth()->user()->name.' a supprimé le budget de '.$label.' ('.format_ar($montant).')',
+            auth()->user(),
+            'delete',
+            'Budget mensuel',
+            route('budgets.index')
+        );
 
         return redirect()->route('budgets.index')->with('success', 'Budget supprimé avec succès.');
     }

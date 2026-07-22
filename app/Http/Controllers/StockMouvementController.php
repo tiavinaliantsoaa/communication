@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Stock;
 use App\Models\StockMouvement;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -43,7 +44,9 @@ class StockMouvementController extends Controller
     {
         $validated = $this->validateMouvement($request);
 
-        DB::transaction(function () use ($validated) {
+        $mouvement = null;
+        $article = null;
+        DB::transaction(function () use ($validated, &$mouvement, &$article) {
             $stock = Stock::lockForUpdate()->findOrFail($validated['stock_id']);
 
             if ($validated['type'] === 'sortie' && $validated['quantite'] > $stock->quantite) {
@@ -52,7 +55,8 @@ class StockMouvementController extends Controller
                 ]);
             }
 
-            StockMouvement::create($validated);
+            $mouvement = StockMouvement::create($validated);
+            $article = $stock->article;
 
             $stock->quantite = $validated['type'] === 'entree'
                 ? $stock->quantite + $validated['quantite']
@@ -62,6 +66,16 @@ class StockMouvementController extends Controller
         });
 
         $label = $validated['type'] === 'entree' ? 'Entrée' : 'Sortie';
+
+        app(ActivityLogger::class)->log(
+            'mouvement',
+            auth()->user()->name.' a enregistré une '.$label.' de '.$validated['quantite'].' sur « '.$article.' »',
+            auth()->user(),
+            'create',
+            'Entrées / Sorties',
+            route('stocks.mouvements.index'),
+            $mouvement
+        );
 
         return redirect()->route('stocks.mouvements.index')
             ->with('success', $label.' enregistrée. Le stock a été mis à jour automatiquement.');
@@ -108,12 +122,29 @@ class StockMouvementController extends Controller
             $newStock->save();
         });
 
+        $mouvement->loadMissing('stock');
+        $label = $mouvement->type === 'entree' ? 'Entrée' : 'Sortie';
+        app(ActivityLogger::class)->log(
+            'mouvement',
+            auth()->user()->name.' a modifié une '.$label.' ('.$mouvement->quantite.') sur « '.($mouvement->stock?->article ?? 'article').' »',
+            auth()->user(),
+            'update',
+            'Entrées / Sorties',
+            route('stocks.mouvements.index'),
+            $mouvement
+        );
+
         return redirect()->route('stocks.mouvements.index')
             ->with('success', 'Mouvement mis à jour. Les stocks ont été recalculés.');
     }
 
     public function destroy(StockMouvement $mouvement)
     {
+        $mouvement->loadMissing('stock');
+        $label = $mouvement->type === 'entree' ? 'Entrée' : 'Sortie';
+        $article = $mouvement->stock?->article ?? 'article';
+        $quantite = $mouvement->quantite;
+
         DB::transaction(function () use ($mouvement) {
             $stock = Stock::lockForUpdate()->findOrFail($mouvement->stock_id);
 
@@ -132,6 +163,15 @@ class StockMouvementController extends Controller
             $stock->save();
             $mouvement->delete();
         });
+
+        app(ActivityLogger::class)->log(
+            'mouvement',
+            auth()->user()->name.' a supprimé une '.$label.' de '.$quantite.' sur « '.$article.' »',
+            auth()->user(),
+            'delete',
+            'Entrées / Sorties',
+            route('stocks.mouvements.index')
+        );
 
         return redirect()->route('stocks.mouvements.index')
             ->with('success', 'Mouvement supprimé. Le stock a été rétabli.');

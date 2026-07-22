@@ -2,22 +2,27 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ProjetActivite;
+use App\Models\ActivityLog;
 use Illuminate\Http\Request;
 
 class ActiviteController extends Controller
 {
     public function index(Request $request)
     {
-        $activites = ProjetActivite::with(['user', 'carte.liste'])
+        $module = $request->string('module')->toString();
+
+        $activites = ActivityLog::with('user')
+            ->when($module !== '' && isset(ActivityLog::MODULES[$module]), fn ($q) => $q->where('module', $module))
             ->orderByDesc('created_at')
             ->paginate(40)
             ->withQueryString();
 
         return view('activites.index', [
             'title' => 'Activité',
-            'subtitle' => 'Historique des actions sur la gestion de projet',
+            'subtitle' => 'Historique des actions dans tout l\'outil',
             'activites' => $activites,
+            'modules' => ActivityLog::MODULES,
+            'moduleActif' => $module,
         ]);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Campagne;
 use App\Models\Depense;
 use App\Models\Fournisseur;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -33,7 +34,17 @@ class DepenseController extends Controller
     {
         $validated = $this->validateDepense($request);
 
-        Depense::create($validated);
+        $depense = Depense::create($validated);
+
+        app(ActivityLogger::class)->log(
+            'depense',
+            auth()->user()->name.' a enregistré la dépense « '.$depense->objet.' » ('.format_ar($depense->montant).')',
+            auth()->user(),
+            'create',
+            'Dépenses',
+            route('depenses.index'),
+            $depense
+        );
 
         return redirect()->route('depenses.index')->with('success', 'Dépense enregistrée avec succès.');
     }
@@ -56,12 +67,33 @@ class DepenseController extends Controller
 
         $depense->update($validated);
 
+        app(ActivityLogger::class)->log(
+            'depense',
+            auth()->user()->name.' a modifié la dépense « '.$depense->objet.' » ('.format_ar($depense->montant).')',
+            auth()->user(),
+            'update',
+            'Dépenses',
+            route('depenses.index'),
+            $depense
+        );
+
         return redirect()->route('depenses.index')->with('success', 'Dépense mise à jour avec succès.');
     }
 
     public function destroy(Depense $depense)
     {
+        $objet = $depense->objet;
+        $montant = $depense->montant;
         $depense->delete();
+
+        app(ActivityLogger::class)->log(
+            'depense',
+            auth()->user()->name.' a supprimé la dépense « '.$objet.' » ('.format_ar($montant).')',
+            auth()->user(),
+            'delete',
+            'Dépenses',
+            route('depenses.index')
+        );
 
         return redirect()->route('depenses.index')->with('success', 'Dépense supprimée avec succès.');
     }

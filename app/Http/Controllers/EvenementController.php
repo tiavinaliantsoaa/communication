@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Depense;
 use App\Models\Evenement;
+use App\Services\ActivityLogger;
 use App\Services\BudgetMensuelService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -33,18 +34,29 @@ class EvenementController extends Controller
     {
         $validated = $this->validateEvenement($request);
 
-        DB::transaction(function () use ($validated) {
+        $evenement = null;
+        DB::transaction(function () use ($validated, &$evenement) {
             $depense = null;
 
             if ((float) $validated['cout'] > 0) {
                 $depense = Depense::create($this->depensePayload($validated));
             }
 
-            Evenement::create([
+            $evenement = Evenement::create([
                 ...$validated,
                 'depense_id' => $depense?->id,
             ]);
         });
+
+        app(ActivityLogger::class)->log(
+            'evenement',
+            auth()->user()->name.' a créé l\'événement « '.$evenement->nom.' »',
+            auth()->user(),
+            'create',
+            'Événements',
+            route('evenements.index'),
+            $evenement
+        );
 
         $date = Carbon::parse($validated['date_debut']);
         $message = 'Événement créé. Le coût a été déduit du budget mensuel.';
@@ -87,6 +99,16 @@ class EvenementController extends Controller
             $evenement->update($validated);
         });
 
+        app(ActivityLogger::class)->log(
+            'evenement',
+            auth()->user()->name.' a modifié l\'événement « '.$evenement->nom.' »',
+            auth()->user(),
+            'update',
+            'Événements',
+            route('evenements.index'),
+            $evenement
+        );
+
         $date = Carbon::parse($validated['date_debut']);
         $message = 'Événement mis à jour. Le budget mensuel a été ajusté.';
         $snap = app(BudgetMensuelService::class)->forMonth($date->year, $date->month);
@@ -99,11 +121,21 @@ class EvenementController extends Controller
 
     public function destroy(Evenement $evenement)
     {
+        $nom = $evenement->nom;
         DB::transaction(function () use ($evenement) {
             $depense = $evenement->depense;
             $evenement->delete();
             $depense?->delete();
         });
+
+        app(ActivityLogger::class)->log(
+            'evenement',
+            auth()->user()->name.' a supprimé l\'événement « '.$nom.' »',
+            auth()->user(),
+            'delete',
+            'Événements',
+            route('evenements.index')
+        );
 
         return redirect()->route('evenements.index')
             ->with('success', 'Événement supprimé. Le montant a été rétabli sur le budget mensuel.');

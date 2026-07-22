@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Budget;
 use App\Models\Campagne;
 use App\Models\Depense;
+use App\Services\ActivityLogger;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,18 +39,29 @@ class CampagneController extends Controller
             (float) $validated['budget']
         );
 
-        DB::transaction(function () use ($validated) {
+        $campagne = null;
+        DB::transaction(function () use ($validated, &$campagne) {
             $depense = null;
 
             if ((float) $validated['budget'] > 0) {
                 $depense = Depense::create($this->depensePayload($validated));
             }
 
-            Campagne::create([
+            $campagne = Campagne::create([
                 ...$validated,
                 'depense_id' => $depense?->id,
             ]);
         });
+
+        app(ActivityLogger::class)->log(
+            'campagne',
+            auth()->user()->name.' a créé le boost « '.$campagne->nom.' »',
+            auth()->user(),
+            'create',
+            'Campagnes',
+            route('campagnes.index'),
+            $campagne
+        );
 
         return redirect()->route('campagnes.index')
             ->with('success', 'Boost Facebook créé. Le budget a été déduit du budget mensuel.');
@@ -91,17 +103,37 @@ class CampagneController extends Controller
             $campagne->update($validated);
         });
 
+        app(ActivityLogger::class)->log(
+            'campagne',
+            auth()->user()->name.' a modifié le boost « '.$campagne->nom.' »',
+            auth()->user(),
+            'update',
+            'Campagnes',
+            route('campagnes.index'),
+            $campagne
+        );
+
         return redirect()->route('campagnes.index')
             ->with('success', 'Boost Facebook mis à jour. Le budget mensuel a été ajusté.');
     }
 
     public function destroy(Campagne $campagne)
     {
+        $nom = $campagne->nom;
         DB::transaction(function () use ($campagne) {
             $depense = $campagne->depense;
             $campagne->delete();
             $depense?->delete();
         });
+
+        app(ActivityLogger::class)->log(
+            'campagne',
+            auth()->user()->name.' a supprimé le boost « '.$nom.' »',
+            auth()->user(),
+            'delete',
+            'Campagnes',
+            route('campagnes.index')
+        );
 
         return redirect()->route('campagnes.index')
             ->with('success', 'Boost Facebook supprimé. Le montant a été rétabli sur le budget mensuel.');

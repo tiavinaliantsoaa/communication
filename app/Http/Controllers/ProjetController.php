@@ -11,6 +11,7 @@ use App\Models\ProjetEtiquette;
 use App\Models\ProjetPieceJointe;
 use App\Models\ProjetTableau;
 use App\Models\User;
+use App\Services\ActivityLogger;
 use App\Services\ProjetNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -18,8 +19,10 @@ use Illuminate\Validation\Rule;
 
 class ProjetController extends Controller
 {
-    public function __construct(private ProjetNotificationService $notifications)
-    {
+    public function __construct(
+        private ProjetNotificationService $notifications,
+        private ActivityLogger $activityLogger
+    ) {
     }
 
     public function index()
@@ -499,6 +502,16 @@ class ProjetController extends Controller
             'user_id' => $actor->id,
             'message' => $message,
         ]);
+
+        $this->activityLogger->log(
+            'projet',
+            $message,
+            $actor,
+            'comment',
+            'Gestion de projet',
+            route('gestion-projet.index'),
+            $projet
+        );
 
         preg_match_all('/@([a-zA-Z0-9._-]+)/u', $data['contenu'], $matches);
         $mentioned = User::findByMentionHandles($matches[1] ?? []);

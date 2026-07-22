@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -35,7 +36,17 @@ class UserController extends Controller
             'role' => ['required', Rule::in(array_keys(User::ROLES))],
         ]);
 
-        User::create($validated);
+        $created = User::create($validated);
+
+        app(ActivityLogger::class)->log(
+            'user',
+            auth()->user()->name.' a créé l\'utilisateur « '.$created->name.' »',
+            auth()->user(),
+            'create',
+            'Utilisateurs',
+            route('users.index'),
+            $created
+        );
 
         return redirect()->route('users.index')->with('success', 'Utilisateur créé avec succès.');
     }
@@ -60,6 +71,16 @@ class UserController extends Controller
 
         $user->update($validated);
 
+        app(ActivityLogger::class)->log(
+            'user',
+            auth()->user()->name.' a modifié l\'utilisateur « '.$user->name.' »',
+            auth()->user(),
+            'update',
+            'Utilisateurs',
+            route('users.index'),
+            $user
+        );
+
         return redirect()->route('users.index')->with('success', 'Utilisateur mis à jour avec succès.');
     }
 
@@ -69,7 +90,17 @@ class UserController extends Controller
             return back()->with('error', 'Vous ne pouvez pas supprimer votre propre compte.');
         }
 
+        $name = $user->name;
         $user->delete();
+
+        app(ActivityLogger::class)->log(
+            'user',
+            auth()->user()->name.' a supprimé l\'utilisateur « '.$name.' »',
+            auth()->user(),
+            'delete',
+            'Utilisateurs',
+            route('users.index')
+        );
 
         return redirect()->route('users.index')->with('success', 'Utilisateur supprimé avec succès.');
     }

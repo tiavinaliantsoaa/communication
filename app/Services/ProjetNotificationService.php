@@ -9,6 +9,10 @@ use App\Models\UserNotification;
 
 class ProjetNotificationService
 {
+    public function __construct(private ActivityLogger $activityLogger)
+    {
+    }
+
     public function log(ProjetCarte $carte, ?User $actor, string $message, ?string $titre = null, string $type = 'info'): void
     {
         ProjetActivite::create([
@@ -16,6 +20,16 @@ class ProjetNotificationService
             'user_id' => $actor?->id,
             'message' => $message,
         ]);
+
+        $this->activityLogger->log(
+            'projet',
+            $message,
+            $actor,
+            'update',
+            $titre ?? 'Gestion de projet',
+            route('gestion-projet.index'),
+            $carte
+        );
 
         $this->notifyMembres(
             $carte,

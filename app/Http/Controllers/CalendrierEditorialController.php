@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\EditorialEvent;
 use App\Models\EditorialEventVisuel;
+use App\Services\ActivityLogger;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,11 +68,22 @@ class CalendrierEditorialController extends Controller
         $validated = $this->validateEvent($request);
         $files = $this->validatedVisuelFiles($request);
 
-        DB::transaction(function () use ($validated, $files) {
+        $event = null;
+        DB::transaction(function () use ($validated, $files, &$event) {
             $event = EditorialEvent::create($validated);
             $this->storeVisuelFiles($event, $files);
             $this->syncLegacyVisuelColumns($event);
         });
+
+        app(ActivityLogger::class)->log(
+            'editorial',
+            auth()->user()->name.' a ajouté « '.$event->titre.' » au calendrier éditorial',
+            auth()->user(),
+            'create',
+            'Calendrier éditorial',
+            route('calendrier-editorial', ['date' => $event->date_debut->toDateString()]),
+            $event
+        );
 
         return $this->redirectToCalendar($request)
             ->with('success', 'Contenu ajouté au calendrier.');
@@ -107,13 +119,34 @@ class CalendrierEditorialController extends Controller
             $this->syncLegacyVisuelColumns($editorialEvent->fresh('visuels'));
         });
 
+        app(ActivityLogger::class)->log(
+            'editorial',
+            auth()->user()->name.' a modifié « '.$editorialEvent->titre.' » dans le calendrier éditorial',
+            auth()->user(),
+            'update',
+            'Calendrier éditorial',
+            route('calendrier-editorial', ['date' => $editorialEvent->date_debut->toDateString()]),
+            $editorialEvent
+        );
+
         return $this->redirectToCalendar($request)
             ->with('success', 'Contenu mis à jour.');
     }
 
     public function destroy(Request $request, EditorialEvent $editorialEvent)
     {
+        $titre = $editorialEvent->titre;
+        $date = optional($editorialEvent->date_debut)->toDateString();
         $editorialEvent->delete();
+
+        app(ActivityLogger::class)->log(
+            'editorial',
+            auth()->user()->name.' a supprimé « '.$titre.' » du calendrier éditorial',
+            auth()->user(),
+            'delete',
+            'Calendrier éditorial',
+            route('calendrier-editorial', ['date' => $date ?? now()->toDateString()])
+        );
 
         return $this->redirectToCalendar($request)
             ->with('success', 'Contenu supprimé du calendrier.');

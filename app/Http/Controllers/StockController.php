@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Stock;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class StockController extends Controller
@@ -27,7 +28,17 @@ class StockController extends Controller
             'seuil_alerte' => ['required', 'integer', 'min:1'],
         ]);
 
-        Stock::create($validated);
+        $stock = Stock::create($validated);
+
+        app(ActivityLogger::class)->log(
+            'stock',
+            auth()->user()->name.' a créé l\'article de stock « '.$stock->article.' »',
+            auth()->user(),
+            'create',
+            'Stocks',
+            route('stocks.index'),
+            $stock
+        );
 
         return redirect()->route('stocks.index')->with('success', 'Article de stock créé avec succès.');
     }
@@ -47,12 +58,32 @@ class StockController extends Controller
 
         $stock->update($validated);
 
+        app(ActivityLogger::class)->log(
+            'stock',
+            auth()->user()->name.' a modifié l\'article de stock « '.$stock->article.' »',
+            auth()->user(),
+            'update',
+            'Stocks',
+            route('stocks.index'),
+            $stock
+        );
+
         return redirect()->route('stocks.index')->with('success', 'Stock mis à jour avec succès.');
     }
 
     public function destroy(Stock $stock)
     {
+        $article = $stock->article;
         $stock->delete();
+
+        app(ActivityLogger::class)->log(
+            'stock',
+            auth()->user()->name.' a supprimé l\'article de stock « '.$article.' »',
+            auth()->user(),
+            'delete',
+            'Stocks',
+            route('stocks.index')
+        );
 
         return redirect()->route('stocks.index')->with('success', 'Article supprimé avec succès.');
     }
