@@ -444,15 +444,15 @@
                                             <template x-if="c.avatar_url"><img :src="c.avatar_url" :alt="c.user" class="h-full w-full object-cover"></template>
                                             <span x-show="!c.avatar_url" x-text="c.initials"></span>
                                         </span>
-                                        <div class="min-w-0">
+                                        <div class="min-w-0 flex-1">
                                             <p class="text-xs text-slate-500"><span class="font-semibold text-slate-800" x-text="c.user"></span> · <span x-text="c.date"></span></p>
-                                            <div class="mt-1 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700 whitespace-pre-wrap" x-html="formatCommentHtml(c.contenu)"></div>
+                                            <div class="mt-1 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700 whitespace-pre-wrap break-words [overflow-wrap:anywhere]" x-html="formatCommentHtml(c.contenu)"></div>
                                         </div>
                                     </div>
                                 </template>
 
                                 <template x-for="a in card.activites" :key="'a'+a.id">
-                                    <div class="text-xs text-slate-500 pl-10">
+                                    <div class="text-xs text-slate-500 pl-10 break-words [overflow-wrap:anywhere]">
                                         <span x-text="a.message"></span>
                                         <span class="text-slate-400"> · </span>
                                         <span x-text="a.date"></span>
