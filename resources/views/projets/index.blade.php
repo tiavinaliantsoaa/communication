@@ -339,9 +339,15 @@
                             <div>
                                 <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Dates</p>
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <input type="date" x-model="card.date_debut" @change="saveDates()" class="rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                                    <input type="text" inputmode="numeric" placeholder="JJ/MM/AAAA"
+                                           class="rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary w-36"
+                                           :value="escmDate.toDisplay(card.date_debut)"
+                                           @change="card.date_debut = escmDate.toIso($event.target.value) || null; $event.target.value = escmDate.toDisplay(card.date_debut); saveDates()">
                                     <span class="text-slate-400">→</span>
-                                    <input type="date" :value="card.date_fin ? card.date_fin.substring(0,10) : ''" @change="card.date_fin = $event.target.value; saveDates()" class="rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                                    <input type="text" inputmode="numeric" placeholder="JJ/MM/AAAA"
+                                           class="rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary w-36"
+                                           :value="escmDate.toDisplay(card.date_fin ? card.date_fin.substring(0,10) : '')"
+                                           @change="card.date_fin = escmDate.toIso($event.target.value) || null; $event.target.value = escmDate.toDisplay(card.date_fin); saveDates()">
                                     <span x-show="card.is_overdue" class="inline-flex items-center rounded bg-red-100 text-red-700 text-xs font-semibold px-2 py-1">En retard</span>
                                 </div>
                             </div>

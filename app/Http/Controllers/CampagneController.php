@@ -78,12 +78,25 @@ class CampagneController extends Controller
     public function update(Request $request, Campagne $campagne)
     {
         $validated = $this->validateCampagne($request);
+        $campagne->loadMissing('depense');
 
-        $this->assertMonthlyBudgetAvailable(
-            Carbon::parse($validated['date_debut']),
-            (float) $validated['budget'],
-            $campagne->depense_id
-        );
+        $newAmount = (float) $validated['budget'];
+        $oldAmount = (float) $campagne->budget;
+        $newDate = Carbon::parse($validated['date_debut']);
+        $oldDate = $campagne->date_debut
+            ? Carbon::parse($campagne->date_debut)
+            : $newDate;
+
+        $monthChanged = $oldDate->format('Y-m') !== $newDate->format('Y-m');
+        $amountIncreased = $newAmount > $oldAmount + 0.009;
+
+        // Ne rebloquer le budget que si on change de mois ou on augmente le montant.
+        // Un simple changement de statut (ex. → Terminée) ne doit pas être refusé.
+        if ($monthChanged) {
+            $this->assertMonthlyBudgetAvailable($newDate, $newAmount);
+        } elseif ($amountIncreased) {
+            $this->assertMonthlyBudgetAvailable($newDate, $newAmount, $campagne->depense_id);
+        }
 
         DB::transaction(function () use ($validated, $campagne) {
             if ((float) $validated['budget'] > 0) {

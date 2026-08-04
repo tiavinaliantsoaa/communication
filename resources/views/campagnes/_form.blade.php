@@ -30,14 +30,12 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
     <div>
         <label class="block text-sm font-medium text-slate-700 mb-1.5">Date de début</label>
-        <input type="date" name="date_debut" value="{{ old('date_debut', $campagne?->date_debut?->format('Y-m-d') ?? now()->format('Y-m-d')) }}" required
-               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
+        <x-date-input name="date_debut" :value="old('date_debut', $campagne?->date_debut?->format('Y-m-d') ?? now()->format('Y-m-d'))" required />
         @error('date_debut')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
     </div>
     <div>
         <label class="block text-sm font-medium text-slate-700 mb-1.5">Date de fin</label>
-        <input type="date" name="date_fin" value="{{ old('date_fin', $campagne?->date_fin?->format('Y-m-d')) }}"
-               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
+        <x-date-input name="date_fin" :value="old('date_fin', $campagne?->date_fin?->format('Y-m-d'))" />
         @error('date_fin')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
     </div>
 </div>

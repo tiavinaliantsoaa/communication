@@ -327,10 +327,6 @@
                             <dt class="text-slate-500 w-28 shrink-0">Texte publication</dt>
                             <dd class="text-slate-800 whitespace-pre-wrap" x-text="selectedEvent.texte_publication"></dd>
                         </div>
-                        <div class="flex gap-2" x-show="selectedEvent.texte_publication_linkedin">
-                            <dt class="text-slate-500 w-28 shrink-0">Texte publication LinkedIn</dt>
-                            <dd class="text-slate-800 whitespace-pre-wrap" x-text="selectedEvent.texte_publication_linkedin"></dd>
-                        </div>
                         <div class="flex gap-2" x-show="(selectedEvent.visuels && selectedEvent.visuels.length) || selectedEvent.visuel_url">
                             <dt class="text-slate-500 w-28 shrink-0">Visuel</dt>
                             <dd class="flex-1 min-w-0">
@@ -462,13 +458,20 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1" x-text="form.booster && isFacebookFi ? 'Date de début' : 'Date de publication'"></label>
-                        <input type="date" name="date_debut" x-model="form.date_debut" required
-                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
+                        <input type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" required
+                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"
+                               :value="escmDate.toDisplay(form.date_debut)"
+                               @change="form.date_debut = escmDate.toIso($event.target.value); $event.target.value = escmDate.toDisplay(form.date_debut)">
+                        <input type="hidden" name="date_debut" :value="form.date_debut">
                     </div>
                     <div x-show="isFacebookFi && form.booster" x-cloak>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Date de fin</label>
-                        <input type="date" name="date_fin" x-model="form.date_fin" :required="isFacebookFi && form.booster"
-                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
+                        <input type="text" inputmode="numeric" placeholder="JJ/MM/AAAA"
+                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"
+                               :required="isFacebookFi && form.booster"
+                               :value="escmDate.toDisplay(form.date_fin)"
+                               @change="form.date_fin = escmDate.toIso($event.target.value); $event.target.value = escmDate.toDisplay(form.date_fin)">
+                        <input type="hidden" name="date_fin" :value="form.date_fin">
                     </div>
                 </div>
 
@@ -484,21 +487,11 @@
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">
-                        Texte publication <span class="text-red-500">*</span>
+                        Texte publication
                     </label>
-                    <textarea name="texte_publication" x-model="form.texte_publication" rows="3" maxlength="5000" required
+                    <textarea name="texte_publication" x-model="form.texte_publication" rows="3" maxlength="5000"
                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"
                               placeholder="Texte de la publication…"></textarea>
-                </div>
-
-                <div x-show="hasFormLinkedIn" x-cloak>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">
-                        Texte publication LinkedIn <span class="text-red-500">*</span>
-                    </label>
-                    <textarea name="texte_publication_linkedin" x-model="form.texte_publication_linkedin" rows="3" maxlength="5000"
-                              :required="hasFormLinkedIn"
-                              class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"
-                              placeholder="Texte spécifique pour LinkedIn…"></textarea>
                 </div>
 
                 <div>
@@ -624,13 +617,20 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1" x-text="editForm.booster && isEditFacebookFi ? 'Date de début' : 'Date de publication'"></label>
-                        <input type="date" name="date_debut" x-model="editForm.date_debut" required
-                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
+                        <input type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" required
+                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"
+                               :value="escmDate.toDisplay(editForm.date_debut)"
+                               @change="editForm.date_debut = escmDate.toIso($event.target.value); $event.target.value = escmDate.toDisplay(editForm.date_debut)">
+                        <input type="hidden" name="date_debut" :value="editForm.date_debut">
                     </div>
                     <div x-show="isEditFacebookFi && editForm.booster" x-cloak>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Date de fin</label>
-                        <input type="date" name="date_fin" x-model="editForm.date_fin" :required="isEditFacebookFi && editForm.booster"
-                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
+                        <input type="text" inputmode="numeric" placeholder="JJ/MM/AAAA"
+                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"
+                               :required="isEditFacebookFi && editForm.booster"
+                               :value="escmDate.toDisplay(editForm.date_fin)"
+                               @change="editForm.date_fin = escmDate.toIso($event.target.value); $event.target.value = escmDate.toDisplay(editForm.date_fin)">
+                        <input type="hidden" name="date_fin" :value="editForm.date_fin">
                     </div>
                 </div>
 
@@ -646,20 +646,10 @@
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">
-                        Texte publication <span class="text-red-500">*</span>
+                        Texte publication
                     </label>
-                    <textarea name="texte_publication" x-model="editForm.texte_publication" rows="3" maxlength="5000" required
+                    <textarea name="texte_publication" x-model="editForm.texte_publication" rows="3" maxlength="5000"
                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"></textarea>
-                </div>
-
-                <div x-show="hasEditLinkedIn" x-cloak>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">
-                        Texte publication LinkedIn <span class="text-red-500">*</span>
-                    </label>
-                    <textarea name="texte_publication_linkedin" x-model="editForm.texte_publication_linkedin" rows="3" maxlength="5000"
-                              :required="hasEditLinkedIn"
-                              class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"
-                              placeholder="Texte spécifique pour LinkedIn…"></textarea>
                 </div>
 
                 <div>

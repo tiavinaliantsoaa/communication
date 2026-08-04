@@ -28,8 +28,8 @@
                     <td class="px-5 py-3 font-medium text-slate-900">{{ $campagne->nom }}</td>
                     <td class="px-3 py-3 text-slate-600 hidden md:table-cell">{{ $campagne->objectif ?? '—' }}</td>
                     <td class="px-3 py-3 text-right font-medium whitespace-nowrap">{{ format_ar($campagne->budget) }}</td>
-                    <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $campagne->date_debut?->format('d/m/Y') ?? '—' }}</td>
-                    <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $campagne->date_fin?->format('d/m/Y') ?? '—' }}</td>
+                    <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ format_date($campagne->date_debut) }}</td>
+                    <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ format_date($campagne->date_fin) }}</td>
                     <td class="px-3 py-3">
                         <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
                             {{ $campagne->statut === 'active' ? 'bg-blue-50 text-blue-700' : '' }}

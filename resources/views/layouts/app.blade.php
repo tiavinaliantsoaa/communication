@@ -9,6 +9,21 @@
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>[x-cloak]{display:none!important}</style>
+    <script>
+        window.escmDate = {
+            toIso(value) {
+                const m = String(value || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+                if (!m) return '';
+                return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+            },
+            toDisplay(value) {
+                if (!value) return '';
+                const p = String(value).substring(0, 10).split('-');
+                if (p.length !== 3) return '';
+                return p[2] + '/' + p[1] + '/' + p[0];
+            }
+        };
+    </script>
 </head>
 <body class="font-sans antialiased bg-slate-100" x-data="{ sidebarOpen: false }">
     <div class="flex min-h-screen">

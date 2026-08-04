@@ -9,6 +9,24 @@ if (! function_exists('format_ar')) {
     }
 }
 
+if (! function_exists('format_date')) {
+    /**
+     * Affichage date JJ/MM/AAAA (D/M/Y).
+     */
+    function format_date(mixed $date, string $fallback = '—'): string
+    {
+        if (blank($date)) {
+            return $fallback;
+        }
+
+        try {
+            return \Carbon\Carbon::parse($date)->format('d/m/Y');
+        } catch (\Throwable) {
+            return $fallback;
+        }
+    }
+}
+
 if (! function_exists('format_ar_short')) {
     /**
      * Compact amount with K / M / T suffixes.

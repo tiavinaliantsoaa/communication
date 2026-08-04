@@ -159,7 +159,6 @@ class CalendrierEditorialController extends Controller
 
         $isFacebookFi = in_array('facebook', $categories, true)
             && $request->input('type_contenu') === 'FI';
-        $hasLinkedIn = in_array('linkedin', $categories, true);
 
         $rules = [
             'titre' => ['required', 'string', 'max:255'],
@@ -171,8 +170,8 @@ class CalendrierEditorialController extends Controller
             'date_fin' => ['nullable', 'date', 'after_or_equal:date_debut'],
             'statut' => ['required', Rule::in(['planifie', 'en_cours', 'publie', 'annule'])],
             'valide' => ['nullable', 'boolean'],
-            'texte_publication' => ['required', 'string', 'max:5000'],
-            'texte_publication_linkedin' => [$hasLinkedIn ? 'required' : 'nullable', 'string', 'max:5000'],
+            'texte_publication' => ['nullable', 'string', 'max:5000'],
+            'texte_publication_linkedin' => ['nullable', 'string', 'max:5000'],
             'visuels' => ['nullable', 'array', 'max:'.EditorialEvent::MAX_VISUELS],
             'visuels.*' => ['file', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
             'remove_visuel_ids' => ['nullable', 'array'],
@@ -186,8 +185,6 @@ class CalendrierEditorialController extends Controller
         $validated = $request->validate($rules, [
             'categorie.required' => 'Sélectionnez au moins une catégorie.',
             'categorie.min' => 'Sélectionnez au moins une catégorie.',
-            'texte_publication.required' => 'Le texte de publication est obligatoire.',
-            'texte_publication_linkedin.required' => 'Le texte de publication LinkedIn est obligatoire.',
             'type_contenu.required' => 'Veuillez choisir FI ou FP.',
             'date_fin.required' => 'La date de fin est obligatoire lorsque Booster est activé.',
             'visuels.max' => 'Vous pouvez envoyer au maximum '.EditorialEvent::MAX_VISUELS.' images.',
@@ -211,9 +208,8 @@ class CalendrierEditorialController extends Controller
             $validated['date_fin'] = $validated['date_fin'] ?? null;
         }
 
-        if (! $hasLinkedIn) {
-            $validated['texte_publication_linkedin'] = null;
-        }
+        // Un seul champ texte pour toutes les catégories (y compris LinkedIn)
+        $validated['texte_publication_linkedin'] = null;
 
         return $validated;
     }
