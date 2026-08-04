@@ -1120,7 +1120,13 @@ function editorialCalendar(config) {
         buildDay(date) {
             const dateStr = fmt(date);
             const monthRef = parseDate(this.currentDate);
-            const all = this.visibleEvents.filter(e => e.date_debut <= dateStr && e.date_fin >= dateStr);
+            // Boosté : affiché uniquement au jour de début (date_fin = durée du boost, pas une barre multi-jours)
+            const all = this.visibleEvents.filter(e => {
+                if (e.booster) {
+                    return e.date_debut === dateStr;
+                }
+                return e.date_debut <= dateStr && e.date_fin >= dateStr;
+            });
             const max = this.maxEventsPerCell;
             return {
                 date: dateStr,

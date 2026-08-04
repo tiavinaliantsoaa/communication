@@ -69,23 +69,32 @@ class MetaInsightsService
         ]);
 
         $followersFb = (int) ($page['followers_count'] ?? $page['fan_count'] ?? 0);
-        $igUserId = $this->igUserId
-            ?: data_get($page, 'instagram_business_account.id');
+        $igUserId = ltrim((string) ($this->igUserId ?: data_get($page, 'instagram_business_account.id') ?: ''), '=');
 
+        $warnings = [];
         $followersIg = 0;
         $igPosts = [];
 
-        if ($igUserId) {
-            $ig = $this->get($igUserId, [
-                'fields' => 'followers_count,media_count,username',
-            ]);
-            $followersIg = (int) ($ig['followers_count'] ?? 0);
-            $igPosts = $this->fetchInstagramPosts($igUserId, $followersIg);
+        if ($igUserId !== '') {
+            try {
+                $ig = $this->get($igUserId, [
+                    'fields' => 'followers_count,media_count,username',
+                ]);
+                $followersIg = (int) ($ig['followers_count'] ?? 0);
+                $igPosts = $this->fetchInstagramPosts($igUserId, $followersIg);
+            } catch (\Throwable $e) {
+                Log::warning('Meta Insights IG: '.$e->getMessage());
+                $warnings[] = 'Instagram limité : ajoutez la permission instagram_basic (et régénérez un token Page).';
+            }
         }
 
         $fbPosts = $this->fetchFacebookPosts($followersFb);
+        if ($fbPosts === [] && $this->lastEngagementDenied) {
+            $warnings[] = 'Engagement Facebook limité : ajoutez pages_read_user_content puis régénérez le token Page.';
+        }
+
         $allPosts = collect($fbPosts)->merge($igPosts)
-            ->sortByDesc('likes')
+            ->sortByDesc(fn (array $p) => [$p['likes'] + $p['commentaires'] + $p['partages'], $p['date']])
             ->take(10)
             ->values()
             ->all();
@@ -101,7 +110,7 @@ class MetaInsightsService
 
         return [
             'api_connected' => true,
-            'error' => null,
+            'error' => $warnings === [] ? null : implode(' ', $warnings),
             'kpis' => [
                 'followers_fb' => $followersFb,
                 'followers_ig' => $followersIg,
@@ -114,16 +123,34 @@ class MetaInsightsService
         ];
     }
 
+    protected bool $lastEngagementDenied = false;
+
     protected function fetchFacebookPosts(int $followers): array
     {
-        $response = $this->get($this->pageId.'/posts', [
-            'fields' => 'message,created_time,shares,likes.summary(true),comments.summary(true)',
-            'limit' => 50,
-        ]);
+        $this->lastEngagementDenied = false;
+
+        // likes/comments need pages_read_user_content — try rich fields, then fallback.
+        try {
+            $response = $this->get($this->pageId.'/posts', [
+                'fields' => 'message,created_time,shares,reactions.summary(true),comments.summary(true)',
+                'limit' => 50,
+            ]);
+        } catch (\Throwable $e) {
+            $this->lastEngagementDenied = true;
+            Log::info('Meta Insights FB engagement fields unavailable, fallback: '.$e->getMessage());
+            $response = $this->get($this->pageId.'/posts', [
+                'fields' => 'message,created_time,shares',
+                'limit' => 50,
+            ]);
+        }
 
         $posts = [];
         foreach ($response['data'] ?? [] as $item) {
-            $likes = (int) data_get($item, 'likes.summary.total_count', 0);
+            $likes = (int) (
+                data_get($item, 'reactions.summary.total_count')
+                ?? data_get($item, 'likes.summary.total_count')
+                ?? 0
+            );
             $comments = (int) data_get($item, 'comments.summary.total_count', 0);
             $shares = (int) data_get($item, 'shares.count', 0);
             $interactions = $likes + $comments + $shares;

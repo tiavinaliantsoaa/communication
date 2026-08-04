@@ -12,6 +12,9 @@
     <div>
         <p class="font-semibold">Meta Graph API connectée</p>
         <p class="mt-0.5 text-emerald-700">Données Facebook & Instagram synchronisées (cache {{ (int) config('services.meta.cache_ttl', 1800) / 60 }} min).</p>
+        @if(!empty($apiError))
+            <p class="mt-2 text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">{{ $apiError }}</p>
+        @endif
     </div>
 </div>
 @else
