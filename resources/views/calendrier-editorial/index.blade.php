@@ -458,20 +458,13 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1" x-text="form.booster && isFacebookFi ? 'Date de début' : 'Date de publication'"></label>
-                        <input type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" required
-                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"
-                               :value="escmDate.toDisplay(form.date_debut)"
-                               @change="form.date_debut = escmDate.toIso($event.target.value); $event.target.value = escmDate.toDisplay(form.date_debut)">
-                        <input type="hidden" name="date_debut" :value="form.date_debut">
+                        <input type="date" name="date_debut" x-model="form.date_debut" required
+                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
                     </div>
                     <div x-show="isFacebookFi && form.booster" x-cloak>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Date de fin</label>
-                        <input type="text" inputmode="numeric" placeholder="JJ/MM/AAAA"
-                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"
-                               :required="isFacebookFi && form.booster"
-                               :value="escmDate.toDisplay(form.date_fin)"
-                               @change="form.date_fin = escmDate.toIso($event.target.value); $event.target.value = escmDate.toDisplay(form.date_fin)">
-                        <input type="hidden" name="date_fin" :value="form.date_fin">
+                        <input type="date" name="date_fin" x-model="form.date_fin" :required="isFacebookFi && form.booster"
+                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
                     </div>
                 </div>
 
@@ -617,20 +610,13 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1" x-text="editForm.booster && isEditFacebookFi ? 'Date de début' : 'Date de publication'"></label>
-                        <input type="text" inputmode="numeric" placeholder="JJ/MM/AAAA" required
-                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"
-                               :value="escmDate.toDisplay(editForm.date_debut)"
-                               @change="editForm.date_debut = escmDate.toIso($event.target.value); $event.target.value = escmDate.toDisplay(editForm.date_debut)">
-                        <input type="hidden" name="date_debut" :value="editForm.date_debut">
+                        <input type="date" name="date_debut" x-model="editForm.date_debut" required
+                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
                     </div>
                     <div x-show="isEditFacebookFi && editForm.booster" x-cloak>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Date de fin</label>
-                        <input type="text" inputmode="numeric" placeholder="JJ/MM/AAAA"
-                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"
-                               :required="isEditFacebookFi && editForm.booster"
-                               :value="escmDate.toDisplay(editForm.date_fin)"
-                               @change="editForm.date_fin = escmDate.toIso($event.target.value); $event.target.value = escmDate.toDisplay(editForm.date_fin)">
-                        <input type="hidden" name="date_fin" :value="editForm.date_fin">
+                        <input type="date" name="date_fin" x-model="editForm.date_fin" :required="isEditFacebookFi && editForm.booster"
+                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
                     </div>
                 </div>
 

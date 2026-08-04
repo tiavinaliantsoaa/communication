@@ -46,7 +46,8 @@
     </div>
     <div>
         <label class="block text-sm font-medium text-slate-700 mb-1.5">Date</label>
-        <x-date-input name="date_mouvement" :value="old('date_mouvement', $mouvement?->date_mouvement?->format('Y-m-d') ?? now()->format('Y-m-d'))" required />
+        <input type="date" name="date_mouvement" value="{{ old('date_mouvement', $mouvement?->date_mouvement?->format('Y-m-d') ?? now()->format('Y-m-d')) }}" required
+               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
         @error('date_mouvement')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
     </div>
 </div>
