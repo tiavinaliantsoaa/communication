@@ -212,7 +212,7 @@
                                         <template x-for="ev in day.events" :key="ev.id + '-' + day.date">
                                             <button
                                                 type="button"
-                                                @click.stop="selectedEvent = ev"
+                                                @click.stop="texteCopied = false; selectedEvent = ev"
                                                 class="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium truncate leading-tight shadow-sm hover:opacity-90 transition-opacity"
                                                 :style="`background:${ev.color};color:${ev.text}`"
                                                 :title="ev.titre + (ev.type_contenu ? ' [' + ev.type_contenu + ']' : '') + (ev.booster ? ' · Booster' : '')"
@@ -242,7 +242,7 @@
                         </template>
                         <template x-for="ev in visibleEvents" :key="'list-'+ev.id">
                             <div class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50">
-                                <button type="button" @click="selectedEvent = ev" class="flex items-start gap-3 min-w-0 flex-1 text-left">
+                                <button type="button" @click="texteCopied = false; selectedEvent = ev" class="flex items-start gap-3 min-w-0 flex-1 text-left">
                                     <span class="mt-1 w-3 h-3 rounded-sm shrink-0" :style="`background:${ev.color}`"></span>
                                     <div class="min-w-0 flex-1">
                                         <div class="text-sm font-semibold text-slate-800 truncate" x-text="ev.titre"></div>
@@ -325,7 +325,17 @@
                         <div class="flex gap-2"><dt class="text-slate-500 w-28 shrink-0">Validé</dt><dd class="text-slate-800" x-text="selectedEvent.valide ? 'Oui' : 'Non'"></dd></div>
                         <div class="flex gap-2" x-show="selectedEvent.texte_publication">
                             <dt class="text-slate-500 w-28 shrink-0">Texte publication</dt>
-                            <dd class="text-slate-800 whitespace-pre-wrap" x-text="selectedEvent.texte_publication"></dd>
+                            <dd class="min-w-0 flex-1">
+                                <div class="text-slate-800 whitespace-pre-wrap" x-text="selectedEvent.texte_publication"></div>
+                                <button
+                                    type="button"
+                                    @click="copyTextePublication()"
+                                    class="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                                >
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                    <span x-text="texteCopied ? 'Copié !' : 'Copier'"></span>
+                                </button>
+                            </dd>
                         </div>
                         <div class="flex gap-2" x-show="(selectedEvent.visuels && selectedEvent.visuels.length) || selectedEvent.visuel_url">
                             <dt class="text-slate-500 w-28 shrink-0">Visuel</dt>
@@ -834,6 +844,7 @@ function editorialCalendar(config) {
         today: config.today,
         categoryFilter: '',
         selectedEvent: null,
+        texteCopied: false,
         showCreate: !!config.openCreate,
         showEdit: false,
         editingEvent: null,
@@ -1118,6 +1129,31 @@ function editorialCalendar(config) {
         formatDate(dateStr) {
             const d = parseDate(dateStr);
             return `${d.getDate()} ${frMonths[d.getMonth()]} ${d.getFullYear()}`;
+        },
+
+        async copyTextePublication() {
+            const text = this.selectedEvent?.texte_publication || '';
+            if (!text) return;
+            try {
+                if (navigator.clipboard?.writeText) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.setAttribute('readonly', '');
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                this.texteCopied = true;
+                clearTimeout(this._copyTimer);
+                this._copyTimer = setTimeout(() => { this.texteCopied = false; }, 2000);
+            } catch (e) {
+                alert('Impossible de copier le texte.');
+            }
         },
 
         statutLabel(key) {
