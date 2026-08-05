@@ -287,14 +287,14 @@
     <div
         x-show="selectedEvent"
         x-cloak
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6"
         @keydown.escape.window="if (lightbox.open) { closeLightbox(); return; } if (!showCreate && !showEdit) selectedEvent = null"
     >
         <div class="absolute inset-0 bg-black/40" @click="selectedEvent = null"></div>
-        <div class="relative bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg p-5" x-show="selectedEvent" x-transition>
+        <div class="relative bg-white rounded-xl shadow-xl border border-slate-200 w-full max-w-lg my-4 sm:my-8 max-h-[min(90vh,900px)] flex flex-col overflow-hidden" x-show="selectedEvent" x-transition>
             <template x-if="selectedEvent">
-                <div>
-                    <div class="flex items-start justify-between gap-3 mb-3">
+                <div class="flex flex-col min-h-0 max-h-[min(90vh,900px)]">
+                    <div class="flex items-start justify-between gap-3 px-5 pt-5 pb-3 shrink-0">
                         <div class="flex items-center gap-2 min-w-0">
                             <span class="w-3.5 h-3.5 rounded-sm shrink-0" :style="`background:${selectedEvent.color}`"></span>
                             <h3 class="text-base font-bold text-slate-900 truncate" x-text="selectedEvent.titre"></h3>
@@ -303,7 +303,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>
-                    <dl class="space-y-2 text-sm">
+                    <dl class="space-y-2 text-sm px-5 overflow-y-auto flex-1 min-h-0 overscroll-contain">
                         <div class="flex gap-2">
                             <dt class="text-slate-500 w-28 shrink-0">Catégorie</dt>
                             <dd class="text-slate-800">
@@ -326,7 +326,7 @@
                         <div class="flex gap-2" x-show="selectedEvent.texte_publication">
                             <dt class="text-slate-500 w-28 shrink-0">Texte publication</dt>
                             <dd class="min-w-0 flex-1">
-                                <div class="text-slate-800 whitespace-pre-wrap" x-text="selectedEvent.texte_publication"></div>
+                                <div class="text-slate-800 whitespace-pre-wrap break-words [overflow-wrap:anywhere]" x-text="selectedEvent.texte_publication"></div>
                                 <button
                                     type="button"
                                     @click="copyTextePublication()"
@@ -337,7 +337,7 @@
                                 </button>
                             </dd>
                         </div>
-                        <div class="flex gap-2" x-show="(selectedEvent.visuels && selectedEvent.visuels.length) || selectedEvent.visuel_url">
+                        <div class="flex gap-2 pb-2" x-show="(selectedEvent.visuels && selectedEvent.visuels.length) || selectedEvent.visuel_url">
                             <dt class="text-slate-500 w-28 shrink-0">Visuel</dt>
                             <dd class="flex-1 min-w-0">
                                 <div
@@ -358,7 +358,7 @@
                             </dd>
                         </div>
                     </dl>
-                    <div class="mt-5 flex items-center justify-end gap-2 border-t border-slate-100 pt-4">
+                    <div class="px-5 pb-5 mt-2 flex items-center justify-end gap-2 border-t border-slate-100 pt-4 shrink-0 bg-white">
                         <button type="button" @click="selectedEvent = null" class="px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg">
                             Fermer
                         </button>
