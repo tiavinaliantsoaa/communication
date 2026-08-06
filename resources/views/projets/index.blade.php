@@ -407,7 +407,7 @@
                                         rows="3"
                                         placeholder="Écrivez un commentaire… Utilisez @ pour mentionner"
                                         class="w-full rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary"
-                                        required
+                                        :required="!commentImageFiles.length"
                                     ></textarea>
                                     <div
                                         x-show="mentionOpen && mentionSuggestions.length"
@@ -433,8 +433,25 @@
                                         </template>
                                     </div>
                                 </div>
-                                <p class="text-[11px] text-slate-400">Astuce : tapez <span class="font-semibold text-slate-600">@</span> puis le nom d’utilisateur pour mentionner quelqu’un.</p>
-                                <button type="submit" class="rounded-lg bg-escm-primary text-white text-xs font-semibold px-4 py-2">Envoyer</button>
+                                <div x-show="commentImagePreviews.length" x-cloak class="flex flex-wrap gap-2">
+                                    <template x-for="(p, idx) in commentImagePreviews" :key="'cip'+idx">
+                                        <div class="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200 bg-white">
+                                            <img :src="p" alt="" class="h-full w-full object-cover">
+                                            <button type="button" @click="removeCommentImage(idx)" class="absolute top-0.5 right-0.5 rounded bg-black/60 text-white text-[10px] leading-none px-1 py-0.5">×</button>
+                                        </div>
+                                    </template>
+                                </div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <label class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                            Image
+                                            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple class="hidden" @change="onCommentImagesSelected($event)">
+                                        </label>
+                                        <p class="text-[11px] text-slate-400 hidden sm:block">@ pour mentionner · max 5 images</p>
+                                    </div>
+                                    <button type="submit" class="rounded-lg bg-escm-primary text-white text-xs font-semibold px-4 py-2">Envoyer</button>
+                                </div>
                             </form>
 
                             <div class="space-y-4 max-h-[28rem] overflow-y-auto overflow-x-hidden pr-1">
@@ -473,12 +490,52 @@
                                                 </div>
                                             </template>
 
-                                            <div
-                                                x-show="editingCommentId !== c.id"
-                                                class="mt-1 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700"
-                                                style="white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; max-width: 100%;"
-                                                x-html="formatCommentHtml(c.contenu)"
-                                            ></div>
+                                            <div x-show="editingCommentId !== c.id" class="mt-1 space-y-2">
+                                                <div
+                                                    x-show="c.contenu"
+                                                    class="rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700"
+                                                    style="white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; max-width: 100%;"
+                                                    x-html="formatCommentHtml(c.contenu)"
+                                                ></div>
+                                                <div x-show="c.images && c.images.length" class="flex flex-wrap gap-1.5">
+                                                    <template x-for="img in (c.images || [])" :key="'cimg'+img.id">
+                                                        <button type="button" @click="openCommentLightbox(c.images, img)" class="block h-20 w-20 rounded-lg overflow-hidden border border-slate-200 bg-white hover:opacity-90">
+                                                            <img :src="img.url" :alt="img.nom || ''" class="h-full w-full object-cover">
+                                                        </button>
+                                                    </template>
+                                                </div>
+                                                <div class="flex flex-wrap items-center gap-1.5">
+                                                    <template x-for="r in (c.reactions || [])" :key="'rx'+c.id+r.emoji">
+                                                        <button
+                                                            type="button"
+                                                            @click="toggleReaction(c, r.emoji)"
+                                                            class="inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors"
+                                                            :class="r.reacted ? 'border-escm-primary bg-blue-50 text-escm-primary' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
+                                                        >
+                                                            <span x-text="r.emoji"></span>
+                                                            <span class="font-semibold" x-text="r.count"></span>
+                                                        </button>
+                                                    </template>
+                                                    <div class="relative">
+                                                        <button
+                                                            type="button"
+                                                            @click.stop="reactionPickerFor = reactionPickerFor === c.id ? null : c.id"
+                                                            class="inline-flex items-center justify-center h-7 w-7 rounded-full border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 text-sm"
+                                                            title="Réagir"
+                                                        >☺</button>
+                                                        <div
+                                                            x-show="reactionPickerFor === c.id"
+                                                            x-cloak
+                                                            @click.outside="reactionPickerFor = null"
+                                                            class="absolute left-0 bottom-full mb-1 z-20 flex gap-0.5 rounded-lg border border-slate-200 bg-white p-1 shadow-lg"
+                                                        >
+                                                            <template x-for="emoji in reactionEmojis" :key="'pick'+c.id+emoji">
+                                                                <button type="button" class="h-8 w-8 rounded hover:bg-slate-100 text-base" @click="toggleReaction(c, emoji); reactionPickerFor = null" x-text="emoji"></button>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </template>
@@ -498,6 +555,20 @@
                     </div>
                 </div>
             </template>
+        </div>
+    </div>
+
+    {{-- Lightbox images commentaire --}}
+    <div
+        x-show="commentLightbox.open"
+        x-cloak
+        class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/80 p-4"
+        @keydown.escape.window="if (commentLightbox.open) closeCommentLightbox()"
+    >
+        <div class="absolute inset-0" @click="closeCommentLightbox()"></div>
+        <div class="relative max-w-4xl w-full max-h-[90vh] flex flex-col items-center gap-3">
+            <img :src="commentLightbox.url" alt="" class="max-h-[80vh] max-w-full rounded-lg object-contain shadow-2xl">
+            <a :href="commentLightbox.url" target="_blank" class="text-sm font-medium text-white/90 hover:underline">Ouvrir l’image</a>
         </div>
     </div>
 </div>
@@ -527,6 +598,7 @@ function projetBoard() {
         destroyItem: (id) => @json(url('/gestion-projet/checklist-items')).replace(/\/$/, '') + '/' + id,
         commentaires: (id) => @json(url('/gestion-projet/cartes')).replace(/\/$/, '') + '/' + id + '/commentaires',
         updateCommentaire: (id) => @json(url('/gestion-projet/commentaires')).replace(/\/$/, '') + '/' + id,
+        reactCommentaire: (id) => @json(url('/gestion-projet/commentaires')).replace(/\/$/, '') + '/' + id + '/reactions',
         pieces: (id) => @json(url('/gestion-projet/cartes')).replace(/\/$/, '') + '/' + id + '/pieces-jointes',
         destroyPiece: (id) => @json(url('/gestion-projet/pieces-jointes')).replace(/\/$/, '') + '/' + id,
     };
@@ -539,8 +611,13 @@ function projetBoard() {
         showLabels: false,
         showAttach: false,
         newComment: '',
+        commentImageFiles: [],
+        commentImagePreviews: [],
         editingCommentId: null,
         editingCommentText: '',
+        reactionPickerFor: null,
+        reactionEmojis: @json(\App\Models\ProjetCommentaireReaction::EMOJIS),
+        commentLightbox: { open: false, url: '' },
         attachUrl: '',
         availableLabels: @json($etiquettes->map->toBoardArray()->values()),
         mentionUsers: @json($mentionUsers ?? []),
@@ -597,7 +674,8 @@ function projetBoard() {
             const res = await fetch(url, { ...options, headers, body: options.json ? JSON.stringify(options.json) : options.body });
             if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
-                throw new Error(err.message || 'Erreur serveur');
+                const firstValidation = err.errors ? Object.values(err.errors).flat()[0] : null;
+                throw new Error(firstValidation || err.message || 'Erreur serveur');
             }
             return res.status === 204 ? {} : res.json();
         },
@@ -668,6 +746,8 @@ function projetBoard() {
             this.showLabels = false;
             this.showAttach = false;
             this.newComment = '';
+            this.clearCommentImages();
+            this.reactionPickerFor = null;
             this.cancelEditComment();
             this.mentionOpen = false;
             this.mentionQuery = '';
@@ -684,6 +764,8 @@ function projetBoard() {
         closeCard() {
             this.open = false;
             this.card = null;
+            this.clearCommentImages();
+            this.reactionPickerFor = null;
             this.cancelEditComment();
         },
 
@@ -758,19 +840,53 @@ function projetBoard() {
         },
 
         async addComment() {
-            if (!this.newComment.trim()) return;
+            if (!this.newComment.trim() && !this.commentImageFiles.length) return;
             this.mentionOpen = false;
-            const res = await this.request(routes.commentaires(this.card.id), {
-                method: 'POST',
-                json: { contenu: this.newComment },
+            const fd = new FormData();
+            if (this.newComment.trim()) {
+                fd.append('contenu', this.newComment.trim());
+            }
+            this.commentImageFiles.forEach((file) => fd.append('images[]', file));
+            try {
+                const res = await this.request(routes.commentaires(this.card.id), {
+                    method: 'POST',
+                    body: fd,
+                });
+                this.card.commentaires.unshift(res.commentaire);
+                this.newComment = '';
+                this.clearCommentImages();
+            } catch (e) {
+                alert(e.message);
+            }
+        },
+
+        onCommentImagesSelected(event) {
+            const files = Array.from(event.target.files || []);
+            event.target.value = '';
+            const remaining = 5 - this.commentImageFiles.length;
+            files.slice(0, remaining).forEach((file) => {
+                this.commentImageFiles.push(file);
+                this.commentImagePreviews.push(URL.createObjectURL(file));
             });
-            this.card.commentaires.unshift(res.commentaire);
-            this.newComment = '';
+        },
+
+        removeCommentImage(idx) {
+            const url = this.commentImagePreviews[idx];
+            if (url) URL.revokeObjectURL(url);
+            this.commentImageFiles.splice(idx, 1);
+            this.commentImagePreviews.splice(idx, 1);
+        },
+
+        clearCommentImages() {
+            this.commentImagePreviews.forEach((url) => URL.revokeObjectURL(url));
+            this.commentImageFiles = [];
+            this.commentImagePreviews = [];
         },
 
         startEditComment(c) {
             this.editingCommentId = c.id;
             this.editingCommentText = c.contenu || '';
+            this.reactionPickerFor = null;
         },
 
         cancelEditComment() {
@@ -780,7 +896,7 @@ function projetBoard() {
 
         async saveEditComment(c) {
             const contenu = (this.editingCommentText || '').trim();
-            if (!contenu) return;
+            if (!contenu && !(c.images && c.images.length)) return;
             const res = await this.request(routes.updateCommentaire(c.id), {
                 method: 'PATCH',
                 json: { contenu },
@@ -790,6 +906,29 @@ function projetBoard() {
                 this.card.commentaires[idx] = { ...this.card.commentaires[idx], ...res.commentaire };
             }
             this.cancelEditComment();
+        },
+
+        async toggleReaction(c, emoji) {
+            try {
+                const res = await this.request(routes.reactCommentaire(c.id), {
+                    method: 'POST',
+                    json: { emoji },
+                });
+                const idx = this.card.commentaires.findIndex((item) => item.id === c.id);
+                if (idx !== -1) {
+                    this.card.commentaires[idx] = { ...this.card.commentaires[idx], ...res.commentaire };
+                }
+            } catch (e) {
+                alert(e.message);
+            }
+        },
+
+        openCommentLightbox(images, img) {
+            this.commentLightbox = { open: true, url: img.url };
+        },
+
+        closeCommentLightbox() {
+            this.commentLightbox = { open: false, url: '' };
         },
 
         onCommentInput(event) {

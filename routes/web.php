@@ -62,6 +62,8 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/checklist-items/{item}', [ProjetController::class, 'destroyChecklistItem'])->name('checklist-items.destroy');
         Route::post('/cartes/{projet}/commentaires', [ProjetController::class, 'storeCommentaire'])->name('cartes.commentaires');
         Route::patch('/commentaires/{commentaire}', [ProjetController::class, 'updateCommentaire'])->name('commentaires.update');
+        Route::post('/commentaires/{commentaire}/reactions', [ProjetController::class, 'toggleCommentaireReaction'])->name('commentaires.reactions');
+        Route::delete('/commentaire-images/{image}', [ProjetController::class, 'destroyCommentaireImage'])->name('commentaire-images.destroy');
         Route::post('/cartes/{projet}/pieces-jointes', [ProjetController::class, 'storePieceJointe'])->name('cartes.pieces');
         Route::delete('/pieces-jointes/{piece}', [ProjetController::class, 'destroyPieceJointe'])->name('pieces.destroy');
     });

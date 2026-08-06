@@ -7,6 +7,7 @@ use App\Models\ProjetCarte;
 use App\Models\ProjetChecklist;
 use App\Models\ProjetChecklistItem;
 use App\Models\ProjetCommentaire;
+use App\Models\ProjetCommentaireImage;
 use App\Models\ProjetListe;
 use App\Models\ProjetEtiquette;
 use App\Models\ProjetPieceJointe;
@@ -196,6 +197,8 @@ class ProjetController extends Controller
             'membres',
             'checklists.items',
             'commentaires.user',
+            'commentaires.images',
+            'commentaires.reactions',
             'piecesJointes',
             'activites.user',
             'createur',
@@ -236,16 +239,7 @@ class ProjetController extends Controller
                     'fait' => $i->fait,
                 ]),
             ]),
-            'commentaires' => $projet->commentaires->map(fn ($c) => [
-                'id' => $c->id,
-                'contenu' => $c->contenu,
-                'user_id' => $c->user_id,
-                'user' => $c->user?->name,
-                'initials' => $c->user?->initials(),
-                'avatar_url' => $c->user?->avatar_url,
-                'date' => $c->created_at->locale('fr')->isoFormat('D MMM YYYY, HH:mm'),
-                'can_edit' => (int) $c->user_id === (int) auth()->id(),
-            ]),
+            'commentaires' => $projet->commentaires->map(fn ($c) => $this->serializeCommentaire($c)),
             'pieces_jointes' => $projet->piecesJointes->map(fn ($p) => [
                 'id' => $p->id,
                 'nom' => $p->nom,
@@ -485,19 +479,46 @@ class ProjetController extends Controller
     public function storeCommentaire(Request $request, ProjetCarte $projet)
     {
         $data = $request->validate([
-            'contenu' => ['required', 'string'],
+            'contenu' => ['nullable', 'string'],
+            'images' => ['nullable', 'array', 'max:5'],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
         ]);
 
-        $commentaire = $projet->commentaires()->create([
-            'user_id' => $request->user()->id,
-            'contenu' => $data['contenu'],
-        ]);
+        $contenu = trim((string) ($data['contenu'] ?? ''));
+        $files = $request->file('images', []);
+        if (! is_array($files)) {
+            $files = array_filter([$files]);
+        }
 
-        $extrait = mb_strlen($data['contenu']) > 80
-            ? mb_substr($data['contenu'], 0, 80).'…'
-            : $data['contenu'];
+        if ($contenu === '' && count($files) === 0) {
+            return response()->json(['ok' => false, 'message' => 'Ajoutez un texte ou une image.'], 422);
+        }
 
         $actor = $request->user();
+
+        $commentaire = $projet->commentaires()->create([
+            'user_id' => $actor->id,
+            'contenu' => $contenu,
+        ]);
+
+        foreach (array_values($files) as $index => $file) {
+            if (! $file) {
+                continue;
+            }
+            $path = $file->store('projets/'.$projet->id.'/commentaires', 'public');
+            $commentaire->images()->create([
+                'path' => $path,
+                'nom' => $file->getClientOriginalName(),
+                'ordre' => $index,
+            ]);
+        }
+
+        $commentaire->load(['user', 'images', 'reactions']);
+
+        $extrait = $contenu !== ''
+            ? (mb_strlen($contenu) > 80 ? mb_substr($contenu, 0, 80).'…' : $contenu)
+            : 'image(s)';
+
         $message = $actor->name.' a commenté sur « '.$projet->titre.' » : '.$extrait;
 
         ProjetActivite::create([
@@ -516,7 +537,7 @@ class ProjetController extends Controller
             $projet
         );
 
-        preg_match_all('/@([a-zA-Z0-9._-]+)/u', $data['contenu'], $matches);
+        preg_match_all('/@([a-zA-Z0-9._-]+)/u', $contenu, $matches);
         $mentioned = User::findByMentionHandles($matches[1] ?? []);
         $mentionedIds = $mentioned->pluck('id')->map(fn ($id) => (int) $id)->all();
 
@@ -552,16 +573,7 @@ class ProjetController extends Controller
 
         return response()->json([
             'ok' => true,
-            'commentaire' => [
-                'id' => $commentaire->id,
-                'contenu' => $commentaire->contenu,
-                'user_id' => $actor->id,
-                'user' => $actor->name,
-                'initials' => $actor->initials(),
-                'avatar_url' => $actor->avatar_url,
-                'date' => $commentaire->created_at->locale('fr')->isoFormat('D MMM YYYY, HH:mm'),
-                'can_edit' => true,
-            ],
+            'commentaire' => $this->serializeCommentaire($commentaire),
         ]);
     }
 
@@ -572,26 +584,103 @@ class ProjetController extends Controller
         }
 
         $data = $request->validate([
-            'contenu' => ['required', 'string'],
+            'contenu' => ['nullable', 'string'],
         ]);
 
+        $contenu = trim((string) ($data['contenu'] ?? ''));
+        $commentaire->loadMissing('images');
+
+        if ($contenu === '' && $commentaire->images->isEmpty()) {
+            return response()->json(['ok' => false, 'message' => 'Le commentaire ne peut pas être vide.'], 422);
+        }
+
         $commentaire->update([
-            'contenu' => $data['contenu'],
+            'contenu' => $contenu,
         ]);
+
+        $commentaire->load(['user', 'images', 'reactions']);
 
         return response()->json([
             'ok' => true,
-            'commentaire' => [
-                'id' => $commentaire->id,
-                'contenu' => $commentaire->contenu,
-                'user_id' => $commentaire->user_id,
-                'user' => $commentaire->user?->name ?? $request->user()->name,
-                'initials' => $commentaire->user?->initials() ?? $request->user()->initials(),
-                'avatar_url' => $commentaire->user?->avatar_url ?? $request->user()->avatar_url,
-                'date' => $commentaire->created_at->locale('fr')->isoFormat('D MMM YYYY, HH:mm'),
-                'can_edit' => true,
-            ],
+            'commentaire' => $this->serializeCommentaire($commentaire),
         ]);
+    }
+
+    public function toggleCommentaireReaction(Request $request, ProjetCommentaire $commentaire)
+    {
+        $data = $request->validate([
+            'emoji' => ['required', 'string', Rule::in(\App\Models\ProjetCommentaireReaction::EMOJIS)],
+        ]);
+
+        $existing = $commentaire->reactions()
+            ->where('user_id', $request->user()->id)
+            ->where('emoji', $data['emoji'])
+            ->first();
+
+        if ($existing) {
+            $existing->delete();
+        } else {
+            $commentaire->reactions()->create([
+                'user_id' => $request->user()->id,
+                'emoji' => $data['emoji'],
+            ]);
+        }
+
+        $commentaire->load(['user', 'images', 'reactions']);
+
+        return response()->json([
+            'ok' => true,
+            'commentaire' => $this->serializeCommentaire($commentaire),
+        ]);
+    }
+
+    public function destroyCommentaireImage(Request $request, ProjetCommentaireImage $image)
+    {
+        $commentaire = $image->commentaire;
+        if (! $commentaire || (int) $commentaire->user_id !== (int) $request->user()->id) {
+            return response()->json(['ok' => false, 'message' => 'Action non autorisée.'], 403);
+        }
+
+        Storage::disk('public')->delete($image->path);
+        $image->delete();
+
+        $commentaire->load(['user', 'images', 'reactions']);
+
+        return response()->json([
+            'ok' => true,
+            'commentaire' => $this->serializeCommentaire($commentaire),
+        ]);
+    }
+
+    private function serializeCommentaire(ProjetCommentaire $commentaire): array
+    {
+        $commentaire->loadMissing(['user', 'images', 'reactions']);
+        $authId = (int) auth()->id();
+
+        $reactions = $commentaire->reactions
+            ->groupBy('emoji')
+            ->map(function ($group, $emoji) use ($authId) {
+                return [
+                    'emoji' => $emoji,
+                    'count' => $group->count(),
+                    'reacted' => $group->contains(fn ($r) => (int) $r->user_id === $authId),
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'id' => $commentaire->id,
+            'contenu' => $commentaire->contenu,
+            'user_id' => $commentaire->user_id,
+            'user' => $commentaire->user?->name,
+            'initials' => $commentaire->user?->initials(),
+            'avatar_url' => $commentaire->user?->avatar_url,
+            'date' => $commentaire->created_at?->locale('fr')->isoFormat('D MMM YYYY, HH:mm'),
+            'can_edit' => (int) $commentaire->user_id === $authId,
+            'images' => $commentaire->images->map->toArrayPayload()->values()->all(),
+            'reactions' => $reactions,
+        ];
     }
 
     public function storePieceJointe(Request $request, ProjetCarte $projet)
