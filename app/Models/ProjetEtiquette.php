@@ -11,12 +11,54 @@ class ProjetEtiquette extends Model
     protected $table = 'projet_etiquettes';
 
     public const COULEURS = [
-        'yellow' => ['bg' => 'bg-yellow-400', 'text' => 'text-yellow-900', 'badge' => 'bg-yellow-100 text-yellow-800'],
-        'blue' => ['bg' => 'bg-blue-500', 'text' => 'text-white', 'badge' => 'bg-blue-100 text-blue-800'],
-        'red' => ['bg' => 'bg-red-500', 'text' => 'text-white', 'badge' => 'bg-red-100 text-red-800'],
-        'green' => ['bg' => 'bg-emerald-500', 'text' => 'text-white', 'badge' => 'bg-emerald-100 text-emerald-800'],
-        'cyan' => ['bg' => 'bg-cyan-400', 'text' => 'text-cyan-900', 'badge' => 'bg-cyan-100 text-cyan-800'],
-        'purple' => ['bg' => 'bg-purple-500', 'text' => 'text-white', 'badge' => 'bg-purple-100 text-purple-800'],
+        'yellow' => [
+            'bg' => 'bg-yellow-400',
+            'text' => 'text-yellow-900',
+            'badge' => 'bg-yellow-100 text-yellow-800',
+            'hex_bg' => '#fef08a',
+            'hex_text' => '#713f12',
+            'hex_bar' => '#facc15',
+        ],
+        'blue' => [
+            'bg' => 'bg-blue-500',
+            'text' => 'text-white',
+            'badge' => 'bg-blue-100 text-blue-800',
+            'hex_bg' => '#dbeafe',
+            'hex_text' => '#1e40af',
+            'hex_bar' => '#3b82f6',
+        ],
+        'red' => [
+            'bg' => 'bg-red-500',
+            'text' => 'text-white',
+            'badge' => 'bg-red-100 text-red-800',
+            'hex_bg' => '#fee2e2',
+            'hex_text' => '#991b1b',
+            'hex_bar' => '#ef4444',
+        ],
+        'green' => [
+            'bg' => 'bg-emerald-500',
+            'text' => 'text-white',
+            'badge' => 'bg-emerald-100 text-emerald-800',
+            'hex_bg' => '#d1fae5',
+            'hex_text' => '#065f46',
+            'hex_bar' => '#10b981',
+        ],
+        'cyan' => [
+            'bg' => 'bg-cyan-400',
+            'text' => 'text-cyan-900',
+            'badge' => 'bg-cyan-100 text-cyan-800',
+            'hex_bg' => '#cffafe',
+            'hex_text' => '#155e75',
+            'hex_bar' => '#22d3ee',
+        ],
+        'purple' => [
+            'bg' => 'bg-purple-500',
+            'text' => 'text-white',
+            'badge' => 'bg-purple-100 text-purple-800',
+            'hex_bg' => '#f3e8ff',
+            'hex_text' => '#6b21a8',
+            'hex_bar' => '#a855f7',
+        ],
     ];
 
     protected $fillable = ['nom', 'couleur'];

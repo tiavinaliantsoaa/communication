@@ -280,7 +280,10 @@
                                 <p class="text-[11px] text-slate-500">Cochez pour les assigner à cette carte.</p>
                                 <div class="space-y-1">
                                     <template x-for="etiquette in availableLabels" :key="etiquette.id">
-                                        <label class="flex items-center gap-2 text-sm cursor-pointer rounded px-2 py-1.5" :class="etiquette.classes.badge">
+                                        <label
+                                            class="flex items-center gap-2 text-sm cursor-pointer rounded px-2 py-1.5 font-medium"
+                                            :style="`background:${etiquette.classes.hex_bg};color:${etiquette.classes.hex_text}`"
+                                        >
                                             <input type="checkbox"
                                                    :checked="card.etiquettes.some(e => e.id === etiquette.id)"
                                                    @change="toggleLabel(etiquette.id)">
@@ -329,7 +332,11 @@
                                     <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Étiquettes</p>
                                     <div class="flex flex-wrap gap-1.5">
                                         <template x-for="e in card.etiquettes" :key="e.id">
-                                            <span class="inline-flex rounded px-2 py-0.5 text-xs font-semibold" :class="e.classes.badge" x-text="e.nom"></span>
+                                            <span
+                                                class="inline-flex rounded px-2 py-0.5 text-xs font-semibold"
+                                                :style="`background:${(e.classes && e.classes.hex_bg) || '#f1f5f9'};color:${(e.classes && e.classes.hex_text) || '#334155'}`"
+                                                x-text="e.nom"
+                                            ></span>
                                         </template>
                                         <span x-show="!card.etiquettes.length" class="text-sm text-slate-400">Aucune</span>
                                     </div>
@@ -349,14 +356,23 @@
                             <div>
                                 <div class="flex items-center justify-between mb-2">
                                     <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Description</p>
+                                    <span x-show="descriptionSaved" x-cloak class="text-[11px] font-medium text-emerald-600">Enregistré</span>
                                 </div>
                                 <textarea
                                     x-model="card.description"
-                                    @change="saveField({ description: card.description })"
                                     rows="6"
                                     placeholder="Ajouter une description…"
                                     class="w-full rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary"
                                 ></textarea>
+                                <div class="mt-2 flex justify-end">
+                                    <button
+                                        type="button"
+                                        @click="saveDescription()"
+                                        class="rounded-lg bg-escm-primary text-white text-xs font-semibold px-4 py-2 hover:bg-escm-primary-dark disabled:opacity-60"
+                                        :disabled="descriptionSaving"
+                                        x-text="descriptionSaving ? 'Enregistrement…' : 'Enregistrer'"
+                                    ></button>
+                                </div>
                             </div>
 
                             <template x-for="cl in card.checklists" :key="cl.id">
@@ -611,6 +627,8 @@ function projetBoard() {
         showLabels: false,
         showAttach: false,
         newComment: '',
+        descriptionSaving: false,
+        descriptionSaved: false,
         commentImageFiles: [],
         commentImagePreviews: [],
         editingCommentId: null,
@@ -774,6 +792,25 @@ function projetBoard() {
             await this.request(routes.update(this.card.id), { method: 'PATCH', json: payload });
             if (payload.projet_liste_id) {
                 window.location.reload();
+            }
+        },
+
+        async saveDescription() {
+            if (!this.card || this.descriptionSaving) return;
+            this.descriptionSaving = true;
+            this.descriptionSaved = false;
+            try {
+                await this.request(routes.update(this.card.id), {
+                    method: 'PATCH',
+                    json: { description: this.card.description || null },
+                });
+                this.descriptionSaved = true;
+                clearTimeout(this._descSavedTimer);
+                this._descSavedTimer = setTimeout(() => { this.descriptionSaved = false; }, 2000);
+            } catch (e) {
+                alert(e.message);
+            } finally {
+                this.descriptionSaving = false;
             }
         },
 
