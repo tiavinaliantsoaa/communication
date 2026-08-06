@@ -121,10 +121,24 @@
 
     {{-- Alertes --}}
     <div id="alertes" class="bg-white rounded-xl border border-slate-200 shadow-sm">
-        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 class="text-sm font-semibold text-slate-900">Alertes</h3>
-            @if($nbAlertes > 0)
-                <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-500 text-[10px] font-bold text-white">{{ $nbAlertes }}</span>
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <h3 class="text-sm font-semibold text-slate-900">Alertes</h3>
+                @if($nbAlertes > 0)
+                    <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-500 text-[10px] font-bold text-white">{{ $nbAlertes }}</span>
+                @endif
+            </div>
+            @php
+                $hasPersoNotifications = collect($alertes)->contains(fn ($a) => ! empty($a['dismissible']) && ! empty($a['id']));
+            @endphp
+            @if($hasPersoNotifications)
+                <form method="POST" action="{{ route('notifications.destroy-all') }}" onsubmit="return confirm('Supprimer toutes les notifications personnelles ?')">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="text-xs font-semibold text-slate-500 hover:text-red-600 transition-colors">
+                        Tout supprimer
+                    </button>
+                </form>
             @endif
         </div>
         <div class="divide-y divide-slate-100 max-h-[28rem] overflow-y-auto" x-data>

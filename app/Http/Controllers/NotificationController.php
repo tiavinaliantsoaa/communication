@@ -19,4 +19,15 @@ class NotificationController extends Controller
 
         return back()->with('success', 'Notification supprimée.');
     }
+
+    public function destroyAll(Request $request)
+    {
+        UserNotification::where('user_id', $request->user()->id)->delete();
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true]);
+        }
+
+        return back()->with('success', 'Toutes les notifications personnelles ont été supprimées.');
+    }
 }
