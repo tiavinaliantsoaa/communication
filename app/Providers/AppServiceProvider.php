@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\UserNotification;
 use App\Services\AlerteService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\URL;
@@ -30,7 +31,11 @@ class AppServiceProvider extends ServiceProvider
 
         View::composer('layouts.partials.header', function ($view) {
             if (! auth()->check()) {
-                $view->with('nbAlertes', 0);
+                $view->with([
+                    'nbAlertes' => 0,
+                    'nbUnreadNotifications' => 0,
+                    'latestNotificationId' => 0,
+                ]);
 
                 return;
             }
@@ -42,8 +47,14 @@ class AppServiceProvider extends ServiceProvider
                 $mois = (int) now()->month;
             }
 
+            $userId = auth()->id();
+            $nbUnread = UserNotification::where('user_id', $userId)->unread()->count();
+            $latestId = (int) (UserNotification::where('user_id', $userId)->max('id') ?? 0);
+
             $view->with([
                 'nbAlertes' => app(AlerteService::class)->count($annee, $mois),
+                'nbUnreadNotifications' => $nbUnread,
+                'latestNotificationId' => $latestId,
                 'annee' => $annee,
                 'mois' => $mois,
                 'moisLabel' => $data['moisLabel'] ?? Carbon::create($annee, $mois, 1)->locale('fr')->isoFormat('MMMM YYYY'),

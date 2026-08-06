@@ -143,7 +143,7 @@
         </div>
         <div class="divide-y divide-slate-100 max-h-[28rem] overflow-y-auto" x-data>
             @forelse($alertes as $alerte)
-            <div class="px-5 py-4 flex gap-3 hover:bg-slate-50/80 transition-colors group" @if(!empty($alerte['id'])) data-notification-id="{{ $alerte['id'] }}" @endif>
+            <div class="px-5 py-4 flex gap-3 hover:bg-slate-50/80 transition-colors group {{ !empty($alerte['unread']) ? 'bg-indigo-50/60' : '' }}" @if(!empty($alerte['id'])) data-notification-id="{{ $alerte['id'] }}" @endif>
                 <a href="{{ $alerte['url'] ?? '#' }}" class="flex gap-3 flex-1 min-w-0">
                     <div class="flex-shrink-0 mt-0.5">
                         @if($alerte['type'] === 'danger')
