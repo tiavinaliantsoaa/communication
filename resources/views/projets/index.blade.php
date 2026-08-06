@@ -445,8 +445,36 @@
                                             <span x-show="!c.avatar_url" x-text="c.initials"></span>
                                         </span>
                                         <div class="min-w-0 flex-1 overflow-hidden">
-                                            <p class="text-xs text-slate-500 truncate"><span class="font-semibold text-slate-800" x-text="c.user"></span> · <span x-text="c.date"></span></p>
+                                            <div class="flex items-center justify-between gap-2">
+                                                <p class="text-xs text-slate-500 truncate min-w-0">
+                                                    <span class="font-semibold text-slate-800" x-text="c.user"></span>
+                                                    · <span x-text="c.date"></span>
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    x-show="c.can_edit && editingCommentId !== c.id"
+                                                    @click="startEditComment(c)"
+                                                    class="shrink-0 text-[11px] font-semibold text-escm-primary hover:underline"
+                                                >Modifier</button>
+                                            </div>
+
+                                            <template x-if="editingCommentId === c.id">
+                                                <div class="mt-1 space-y-2">
+                                                    <textarea
+                                                        x-model="editingCommentText"
+                                                        rows="3"
+                                                        class="w-full rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary"
+                                                        style="overflow-wrap: anywhere; word-break: break-word;"
+                                                    ></textarea>
+                                                    <div class="flex items-center gap-2">
+                                                        <button type="button" @click="saveEditComment(c)" class="rounded-lg bg-escm-primary text-white text-xs font-semibold px-3 py-1.5">Enregistrer</button>
+                                                        <button type="button" @click="cancelEditComment()" class="rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold px-3 py-1.5 hover:bg-slate-50">Annuler</button>
+                                                    </div>
+                                                </div>
+                                            </template>
+
                                             <div
+                                                x-show="editingCommentId !== c.id"
                                                 class="mt-1 rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700"
                                                 style="white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; max-width: 100%;"
                                                 x-html="formatCommentHtml(c.contenu)"
@@ -498,6 +526,7 @@ function projetBoard() {
         toggleItem: (id) => @json(url('/gestion-projet/checklist-items')).replace(/\/$/, '') + '/' + id + '/toggle',
         destroyItem: (id) => @json(url('/gestion-projet/checklist-items')).replace(/\/$/, '') + '/' + id,
         commentaires: (id) => @json(url('/gestion-projet/cartes')).replace(/\/$/, '') + '/' + id + '/commentaires',
+        updateCommentaire: (id) => @json(url('/gestion-projet/commentaires')).replace(/\/$/, '') + '/' + id,
         pieces: (id) => @json(url('/gestion-projet/cartes')).replace(/\/$/, '') + '/' + id + '/pieces-jointes',
         destroyPiece: (id) => @json(url('/gestion-projet/pieces-jointes')).replace(/\/$/, '') + '/' + id,
     };
@@ -510,6 +539,8 @@ function projetBoard() {
         showLabels: false,
         showAttach: false,
         newComment: '',
+        editingCommentId: null,
+        editingCommentText: '',
         attachUrl: '',
         availableLabels: @json($etiquettes->map->toBoardArray()->values()),
         mentionUsers: @json($mentionUsers ?? []),
@@ -637,6 +668,7 @@ function projetBoard() {
             this.showLabels = false;
             this.showAttach = false;
             this.newComment = '';
+            this.cancelEditComment();
             this.mentionOpen = false;
             this.mentionQuery = '';
             try {
@@ -652,6 +684,7 @@ function projetBoard() {
         closeCard() {
             this.open = false;
             this.card = null;
+            this.cancelEditComment();
         },
 
         async saveField(payload) {
@@ -735,6 +768,30 @@ function projetBoard() {
             this.newComment = '';
         },
 
+        startEditComment(c) {
+            this.editingCommentId = c.id;
+            this.editingCommentText = c.contenu || '';
+        },
+
+        cancelEditComment() {
+            this.editingCommentId = null;
+            this.editingCommentText = '';
+        },
+
+        async saveEditComment(c) {
+            const contenu = (this.editingCommentText || '').trim();
+            if (!contenu) return;
+            const res = await this.request(routes.updateCommentaire(c.id), {
+                method: 'PATCH',
+                json: { contenu },
+            });
+            const idx = this.card.commentaires.findIndex((item) => item.id === c.id);
+            if (idx !== -1) {
+                this.card.commentaires[idx] = { ...this.card.commentaires[idx], ...res.commentaire };
+            }
+            this.cancelEditComment();
+        },
+
         onCommentInput(event) {
             const el = event.target;
             const value = el.value;
@@ -791,10 +848,27 @@ function projetBoard() {
         },
 
         formatCommentHtml(text) {
-            const escaped = String(text || '')
+            let escaped = String(text || '')
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;');
+
+            escaped = escaped.replace(
+                /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi,
+                (raw) => {
+                    let url = raw;
+                    let trailing = '';
+                    const punct = url.match(/([),.;:!?]+)$/);
+                    if (punct) {
+                        trailing = punct[1];
+                        url = url.slice(0, -trailing.length);
+                    }
+                    if (!url) return raw;
+                    const href = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+                    return '<a href="' + href + '" target="_blank" rel="noopener noreferrer" class="text-escm-primary underline break-all hover:opacity-80">' + url + '</a>' + trailing;
+                }
+            );
+
             return escaped.replace(
                 /@([a-zA-Z0-9._-]+)/g,
                 '<span class="font-semibold text-escm-primary">@$1</span>'

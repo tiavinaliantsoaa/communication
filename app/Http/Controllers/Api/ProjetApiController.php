@@ -161,10 +161,12 @@ class ProjetApiController extends Controller
             'commentaire' => [
                 'id' => $commentaire->id,
                 'contenu' => $commentaire->contenu,
+                'user_id' => $request->user()->id,
                 'user' => $request->user()->name,
                 'initials' => $request->user()->initials(),
                 'avatar_url' => $request->user()->avatar_url,
                 'date' => $commentaire->created_at->locale('fr')->isoFormat('D MMM YYYY, HH:mm'),
+                'can_edit' => true,
             ],
         ], 201);
     }
@@ -236,10 +238,12 @@ class ProjetApiController extends Controller
             'commentaires' => $projet->commentaires->map(fn ($c) => [
                 'id' => $c->id,
                 'contenu' => $c->contenu,
+                'user_id' => $c->user_id,
                 'user' => $c->user?->name,
                 'initials' => $c->user?->initials(),
                 'avatar_url' => $c->user?->avatar_url,
                 'date' => $c->created_at->locale('fr')->isoFormat('D MMM YYYY, HH:mm'),
+                'can_edit' => (int) $c->user_id === (int) auth()->id(),
             ]),
             'pieces_jointes' => $projet->piecesJointes->map(fn ($p) => [
                 'id' => $p->id,

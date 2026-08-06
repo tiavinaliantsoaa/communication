@@ -61,6 +61,7 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/checklist-items/{item}/toggle', [ProjetController::class, 'toggleChecklistItem'])->name('checklist-items.toggle');
         Route::delete('/checklist-items/{item}', [ProjetController::class, 'destroyChecklistItem'])->name('checklist-items.destroy');
         Route::post('/cartes/{projet}/commentaires', [ProjetController::class, 'storeCommentaire'])->name('cartes.commentaires');
+        Route::patch('/commentaires/{commentaire}', [ProjetController::class, 'updateCommentaire'])->name('commentaires.update');
         Route::post('/cartes/{projet}/pieces-jointes', [ProjetController::class, 'storePieceJointe'])->name('cartes.pieces');
         Route::delete('/pieces-jointes/{piece}', [ProjetController::class, 'destroyPieceJointe'])->name('pieces.destroy');
     });

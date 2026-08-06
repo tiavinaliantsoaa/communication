@@ -6,6 +6,7 @@ use App\Models\ProjetActivite;
 use App\Models\ProjetCarte;
 use App\Models\ProjetChecklist;
 use App\Models\ProjetChecklistItem;
+use App\Models\ProjetCommentaire;
 use App\Models\ProjetListe;
 use App\Models\ProjetEtiquette;
 use App\Models\ProjetPieceJointe;
@@ -238,10 +239,12 @@ class ProjetController extends Controller
             'commentaires' => $projet->commentaires->map(fn ($c) => [
                 'id' => $c->id,
                 'contenu' => $c->contenu,
+                'user_id' => $c->user_id,
                 'user' => $c->user?->name,
                 'initials' => $c->user?->initials(),
                 'avatar_url' => $c->user?->avatar_url,
                 'date' => $c->created_at->locale('fr')->isoFormat('D MMM YYYY, HH:mm'),
+                'can_edit' => (int) $c->user_id === (int) auth()->id(),
             ]),
             'pieces_jointes' => $projet->piecesJointes->map(fn ($p) => [
                 'id' => $p->id,
@@ -552,10 +555,41 @@ class ProjetController extends Controller
             'commentaire' => [
                 'id' => $commentaire->id,
                 'contenu' => $commentaire->contenu,
+                'user_id' => $actor->id,
                 'user' => $actor->name,
                 'initials' => $actor->initials(),
                 'avatar_url' => $actor->avatar_url,
                 'date' => $commentaire->created_at->locale('fr')->isoFormat('D MMM YYYY, HH:mm'),
+                'can_edit' => true,
+            ],
+        ]);
+    }
+
+    public function updateCommentaire(Request $request, ProjetCommentaire $commentaire)
+    {
+        if ((int) $commentaire->user_id !== (int) $request->user()->id) {
+            return response()->json(['ok' => false, 'message' => 'Vous ne pouvez modifier que vos propres commentaires.'], 403);
+        }
+
+        $data = $request->validate([
+            'contenu' => ['required', 'string'],
+        ]);
+
+        $commentaire->update([
+            'contenu' => $data['contenu'],
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'commentaire' => [
+                'id' => $commentaire->id,
+                'contenu' => $commentaire->contenu,
+                'user_id' => $commentaire->user_id,
+                'user' => $commentaire->user?->name ?? $request->user()->name,
+                'initials' => $commentaire->user?->initials() ?? $request->user()->initials(),
+                'avatar_url' => $commentaire->user?->avatar_url ?? $request->user()->avatar_url,
+                'date' => $commentaire->created_at->locale('fr')->isoFormat('D MMM YYYY, HH:mm'),
+                'can_edit' => true,
             ],
         ]);
     }
