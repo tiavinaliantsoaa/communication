@@ -124,7 +124,65 @@ class ProjetCarte extends Model
         $items = $this->checklists->flatMap->items;
         $total = $items->count();
         $done = $items->where('fait', true)->count();
+        $percent = $total > 0 ? (int) round(($done / $total) * 100) : 0;
 
-        return ['done' => $done, 'total' => $total];
+        return [
+            'done' => $done,
+            'total' => $total,
+            'percent' => $percent,
+        ];
+    }
+
+    public function findTermineListe(): ?ProjetListe
+    {
+        if (! $this->relationLoaded('liste')) {
+            $this->load('liste');
+        }
+
+        $tableauId = $this->liste?->projet_tableau_id;
+        if (! $tableauId) {
+            return null;
+        }
+
+        return ProjetListe::query()
+            ->where('projet_tableau_id', $tableauId)
+            ->where(function ($q) {
+                $q->where('slug', 'termine')
+                    ->orWhereRaw('LOWER(nom) = ?', ['terminé']);
+            })
+            ->first();
+    }
+
+    /**
+     * Move the card to the "Terminé" list when all checklist items are done.
+     */
+    public function moveToTermineIfComplete(): bool
+    {
+        if ($this->isDone()) {
+            return false;
+        }
+
+        $this->load(['checklists.items', 'liste']);
+        $progress = $this->checklistProgress();
+
+        if ($progress['total'] === 0 || $progress['percent'] < 100) {
+            return false;
+        }
+
+        $termine = $this->findTermineListe();
+        if (! $termine) {
+            return false;
+        }
+
+        $maxPos = (int) static::where('projet_liste_id', $termine->id)->max('position');
+
+        $this->update([
+            'projet_liste_id' => $termine->id,
+            'position' => $maxPos + 1,
+        ]);
+
+        $this->setRelation('liste', $termine);
+
+        return true;
     }
 }

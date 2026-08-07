@@ -466,14 +466,56 @@ class ProjetController extends Controller
     {
         $item->update(['fait' => ! $item->fait]);
 
-        return response()->json(['ok' => true, 'fait' => $item->fait]);
+        $item->load('checklist.carte.liste');
+        $carte = $item->checklist?->carte;
+        $moved = false;
+        $progress = ['done' => 0, 'total' => 0, 'percent' => 0];
+
+        if ($carte) {
+            $moved = $carte->moveToTermineIfComplete();
+            $carte->load('checklists.items');
+            $progress = $carte->checklistProgress();
+
+            if ($moved) {
+                $this->notifications->log(
+                    $carte,
+                    $request->user(),
+                    $request->user()->name.' a terminé toutes les tâches de « '.$carte->titre.' » — déplacé vers Terminé',
+                    'Carte terminée'
+                );
+            }
+        }
+
+        return response()->json([
+            'ok' => true,
+            'fait' => $item->fait,
+            'checklist_progress' => $progress,
+            'moved_to_termine' => $moved,
+            'projet_liste_id' => $carte?->projet_liste_id,
+            'liste_nom' => $carte?->liste?->nom,
+        ]);
     }
 
     public function destroyChecklistItem(ProjetChecklistItem $item)
     {
+        $item->load('checklist.carte');
+        $carte = $item->checklist?->carte;
         $item->delete();
 
-        return response()->json(['ok' => true]);
+        $moved = false;
+        $progress = ['done' => 0, 'total' => 0, 'percent' => 0];
+
+        if ($carte) {
+            $moved = $carte->moveToTermineIfComplete();
+            $carte->load('checklists.items');
+            $progress = $carte->checklistProgress();
+        }
+
+        return response()->json([
+            'ok' => true,
+            'checklist_progress' => $progress,
+            'moved_to_termine' => $moved,
+        ]);
     }
 
     public function storeCommentaire(Request $request, ProjetCarte $projet)

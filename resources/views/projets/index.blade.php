@@ -152,14 +152,37 @@
                                     @if($progress['total'] > 0)
                                         <span @class([
                                             'inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 font-medium',
-                                            'bg-emerald-100 text-emerald-700' => $progress['done'] === $progress['total'],
-                                            'bg-slate-100 text-slate-600' => $progress['done'] !== $progress['total'],
+                                            'bg-emerald-100 text-emerald-700' => $progress['percent'] >= 100,
+                                            'bg-slate-100 text-slate-600' => $progress['percent'] < 100,
                                         ])>
                                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                            {{ $progress['done'] }}/{{ $progress['total'] }}
+                                            {{ $progress['percent'] }}%
                                         </span>
                                     @endif
                                 </div>
+
+                                @if($progress['total'] > 0)
+                                    <div class="mt-2.5">
+                                        <div class="flex items-center justify-between gap-2 mb-1">
+                                            <span @class([
+                                                'text-[10px] font-semibold',
+                                                'text-emerald-700' => $progress['percent'] >= 100,
+                                                'text-slate-500' => $progress['percent'] < 100,
+                                            ])>Avancement</span>
+                                            <span class="text-[10px] text-slate-500">{{ $progress['done'] }}/{{ $progress['total'] }}</span>
+                                        </div>
+                                        <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                                            <div
+                                                @class([
+                                                    'h-full rounded-full transition-all',
+                                                    'bg-emerald-500' => $progress['percent'] >= 100,
+                                                    'bg-escm-primary' => $progress['percent'] < 100,
+                                                ])
+                                                style="width: {{ min(100, max(0, $progress['percent'])) }}%"
+                                            ></div>
+                                        </div>
+                                    </div>
+                                @endif
 
                                 @if($carte->membres->isNotEmpty())
                                     <div class="mt-2.5 flex -space-x-1.5 justify-end">
@@ -398,7 +421,21 @@
 
                             <template x-for="cl in card.checklists" :key="cl.id">
                                 <div class="rounded-lg border border-slate-200 p-3">
-                                    <p class="text-sm font-semibold text-slate-800 mb-2" x-text="cl.titre"></p>
+                                    <div class="flex items-center justify-between gap-2 mb-2">
+                                        <p class="text-sm font-semibold text-slate-800" x-text="cl.titre"></p>
+                                        <span
+                                            class="text-[11px] font-semibold tabular-nums"
+                                            :class="checklistPercent(cl) >= 100 ? 'text-emerald-600' : 'text-slate-500'"
+                                            x-text="checklistPercent(cl) + '%'"
+                                        ></span>
+                                    </div>
+                                    <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-2">
+                                        <div
+                                            class="h-full rounded-full transition-all"
+                                            :class="checklistPercent(cl) >= 100 ? 'bg-emerald-500' : 'bg-escm-primary'"
+                                            :style="`width:${checklistPercent(cl)}%`"
+                                        ></div>
+                                    </div>
                                     <div class="space-y-1.5 mb-2">
                                         <template x-for="item in cl.items" :key="item.id">
                                             <label class="flex items-start gap-2 text-sm text-slate-700 group/item">
@@ -879,6 +916,13 @@ function projetBoard() {
             event.target.reset();
         },
 
+        checklistPercent(cl) {
+            const items = cl?.items || [];
+            if (!items.length) return 0;
+            const done = items.filter((i) => i.fait).length;
+            return Math.round((done / items.length) * 100);
+        },
+
         async addChecklist() {
             const titre = prompt('Titre de la checklist', 'Checklist');
             if (titre === null) return;
@@ -897,11 +941,25 @@ function projetBoard() {
         async toggleItem(item) {
             const res = await this.request(routes.toggleItem(item.id), { method: 'PATCH', json: {} });
             item.fait = res.fait;
+            if (res.checklist_progress) {
+                this.card.checklist_progress = res.checklist_progress;
+            }
+            if (res.moved_to_termine) {
+                this.open = false;
+                window.location.reload();
+            }
         },
 
         async removeItem(item, cl) {
-            await this.request(routes.destroyItem(item.id), { method: 'DELETE' });
+            const res = await this.request(routes.destroyItem(item.id), { method: 'DELETE' });
             cl.items = cl.items.filter((i) => i.id !== item.id);
+            if (res.checklist_progress) {
+                this.card.checklist_progress = res.checklist_progress;
+            }
+            if (res.moved_to_termine) {
+                this.open = false;
+                window.location.reload();
+            }
         },
 
         async addComment() {
