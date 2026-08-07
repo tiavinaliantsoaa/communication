@@ -76,6 +76,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::resource('evenements', EvenementController::class)->except(['show']);
     Route::get('/calendrier-editorial', [CalendrierEditorialController::class, 'index'])->name('calendrier-editorial');
+    Route::get('/calendrier-editorial/search', [CalendrierEditorialController::class, 'search'])->name('calendrier-editorial.search');
     Route::post('/calendrier-editorial', [CalendrierEditorialController::class, 'store'])->name('calendrier-editorial.store');
     Route::put('/calendrier-editorial/{editorialEvent}', [CalendrierEditorialController::class, 'update'])->name('calendrier-editorial.update');
     Route::delete('/calendrier-editorial/{editorialEvent}', [CalendrierEditorialController::class, 'destroy'])->name('calendrier-editorial.destroy');

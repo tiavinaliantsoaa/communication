@@ -21,6 +21,7 @@
         'canValidate' => $canValidate,
         'maxVisuels' => $maxVisuels ?? 10,
         'baseUrl' => route('calendrier-editorial'),
+        'searchUrl' => route('calendrier-editorial.search'),
         'storeUrl' => route('calendrier-editorial.store'),
         'today' => now()->toDateString(),
         'openCreate' => $errors->any() && old('form_mode') !== 'edit',
@@ -141,12 +142,14 @@
                             @click="selectDate(cell.date)"
                             class="h-7 text-[11px] rounded transition-colors"
                             :class="{
-                                'text-slate-300': !cell.inMonth,
-                                'text-slate-700 hover:bg-slate-100': cell.inMonth && !cell.isSelected && !cell.isToday,
-                                'bg-escm-primary text-white font-semibold': cell.isSelected,
-                                'ring-1 ring-escm-primary text-escm-primary font-semibold': cell.isToday && !cell.isSelected,
-                                'bg-blue-50': cell.inRange && !cell.isSelected,
+                                'text-slate-300': !cell.inMonth && !cell.hasOutOfRangeHit,
+                                'text-slate-700 hover:bg-slate-100': cell.inMonth && !cell.isSelected && !cell.isToday && !cell.hasOutOfRangeHit,
+                                'bg-escm-primary text-white font-semibold': cell.isSelected && !cell.hasOutOfRangeHit,
+                                'ring-1 ring-escm-primary text-escm-primary font-semibold': cell.isToday && !cell.isSelected && !cell.hasOutOfRangeHit,
+                                'bg-blue-50': cell.inRange && !cell.isSelected && !cell.hasOutOfRangeHit,
+                                'mini-search-hit font-semibold': cell.hasOutOfRangeHit,
                             }"
+                            :title="cell.hasOutOfRangeHit ? 'Résultat hors période visible — cliquer pour y aller' : ''"
                             x-text="cell.day"
                         ></button>
                     </template>
@@ -811,6 +814,13 @@
         from { opacity: 0; transform: scale(0.92); }
         to { opacity: 1; transform: scale(1); }
     }
+    @keyframes mini-search-hit-blink {
+        0%, 100% { background-color: #16a34a; color: #fff; }
+        50% { background-color: #bbf7d0; color: #166534; }
+    }
+    .mini-search-hit {
+        animation: mini-search-hit-blink 0.9s ease-in-out infinite;
+    }
 </style>
 @endsection
 
@@ -860,10 +870,13 @@ function editorialCalendar(config) {
         typesContenu: config.typesContenu,
         canValidate: !!config.canValidate,
         baseUrl: config.baseUrl,
+        searchUrl: config.searchUrl,
         storeUrl: config.storeUrl,
         today: config.today,
         categoryFilter: '',
         searchQuery: '',
+        searchHits: [],
+        searchTimer: null,
         selectedEvent: null,
         texteCopied: false,
         showCreate: !!config.openCreate,
@@ -1007,6 +1020,16 @@ function editorialCalendar(config) {
         },
 
         init() {
+            this.$watch('searchQuery', (q) => {
+                clearTimeout(this.searchTimer);
+                const term = String(q || '').trim();
+                if (!term) {
+                    this.searchHits = [];
+                    return;
+                }
+                this.searchTimer = setTimeout(() => this.fetchSearchHits(term), 280);
+            });
+
             if (config.openEdit && config.editEventId) {
                 const ev = this.events.find(e => String(e.id) === String(config.editEventId));
                 if (ev) {
@@ -1030,6 +1053,63 @@ function editorialCalendar(config) {
                 };
                 this.showEdit = true;
             }
+        },
+
+        async fetchSearchHits(term) {
+            if (!this.searchUrl) return;
+            try {
+                const url = new URL(this.searchUrl, window.location.origin);
+                url.searchParams.set('q', term);
+                const res = await fetch(url.toString(), {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                this.searchHits = Array.isArray(data.matches) ? data.matches : [];
+                this.focusMiniOnOutOfRangeHit();
+            } catch (_) {
+                // silent
+            }
+        },
+
+        eventOccursOnDates(ev) {
+            if (ev.booster) return [ev.date_debut];
+            const dates = [];
+            let d = parseDate(ev.date_debut);
+            const end = parseDate(ev.date_fin || ev.date_debut);
+            while (d <= end) {
+                dates.push(fmt(d));
+                d = addDays(d, 1);
+            }
+            return dates;
+        },
+
+        matchesCategoryFilter(ev) {
+            const cats = Array.isArray(ev.categorie) ? ev.categorie : [ev.categorie];
+            return cats.some(key => this.visibleCategories[key]);
+        },
+
+        get outOfRangeHitDates() {
+            if (!(this.searchQuery || '').trim() || !this.searchHits.length) return [];
+            const start = this.rangeStart;
+            const end = this.rangeEnd;
+            const set = new Set();
+            this.searchHits.forEach((ev) => {
+                if (!this.matchesCategoryFilter(ev)) return;
+                this.eventOccursOnDates(ev).forEach((dateStr) => {
+                    if (dateStr < start || dateStr > end) set.add(dateStr);
+                });
+            });
+            return Array.from(set).sort();
+        },
+
+        focusMiniOnOutOfRangeHit() {
+            const dates = this.outOfRangeHitDates;
+            if (!dates.length) return;
+            const d = parseDate(dates[0]);
+            this.miniMonth = d.getMonth();
+            this.miniYear = d.getFullYear();
         },
 
         get allVisible() {
@@ -1078,6 +1158,7 @@ function editorialCalendar(config) {
             const days = [];
             const rangeStart = parseDate(this.rangeStart);
             const rangeEnd = parseDate(this.rangeEnd);
+            const hitSet = new Set(this.outOfRangeHitDates);
             for (let i = 0; i < 42; i++) {
                 const d = addDays(start, i);
                 const dateStr = fmt(d);
@@ -1090,6 +1171,7 @@ function editorialCalendar(config) {
                     isToday: dateStr === this.today,
                     isSelected: dateStr === this.currentDate,
                     inRange: t >= rangeStart.getTime() && t <= rangeEnd.getTime(),
+                    hasOutOfRangeHit: hitSet.has(dateStr),
                 });
             }
             return days;

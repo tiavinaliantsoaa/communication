@@ -63,6 +63,30 @@ class CalendrierEditorialController extends Controller
         ]);
     }
 
+    public function search(Request $request)
+    {
+        $q = trim((string) $request->get('q', ''));
+        if ($q === '') {
+            return response()->json(['matches' => []]);
+        }
+
+        $matches = EditorialEvent::query()
+            ->where('titre', 'like', '%'.$q.'%')
+            ->orderBy('date_debut')
+            ->limit(100)
+            ->get(['id', 'titre', 'categorie', 'booster', 'date_debut', 'date_fin'])
+            ->map(fn (EditorialEvent $event) => [
+                'id' => $event->id,
+                'titre' => $event->titre,
+                'categorie' => $event->categorie,
+                'booster' => (bool) $event->booster,
+                'date_debut' => $event->date_debut->toDateString(),
+                'date_fin' => ($event->date_fin ?? $event->date_debut)->toDateString(),
+            ]);
+
+        return response()->json(['matches' => $matches]);
+    }
+
     public function store(Request $request)
     {
         $validated = $this->validateEvent($request);
