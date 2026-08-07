@@ -58,6 +58,26 @@
             <span x-text="rangeLabel"></span>
         </div>
 
+        <div class="relative w-full sm:w-56 md:w-64 order-last sm:order-none basis-full sm:basis-auto">
+            <svg class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
+            <input
+                type="search"
+                x-model="searchQuery"
+                placeholder="Rechercher par titre…"
+                class="w-full rounded-lg border border-slate-200 bg-white pl-8 pr-7 py-1.5 text-xs text-slate-800 placeholder:text-slate-400 focus:border-escm-primary focus:ring-escm-primary"
+            >
+            <button
+                type="button"
+                x-show="searchQuery"
+                x-cloak
+                @click="searchQuery = ''"
+                class="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded text-slate-400 hover:text-slate-600"
+                title="Effacer"
+            >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
         <div class="flex-1"></div>
 
         <button
@@ -238,7 +258,7 @@
                 <div class="p-4 max-w-3xl">
                     <div class="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100">
                         <template x-if="visibleEvents.length === 0">
-                            <div class="p-8 text-center text-sm text-slate-500">Aucun contenu planifié sur cette période.</div>
+                            <div class="p-8 text-center text-sm text-slate-500" x-text="searchQuery.trim() ? 'Aucun contenu ne correspond à cette recherche.' : 'Aucun contenu planifié sur cette période.'"></div>
                         </template>
                         <template x-for="ev in visibleEvents" :key="'list-'+ev.id">
                             <div class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50">
@@ -843,6 +863,7 @@ function editorialCalendar(config) {
         storeUrl: config.storeUrl,
         today: config.today,
         categoryFilter: '',
+        searchQuery: '',
         selectedEvent: null,
         texteCopied: false,
         showCreate: !!config.openCreate,
@@ -1024,9 +1045,12 @@ function editorialCalendar(config) {
         },
 
         get visibleEvents() {
+            const q = (this.searchQuery || '').trim().toLowerCase();
             return this.events.filter(e => {
                 const cats = Array.isArray(e.categorie) ? e.categorie : [e.categorie];
-                return cats.some(key => this.visibleCategories[key]);
+                if (!cats.some(key => this.visibleCategories[key])) return false;
+                if (!q) return true;
+                return String(e.titre || '').toLowerCase().includes(q);
             });
         },
 
