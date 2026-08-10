@@ -8,6 +8,7 @@ use App\Services\ActivityLogger;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -91,26 +92,84 @@ class CalendrierEditorialController extends Controller
     {
         $validated = $this->validateEvent($request);
         $files = $this->validatedVisuelFiles($request);
+        $categories = array_values($validated['categorie'] ?? []);
 
-        $event = null;
-        DB::transaction(function () use ($validated, $files, &$event) {
-            $event = EditorialEvent::create($validated);
-            $this->storeVisuelFiles($event, $files);
-            $this->syncLegacyVisuelColumns($event);
+        if ($categories === []) {
+            throw ValidationException::withMessages([
+                'categorie' => 'Sélectionnez au moins une catégorie.',
+            ]);
+        }
+
+        $created = [];
+
+        DB::transaction(function () use ($validated, $files, $categories, &$created) {
+            $storedVisuels = [];
+            foreach ($files as $index => $file) {
+                $storedVisuels[] = [
+                    'path' => $file->store('editorial-visuels', 'public'),
+                    'nom' => $file->getClientOriginalName(),
+                    'position' => $index,
+                ];
+            }
+
+            foreach ($categories as $index => $category) {
+                $payload = $validated;
+                $payload['categorie'] = [$category];
+
+                $isFacebookFi = $category === 'facebook'
+                    && ($payload['type_contenu'] ?? '') === 'FI';
+
+                if (! $isFacebookFi) {
+                    $payload['booster'] = false;
+                }
+
+                if (! $payload['booster']) {
+                    $payload['date_fin'] = $payload['date_fin'] ?? null;
+                }
+
+                $event = EditorialEvent::create($payload);
+
+                foreach ($storedVisuels as $visuel) {
+                    $path = $visuel['path'];
+                    if ($index > 0 && $path) {
+                        $ext = pathinfo($path, PATHINFO_EXTENSION);
+                        $copyPath = 'editorial-visuels/'.uniqid('v_', true).($ext ? '.'.$ext : '');
+                        Storage::disk('public')->copy($path, $copyPath);
+                        $path = $copyPath;
+                    }
+
+                    $event->visuels()->create([
+                        'path' => $path,
+                        'nom' => $visuel['nom'],
+                        'position' => $visuel['position'],
+                    ]);
+                }
+
+                $this->syncLegacyVisuelColumns($event->fresh('visuels'));
+                $created[] = $event;
+            }
         });
+
+        $first = $created[0];
+        $count = count($created);
 
         app(ActivityLogger::class)->log(
             'editorial',
-            auth()->user()->name.' a ajouté « '.$event->titre.' » au calendrier éditorial',
+            auth()->user()->name.' a ajouté « '.$first->titre.' » au calendrier éditorial'
+                .($count > 1 ? ' ('.$count.' catégories)' : ''),
             auth()->user(),
             'create',
             'Calendrier éditorial',
-            route('calendrier-editorial', ['date' => $event->date_debut->toDateString()]),
-            $event
+            route('calendrier-editorial', ['date' => $first->date_debut->toDateString()]),
+            $first
         );
 
+        $message = $count > 1
+            ? $count.' contenus ajoutés (une entrée par catégorie).'
+            : 'Contenu ajouté au calendrier.';
+
         return $this->redirectToCalendar($request)
-            ->with('success', 'Contenu ajouté au calendrier.');
+            ->with('success', $message);
     }
 
     public function update(Request $request, EditorialEvent $editorialEvent)
