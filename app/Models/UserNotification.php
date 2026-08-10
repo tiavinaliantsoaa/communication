@@ -50,10 +50,19 @@ class UserNotification extends Model
             'titre' => $this->titre,
             'description' => $this->description,
             'temps' => $this->created_at?->diffForHumans() ?? 'Récent',
-            'url' => $this->url ?? route('gestion-projet.index'),
+            'url' => $this->deepLinkUrl(),
             'dismissible' => true,
             'perso' => true,
             'unread' => $this->read_at === null,
         ];
+    }
+
+    public function deepLinkUrl(): string
+    {
+        if ($this->projet_carte_id) {
+            return route('gestion-projet.index', ['carte' => $this->projet_carte_id]);
+        }
+
+        return $this->url ?: route('gestion-projet.index');
     }
 }

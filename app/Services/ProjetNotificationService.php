@@ -13,6 +13,11 @@ class ProjetNotificationService
     {
     }
 
+    public static function carteUrl(int $carteId): string
+    {
+        return route('gestion-projet.index', ['carte' => $carteId]);
+    }
+
     public function log(ProjetCarte $carte, ?User $actor, string $message, ?string $titre = null, string $type = 'info'): void
     {
         ProjetActivite::create([
@@ -27,7 +32,7 @@ class ProjetNotificationService
             $actor,
             'update',
             $titre ?? 'Gestion de projet',
-            route('gestion-projet.index'),
+            self::carteUrl($carte->id),
             $carte
         );
 
@@ -61,7 +66,7 @@ class ProjetNotificationService
             $recipients = $recipients->whereIn('id', $ids);
         }
 
-        $url = route('gestion-projet.index');
+        $url = self::carteUrl($carte->id);
 
         foreach ($recipients as $membre) {
             if ($actorId && (int) $membre->id === (int) $actorId) {
@@ -82,7 +87,7 @@ class ProjetNotificationService
 
     public function notifyUsers(iterable $userIds, ?int $actorId, ?int $carteId, string $titre, string $description, string $type = 'info'): void
     {
-        $url = route('gestion-projet.index');
+        $url = $carteId ? self::carteUrl((int) $carteId) : route('gestion-projet.index');
 
         foreach ($userIds as $userId) {
             $userId = (int) $userId;

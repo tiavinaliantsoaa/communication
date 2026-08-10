@@ -742,6 +742,16 @@ function projetBoard() {
                     onEnd: (evt) => this.onMove(evt),
                 });
             });
+
+            const params = new URLSearchParams(window.location.search);
+            const carteId = parseInt(params.get('carte') || '', 10);
+            if (carteId) {
+                this.openCard(carteId);
+                params.delete('carte');
+                const qs = params.toString();
+                const clean = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+                window.history.replaceState({}, '', clean);
+            }
         },
 
         async request(url, options = {}) {
