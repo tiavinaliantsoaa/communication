@@ -448,6 +448,30 @@ class ProjetController extends Controller
         return response()->json(['ok' => true, 'id' => $checklist->id, 'titre' => $checklist->titre]);
     }
 
+    public function destroyChecklist(Request $request, ProjetChecklist $checklist)
+    {
+        abort_unless($request->user()?->isSuperAdmin(), 403);
+
+        $carte = $checklist->carte;
+        $titre = $checklist->titre;
+        $checklist->delete();
+
+        if ($carte) {
+            $this->notifications->log(
+                $carte,
+                $request->user(),
+                $request->user()->name.' a supprimé la checklist « '.$titre.' » de « '.$carte->titre.' »',
+                'Checklist supprimée'
+            );
+            $carte->load('checklists.items');
+        }
+
+        return response()->json([
+            'ok' => true,
+            'checklist_progress' => $carte?->checklistProgress() ?? ['done' => 0, 'total' => 0, 'percent' => 0],
+        ]);
+    }
+
     public function storeChecklistItem(Request $request, ProjetChecklist $checklist)
     {
         $data = $request->validate([

@@ -423,11 +423,23 @@
                                 <div class="rounded-lg border border-slate-200 p-3">
                                     <div class="flex items-center justify-between gap-2 mb-2">
                                         <p class="text-sm font-semibold text-slate-800" x-text="cl.titre"></p>
-                                        <span
-                                            class="text-[11px] font-semibold tabular-nums"
-                                            :class="checklistPercent(cl) >= 100 ? 'text-emerald-600' : 'text-slate-500'"
-                                            x-text="checklistPercent(cl) + '%'"
-                                        ></span>
+                                        <div class="flex items-center gap-2 shrink-0">
+                                            <span
+                                                class="text-[11px] font-semibold tabular-nums"
+                                                :class="checklistPercent(cl) >= 100 ? 'text-emerald-600' : 'text-slate-500'"
+                                                x-text="checklistPercent(cl) + '%'"
+                                            ></span>
+                                            <button
+                                                type="button"
+                                                x-show="canDeleteChecklist"
+                                                x-cloak
+                                                @click="removeChecklist(cl)"
+                                                title="Supprimer la checklist"
+                                                class="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                            >
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2.002 2.002 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                            </button>
+                                        </div>
                                     </div>
                                     <div class="h-1.5 rounded-full bg-slate-100 overflow-hidden mb-2">
                                         <div
@@ -667,6 +679,7 @@ function projetBoard() {
         etiquettes: (id) => @json(url('/gestion-projet/cartes')).replace(/\/$/, '') + '/' + id + '/etiquettes',
         storeEtiquette: @json(route('gestion-projet.etiquettes.store')),
         checklists: (id) => @json(url('/gestion-projet/cartes')).replace(/\/$/, '') + '/' + id + '/checklists',
+        destroyChecklist: (id) => @json(url('/gestion-projet/checklists')).replace(/\/$/, '') + '/' + id,
         checklistItems: (id) => @json(url('/gestion-projet/checklists')).replace(/\/$/, '') + '/' + id + '/items',
         toggleItem: (id) => @json(url('/gestion-projet/checklist-items')).replace(/\/$/, '') + '/' + id + '/toggle',
         destroyItem: (id) => @json(url('/gestion-projet/checklist-items')).replace(/\/$/, '') + '/' + id,
@@ -682,6 +695,7 @@ function projetBoard() {
         loading: false,
         card: null,
         searchQuery: '',
+        canDeleteChecklist: @json(auth()->user()?->isSuperAdmin() ?? false),
         showMembers: false,
         showLabels: false,
         showAttach: false,
@@ -938,6 +952,20 @@ function projetBoard() {
             if (titre === null) return;
             await this.request(routes.checklists(this.card.id), { method: 'POST', json: { titre: titre || 'Checklist' } });
             this.card = await this.request(routes.show(this.card.id));
+        },
+
+        async removeChecklist(cl) {
+            if (!this.canDeleteChecklist) return;
+            if (!confirm('Supprimer toute la checklist « ' + (cl.titre || '') + ' » ?')) return;
+            try {
+                const res = await this.request(routes.destroyChecklist(cl.id), { method: 'DELETE' });
+                this.card.checklists = (this.card.checklists || []).filter((c) => c.id !== cl.id);
+                if (res.checklist_progress) {
+                    this.card.checklist_progress = res.checklist_progress;
+                }
+            } catch (e) {
+                alert(e.message);
+            }
         },
 
         async addChecklistItem(cl, event) {
