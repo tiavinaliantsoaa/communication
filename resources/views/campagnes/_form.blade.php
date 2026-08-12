@@ -24,7 +24,7 @@
     <input type="number" name="budget" value="{{ old('budget', $campagne?->budget) }}" required min="0" step="1"
            class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
     @error('budget')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-    <p class="mt-1.5 text-xs text-slate-500">Ce montant sera automatiquement déduit du budget mensuel correspondant à la date de début.</p>
+    <p class="mt-1.5 text-xs text-slate-500">Ce montant sera automatiquement déduit du budget mensuel correspondant à la date de début (un dépassement est autorisé et sortira en négatif).</p>
 </div>
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -2,15 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Budget;
 use App\Models\Campagne;
 use App\Models\Depense;
 use App\Services\ActivityLogger;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 class CampagneController extends Controller
 {
@@ -33,11 +30,6 @@ class CampagneController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validateCampagne($request);
-
-        $this->assertMonthlyBudgetAvailable(
-            Carbon::parse($validated['date_debut']),
-            (float) $validated['budget']
-        );
 
         $campagne = null;
         DB::transaction(function () use ($validated, &$campagne) {
@@ -79,24 +71,6 @@ class CampagneController extends Controller
     {
         $validated = $this->validateCampagne($request);
         $campagne->loadMissing('depense');
-
-        $newAmount = (float) $validated['budget'];
-        $oldAmount = (float) $campagne->budget;
-        $newDate = Carbon::parse($validated['date_debut']);
-        $oldDate = $campagne->date_debut
-            ? Carbon::parse($campagne->date_debut)
-            : $newDate;
-
-        $monthChanged = $oldDate->format('Y-m') !== $newDate->format('Y-m');
-        $amountIncreased = $newAmount > $oldAmount + 0.009;
-
-        // Ne rebloquer le budget que si on change de mois ou on augmente le montant.
-        // Un simple changement de statut (ex. → Terminée) ne doit pas être refusé.
-        if ($monthChanged) {
-            $this->assertMonthlyBudgetAvailable($newDate, $newAmount);
-        } elseif ($amountIncreased) {
-            $this->assertMonthlyBudgetAvailable($newDate, $newAmount, $campagne->depense_id);
-        }
 
         DB::transaction(function () use ($validated, $campagne) {
             if ((float) $validated['budget'] > 0) {
@@ -175,38 +149,5 @@ class CampagneController extends Controller
             'categorie' => 'sponsoring_reseaux',
             'date_depense' => $validated['date_debut'],
         ];
-    }
-
-    private function assertMonthlyBudgetAvailable(Carbon $date, float $montant, ?int $ignoreDepenseId = null): void
-    {
-        if ($montant <= 0) {
-            return;
-        }
-
-        $annee = $date->year;
-        $mois = $date->month;
-
-        $budget = Budget::where('annee', $annee)->where('mois', $mois)->first();
-        $budgetMontant = $budget ? (float) $budget->montant : 0;
-
-        if ($budgetMontant <= 0) {
-            throw ValidationException::withMessages([
-                'budget' => 'Aucun budget mensuel défini pour '.$date->locale('fr')->isoFormat('MMMM YYYY').'.',
-            ]);
-        }
-
-        $query = Depense::whereYear('date_depense', $annee)->whereMonth('date_depense', $mois);
-        if ($ignoreDepenseId) {
-            $query->where('id', '!=', $ignoreDepenseId);
-        }
-
-        $dejaDepense = (float) $query->sum('montant');
-        $reste = $budgetMontant - $dejaDepense;
-
-        if ($montant > $reste + 0.009) {
-            throw ValidationException::withMessages([
-                'budget' => 'Dépasse le budget mensuel restant ('.format_ar(max(0, $reste)).' sur '.format_ar($budgetMontant).' en '.$date->locale('fr')->isoFormat('MMMM YYYY').').',
-            ]);
-        }
     }
 }
