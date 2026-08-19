@@ -593,6 +593,32 @@
                                                         class="w-full rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary"
                                                         style="overflow-wrap: anywhere; word-break: break-word;"
                                                     ></textarea>
+
+                                                    <div class="flex flex-wrap gap-2" x-show="editingCommentKeptImages.length || editingCommentNewPreviews.length">
+                                                        <template x-for="img in editingCommentKeptImages" :key="'editimg'+img.id">
+                                                            <div class="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200 bg-white">
+                                                                <img :src="img.url" :alt="img.nom || ''" class="h-full w-full object-cover">
+                                                                <button type="button" @click="markEditCommentImageRemoved(img.id)" class="absolute top-0.5 right-0.5 rounded bg-black/60 text-white text-[10px] leading-none px-1 py-0.5" title="Retirer">×</button>
+                                                            </div>
+                                                        </template>
+                                                        <template x-for="(p, idx) in editingCommentNewPreviews" :key="'editnew'+idx">
+                                                            <div class="relative h-16 w-16 rounded-lg overflow-hidden border border-slate-200 bg-white">
+                                                                <img :src="p" alt="" class="h-full w-full object-cover">
+                                                                <button type="button" @click="removeEditCommentNewImage(idx)" class="absolute top-0.5 right-0.5 rounded bg-black/60 text-white text-[10px] leading-none px-1 py-0.5" title="Retirer">×</button>
+                                                            </div>
+                                                        </template>
+                                                    </div>
+
+                                                    <div class="flex flex-wrap items-center gap-2">
+                                                        <label class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                                                               :class="editingCommentImageSlots <= 0 && 'opacity-50 pointer-events-none'">
+                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                                            Image
+                                                            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple class="hidden" @change="onEditCommentImagesSelected($event)" :disabled="editingCommentImageSlots <= 0">
+                                                        </label>
+                                                        <span class="text-[11px] text-slate-400" x-text="editingCommentImageSlots + ' image(s) restante(s)'"></span>
+                                                    </div>
+
                                                     <div class="flex items-center gap-2">
                                                         <button type="button" @click="saveEditComment(c)" class="rounded-lg bg-escm-primary text-white text-xs font-semibold px-3 py-1.5">Enregistrer</button>
                                                         <button type="button" @click="cancelEditComment()" class="rounded-lg border border-slate-200 text-slate-600 text-xs font-semibold px-3 py-1.5 hover:bg-slate-50">Annuler</button>
@@ -731,6 +757,10 @@ function projetBoard() {
         commentImagePreviews: [],
         editingCommentId: null,
         editingCommentText: '',
+        editingCommentKeptImages: [],
+        editingCommentRemoveIds: [],
+        editingCommentNewFiles: [],
+        editingCommentNewPreviews: [],
         reactionPickerFor: null,
         reactionEmojis: @json(\App\Models\ProjetCommentaireReaction::EMOJIS),
         commentLightbox: { open: false, url: '' },
@@ -1073,29 +1103,81 @@ function projetBoard() {
             this.commentImagePreviews = [];
         },
 
+        get editingCommentImageSlots() {
+            return Math.max(0, 5 - this.editingCommentKeptImages.length - this.editingCommentNewFiles.length);
+        },
+
         startEditComment(c) {
+            this.clearEditCommentImages();
             this.editingCommentId = c.id;
             this.editingCommentText = c.contenu || '';
+            this.editingCommentKeptImages = [...(c.images || [])];
+            this.editingCommentRemoveIds = [];
             this.reactionPickerFor = null;
         },
 
         cancelEditComment() {
             this.editingCommentId = null;
             this.editingCommentText = '';
+            this.clearEditCommentImages();
+        },
+
+        clearEditCommentImages() {
+            this.editingCommentNewPreviews.forEach((url) => URL.revokeObjectURL(url));
+            this.editingCommentKeptImages = [];
+            this.editingCommentRemoveIds = [];
+            this.editingCommentNewFiles = [];
+            this.editingCommentNewPreviews = [];
+        },
+
+        markEditCommentImageRemoved(id) {
+            this.editingCommentKeptImages = this.editingCommentKeptImages.filter((img) => img.id !== id);
+            if (!this.editingCommentRemoveIds.includes(id)) {
+                this.editingCommentRemoveIds.push(id);
+            }
+        },
+
+        onEditCommentImagesSelected(event) {
+            const files = Array.from(event.target.files || []);
+            event.target.value = '';
+            const remaining = this.editingCommentImageSlots;
+            files.slice(0, remaining).forEach((file) => {
+                this.editingCommentNewFiles.push(file);
+                this.editingCommentNewPreviews.push(URL.createObjectURL(file));
+            });
+        },
+
+        removeEditCommentNewImage(idx) {
+            const url = this.editingCommentNewPreviews[idx];
+            if (url) URL.revokeObjectURL(url);
+            this.editingCommentNewFiles.splice(idx, 1);
+            this.editingCommentNewPreviews.splice(idx, 1);
         },
 
         async saveEditComment(c) {
             const contenu = (this.editingCommentText || '').trim();
-            if (!contenu && !(c.images && c.images.length)) return;
-            const res = await this.request(routes.updateCommentaire(c.id), {
-                method: 'PATCH',
-                json: { contenu },
-            });
-            const idx = this.card.commentaires.findIndex((item) => item.id === c.id);
-            if (idx !== -1) {
-                this.card.commentaires[idx] = { ...this.card.commentaires[idx], ...res.commentaire };
+            const hasImages = this.editingCommentKeptImages.length > 0 || this.editingCommentNewFiles.length > 0;
+            if (!contenu && !hasImages) return;
+
+            const fd = new FormData();
+            fd.append('_method', 'PATCH');
+            fd.append('contenu', contenu);
+            this.editingCommentRemoveIds.forEach((id) => fd.append('remove_image_ids[]', id));
+            this.editingCommentNewFiles.forEach((file) => fd.append('images[]', file));
+
+            try {
+                const res = await this.request(routes.updateCommentaire(c.id), {
+                    method: 'POST',
+                    body: fd,
+                });
+                const idx = this.card.commentaires.findIndex((item) => item.id === c.id);
+                if (idx !== -1) {
+                    this.card.commentaires[idx] = { ...this.card.commentaires[idx], ...res.commentaire };
+                }
+                this.cancelEditComment();
+            } catch (e) {
+                alert(e.message);
             }
-            this.cancelEditComment();
         },
 
         async toggleReaction(c, emoji) {

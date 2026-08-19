@@ -651,18 +651,57 @@ class ProjetController extends Controller
 
         $data = $request->validate([
             'contenu' => ['nullable', 'string'],
+            'images' => ['nullable', 'array', 'max:5'],
+            'images.*' => ['image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
+            'remove_image_ids' => ['nullable', 'array'],
+            'remove_image_ids.*' => ['integer'],
         ]);
 
         $contenu = trim((string) ($data['contenu'] ?? ''));
+        $removeIds = array_values(array_unique(array_map('intval', $data['remove_image_ids'] ?? [])));
+        $files = $request->file('images', []);
+        if (! is_array($files)) {
+            $files = $files ? [$files] : [];
+        }
+        $files = array_values(array_filter($files));
+
         $commentaire->loadMissing('images');
 
-        if ($contenu === '' && $commentaire->images->isEmpty()) {
+        $keptCount = $commentaire->images->whereNotIn('id', $removeIds)->count();
+        if ($keptCount + count($files) > 5) {
+            return response()->json(['ok' => false, 'message' => 'Maximum 5 images par commentaire.'], 422);
+        }
+
+        if ($contenu === '' && $keptCount + count($files) === 0) {
             return response()->json(['ok' => false, 'message' => 'Le commentaire ne peut pas être vide.'], 422);
+        }
+
+        if ($removeIds) {
+            $commentaire->images()
+                ->whereIn('id', $removeIds)
+                ->get()
+                ->each(function (ProjetCommentaireImage $image) {
+                    if ($image->path) {
+                        Storage::disk('public')->delete($image->path);
+                    }
+                    $image->delete();
+                });
         }
 
         $commentaire->update([
             'contenu' => $contenu,
         ]);
+
+        $ordre = (int) $commentaire->images()->max('ordre');
+        $carteId = $commentaire->projet_carte_id;
+        foreach ($files as $file) {
+            $ordre++;
+            $commentaire->images()->create([
+                'path' => $file->store('projets/'.$carteId.'/commentaires', 'public'),
+                'nom' => $file->getClientOriginalName(),
+                'ordre' => $ordre,
+            ]);
+        }
 
         $commentaire->load(['user', 'images', 'reactions']);
 
