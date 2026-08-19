@@ -504,7 +504,7 @@
                             </div>
                         </div>
 
-                        <div class="lg:col-span-2 p-5 bg-slate-50/80 space-y-4 min-w-0 overflow-hidden">
+                        <div class="lg:col-span-2 p-5 bg-slate-50/80 space-y-4 min-w-0 overflow-x-hidden">
                             <h4 class="text-sm font-semibold text-slate-900">Commentaires et activité</h4>
 
                             <form @submit.prevent="addComment()" class="space-y-2 relative">
@@ -564,14 +564,14 @@
                                 </div>
                             </form>
 
-                            <div class="space-y-4 max-h-[28rem] overflow-y-auto overflow-x-hidden pr-1">
+                            <div class="space-y-4 max-h-[min(40rem,60vh)] overflow-y-auto overflow-x-hidden pr-1">
                                 <template x-for="c in card.commentaires" :key="'c'+c.id">
                                     <div class="flex gap-2.5 min-w-0">
                                         <span class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-escm-primary text-[10px] font-bold text-white overflow-hidden">
                                             <template x-if="c.avatar_url"><img :src="c.avatar_url" :alt="c.user" class="h-full w-full object-cover"></template>
                                             <span x-show="!c.avatar_url" x-text="c.initials"></span>
                                         </span>
-                                        <div class="min-w-0 flex-1 overflow-hidden">
+                                        <div class="min-w-0 flex-1">
                                             <div class="flex items-center justify-between gap-2">
                                                 <p class="text-xs text-slate-500 truncate min-w-0">
                                                     <span class="font-semibold text-slate-800" x-text="c.user"></span>
@@ -630,7 +630,7 @@
                                                 <div
                                                     x-show="c.contenu"
                                                     class="rounded-lg bg-white border border-slate-200 px-3 py-2 text-sm text-slate-700"
-                                                    style="white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; max-width: 100%;"
+                                                    style="white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; max-width: 100%; overflow: visible;"
                                                     x-html="formatCommentHtml(c.contenu)"
                                                 ></div>
                                                 <div x-show="c.images && c.images.length" class="flex flex-wrap gap-1.5">
