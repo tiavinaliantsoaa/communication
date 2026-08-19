@@ -400,22 +400,50 @@
                             <div>
                                 <div class="flex items-center justify-between mb-2">
                                     <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Description</p>
-                                    <span x-show="descriptionSaved" x-cloak class="text-[11px] font-medium text-emerald-600">Enregistré</span>
+                                    <div class="flex items-center gap-2">
+                                        <span x-show="descriptionSaved" x-cloak class="text-[11px] font-medium text-emerald-600">Enregistré</span>
+                                        <button
+                                            type="button"
+                                            x-show="!editingDescription"
+                                            x-cloak
+                                            @click="editingDescription = true"
+                                            class="text-[11px] font-semibold text-escm-primary hover:underline"
+                                        >Modifier</button>
+                                    </div>
                                 </div>
-                                <textarea
-                                    x-model="card.description"
-                                    rows="6"
-                                    placeholder="Ajouter une description…"
-                                    class="w-full rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary"
-                                ></textarea>
-                                <div class="mt-2 flex justify-end">
-                                    <button
-                                        type="button"
-                                        @click="saveDescription()"
-                                        class="rounded-lg bg-escm-primary text-white text-xs font-semibold px-4 py-2 hover:bg-escm-primary-dark disabled:opacity-60"
-                                        :disabled="descriptionSaving"
-                                        x-text="descriptionSaving ? 'Enregistrement…' : 'Enregistrer'"
-                                    ></button>
+
+                                <div
+                                    x-show="!editingDescription"
+                                    class="min-h-[6rem] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                                    style="white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word;"
+                                >
+                                    <template x-if="card.description && String(card.description).trim()">
+                                        <div x-html="formatCommentHtml(card.description)"></div>
+                                    </template>
+                                    <p x-show="!card.description || !String(card.description).trim()" class="text-slate-400">Aucune description</p>
+                                </div>
+
+                                <div x-show="editingDescription" x-cloak>
+                                    <textarea
+                                        x-model="card.description"
+                                        rows="6"
+                                        placeholder="Ajouter une description…"
+                                        class="w-full rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary"
+                                    ></textarea>
+                                    <div class="mt-2 flex items-center justify-end gap-2">
+                                        <button
+                                            type="button"
+                                            @click="editingDescription = false"
+                                            class="rounded-lg px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                                        >Annuler</button>
+                                        <button
+                                            type="button"
+                                            @click="saveDescription()"
+                                            class="rounded-lg bg-escm-primary text-white text-xs font-semibold px-4 py-2 hover:bg-escm-primary-dark disabled:opacity-60"
+                                            :disabled="descriptionSaving"
+                                            x-text="descriptionSaving ? 'Enregistrement…' : 'Enregistrer'"
+                                        ></button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -702,6 +730,7 @@ function projetBoard() {
         newComment: '',
         descriptionSaving: false,
         descriptionSaved: false,
+        editingDescription: false,
         commentImageFiles: [],
         commentImagePreviews: [],
         editingCommentId: null,
@@ -852,6 +881,8 @@ function projetBoard() {
             this.showMembers = false;
             this.showLabels = false;
             this.showAttach = false;
+            this.editingDescription = false;
+            this.descriptionSaved = false;
             this.newComment = '';
             this.clearCommentImages();
             this.reactionPickerFor = null;
@@ -871,6 +902,7 @@ function projetBoard() {
         closeCard() {
             this.open = false;
             this.card = null;
+            this.editingDescription = false;
             this.clearCommentImages();
             this.reactionPickerFor = null;
             this.cancelEditComment();
@@ -893,6 +925,7 @@ function projetBoard() {
                     method: 'PATCH',
                     json: { description: this.card.description || null },
                 });
+                this.editingDescription = false;
                 this.descriptionSaved = true;
                 clearTimeout(this._descSavedTimer);
                 this._descSavedTimer = setTimeout(() => { this.descriptionSaved = false; }, 2000);
