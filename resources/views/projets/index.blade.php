@@ -397,38 +397,34 @@
                                 </div>
                             </div>
 
-                            <div>
-                                <div class="flex items-center justify-between mb-2">
-                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Description</p>
-                                    <div class="flex items-center gap-2">
-                                        <span x-show="descriptionSaved" x-cloak class="text-[11px] font-medium text-emerald-600">Enregistré</span>
+                            <div class="min-w-0">
+                                <div class="flex items-center justify-between gap-3 mb-2">
+                                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 leading-none">Description</p>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        <span x-show="descriptionSaved" x-cloak class="text-[11px] font-medium text-emerald-600 leading-none">Enregistré</span>
                                         <button
                                             type="button"
                                             x-show="!editingDescription"
                                             x-cloak
                                             @click="editingDescription = true"
-                                            class="text-[11px] font-semibold text-escm-primary hover:underline"
+                                            class="text-[11px] font-semibold text-escm-primary hover:underline leading-none"
                                         >Modifier</button>
                                     </div>
                                 </div>
 
                                 <div
                                     x-show="!editingDescription"
-                                    class="min-h-[6rem] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+                                    class="w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700"
                                     style="white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word;"
-                                >
-                                    <template x-if="card.description && String(card.description).trim()">
-                                        <div x-html="formatCommentHtml(card.description)"></div>
-                                    </template>
-                                    <p x-show="!card.description || !String(card.description).trim()" class="text-slate-400">Aucune description</p>
-                                </div>
+                                    x-html="(card.description && String(card.description).trim()) ? formatCommentHtml(card.description) : '<span class=&quot;text-slate-400&quot;>Aucune description</span>'"
+                                ></div>
 
-                                <div x-show="editingDescription" x-cloak>
+                                <div x-show="editingDescription" x-cloak class="min-w-0">
                                     <textarea
                                         x-model="card.description"
                                         rows="6"
                                         placeholder="Ajouter une description…"
-                                        class="w-full rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary"
+                                        class="w-full min-w-0 rounded-lg border-slate-200 text-sm focus:border-escm-primary focus:ring-escm-primary"
                                     ></textarea>
                                     <div class="mt-2 flex items-center justify-end gap-2">
                                         <button
@@ -1198,7 +1194,7 @@ function projetBoard() {
                     }
                     if (!url) return raw;
                     const href = /^https?:\/\//i.test(url) ? url : 'https://' + url;
-                    return '<a href="' + href + '" target="_blank" rel="noopener noreferrer" class="text-escm-primary underline break-all hover:opacity-80">' + url + '</a>' + trailing;
+                    return '<a href="' + href + '" target="_blank" rel="noopener noreferrer" class="text-escm-primary underline break-words hover:opacity-80">' + url + '</a>' + trailing;
                 }
             );
 
