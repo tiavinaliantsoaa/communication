@@ -1,5 +1,6 @@
 import './bootstrap';
 import './notifications';
+import './sticky-note';
 import Alpine from 'alpinejs';
 import ApexCharts from 'apexcharts';
 

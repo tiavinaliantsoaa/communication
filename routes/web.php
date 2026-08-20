@@ -10,6 +10,7 @@ use App\Http\Controllers\DepenseController;
 use App\Http\Controllers\EvenementController;
 use App\Http\Controllers\FournisseurController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\NoteController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjetController;
 use App\Http\Controllers\StatistiqueController;
@@ -28,6 +29,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead'])->name('notifications.mark-read');
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::delete('/notifications', [NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');
+    Route::get('/notes', [NoteController::class, 'show'])->name('notes.show');
+    Route::put('/notes', [NoteController::class, 'update'])->name('notes.update');
+    Route::post('/notes/image', [NoteController::class, 'uploadImage'])->name('notes.image');
     Route::get('/activite', [ActiviteController::class, 'index'])
         ->middleware('role:super_admin')
         ->name('activite.index');

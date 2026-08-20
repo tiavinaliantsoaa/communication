@@ -104,6 +104,9 @@
                 ></span>
             </a>
 
+            {{-- Pense-bête --}}
+            @include('layouts.partials.sticky-note')
+
             {{-- User profile --}}
             @include('layouts.partials.header-user')
         </div>
