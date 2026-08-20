@@ -92,6 +92,19 @@
         </div>
         @endif
 
+        @if($can('suivi_liens.view'))
+        <div>
+            <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Suivi de lien</p>
+            <div class="space-y-0.5">
+                <a href="{{ route('suivi-liens.index') }}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $isActive('suivi-liens.*') ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    Suivi de lien
+                </a>
+            </div>
+        </div>
+        @endif
+
         @php
             $stockItems = array_filter([
                 $can('stocks.view') ? ['route' => 'stocks.index', 'label' => 'Stocks', 'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'] : null,

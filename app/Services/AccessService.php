@@ -22,6 +22,7 @@ class AccessService
             'statistiques.view',
             'gestion_projet.view', 'gestion_projet.create', 'gestion_projet.update',
             'campagnes.view', 'campagnes.create', 'campagnes.update',
+            'suivi_liens.view', 'suivi_liens.create', 'suivi_liens.update', 'suivi_liens.delete',
             'calendrier_editorial.view', 'calendrier_editorial.create', 'calendrier_editorial.update',
             'evenements.view', 'evenements.create', 'evenements.update',
             'stocks.view', 'stocks_mouvements.view',
@@ -35,6 +36,7 @@ class AccessService
             'depenses.view', 'depenses.create', 'depenses.update',
             'fournisseurs.view', 'fournisseurs.create', 'fournisseurs.update',
             'campagnes.view',
+            'suivi_liens.view',
         ];
 
         $admin = array_values(array_diff($all, ['acces.manage']));
@@ -45,6 +47,7 @@ class AccessService
             'calendrier_editorial.view', 'calendrier_editorial.create',
             'evenements.view',
             'stocks.view', 'stocks_mouvements.view',
+            'suivi_liens.view',
         ];
 
         return [

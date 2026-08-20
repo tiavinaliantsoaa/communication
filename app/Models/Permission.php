@@ -78,6 +78,12 @@ class Permission extends Model
                 'campagnes.update' => 'Modifier',
                 'campagnes.delete' => 'Supprimer',
             ],
+            'Suivi de lien' => [
+                'suivi_liens.view' => 'Voir',
+                'suivi_liens.create' => 'Créer',
+                'suivi_liens.update' => 'Modifier',
+                'suivi_liens.delete' => 'Supprimer',
+            ],
             'Calendrier éditorial' => [
                 'calendrier_editorial.view' => 'Voir',
                 'calendrier_editorial.create' => 'Créer',

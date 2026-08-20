@@ -17,12 +17,18 @@ use App\Http\Controllers\ProjetController;
 use App\Http\Controllers\StatistiqueController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockMouvementController;
+use App\Http\Controllers\LinkRedirectController;
+use App\Http\Controllers\TrackedLinkController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
 });
+
+Route::get('/l/{slug}', LinkRedirectController::class)
+    ->where('slug', '[A-Za-z0-9\-_]+')
+    ->name('liens.redirect');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -51,6 +57,25 @@ Route::middleware(['auth'])->group(function () {
     });
     Route::middleware('permission:campagnes.view')->group(function () {
         Route::resource('campagnes', CampagneController::class)->except(['show']);
+    });
+    Route::middleware('permission:suivi_liens.view')->group(function () {
+        Route::get('suivi-liens', [TrackedLinkController::class, 'index'])->name('suivi-liens.index');
+        Route::get('suivi-liens/create', [TrackedLinkController::class, 'create'])
+            ->middleware('permission:suivi_liens.create')
+            ->name('suivi-liens.create');
+        Route::post('suivi-liens', [TrackedLinkController::class, 'store'])
+            ->middleware('permission:suivi_liens.create')
+            ->name('suivi-liens.store');
+        Route::get('suivi-liens/{suivi_lien}', [TrackedLinkController::class, 'show'])->name('suivi-liens.show');
+        Route::get('suivi-liens/{suivi_lien}/edit', [TrackedLinkController::class, 'edit'])
+            ->middleware('permission:suivi_liens.update')
+            ->name('suivi-liens.edit');
+        Route::put('suivi-liens/{suivi_lien}', [TrackedLinkController::class, 'update'])
+            ->middleware('permission:suivi_liens.update')
+            ->name('suivi-liens.update');
+        Route::delete('suivi-liens/{suivi_lien}', [TrackedLinkController::class, 'destroy'])
+            ->middleware('permission:suivi_liens.delete')
+            ->name('suivi-liens.destroy');
     });
     Route::prefix('stocks')->name('stocks.')->group(function () {
         Route::middleware('permission:stocks_mouvements.view')->group(function () {
