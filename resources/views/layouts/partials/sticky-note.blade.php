@@ -30,68 +30,90 @@
         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
         x-transition:leave-end="opacity-0 translate-y-2 scale-95"
         @keydown.escape.window="if (open) close()"
-        class="fixed z-[70] right-4 sm:right-8 top-20 w-[min(100vw-2rem,22rem)] shadow-2xl rounded-lg overflow-hidden border border-black/40"
-        style="background:#2b2b2b;"
+        class="fixed z-[70] right-4 sm:right-8 top-20 w-[min(100vw-2rem,22rem)] shadow-2xl rounded-lg overflow-hidden border border-slate-200 bg-white"
         @click.outside="menuOpen = false"
     >
-        {{-- Header jaune --}}
-        <div class="flex items-center justify-between px-2 h-10" style="background:#c9a227;">
-            <button type="button" @click="clearNote()" class="p-1.5 rounded text-black/80 hover:bg-black/10" title="Nouvelle note">
+        {{-- Header bleu --}}
+        <div class="flex items-center justify-between px-2 h-10 bg-escm-primary">
+            <button type="button" @click="clearNote()" class="p-1.5 rounded text-white/90 hover:bg-white/15" title="Nouvelle note">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             </button>
             <div class="flex items-center gap-0.5">
                 <div class="relative">
-                    <button type="button" @click="menuOpen = !menuOpen" class="p-1.5 rounded text-black/80 hover:bg-black/10" title="Options">
+                    <button type="button" @click="menuOpen = !menuOpen" class="p-1.5 rounded text-white/90 hover:bg-white/15" title="Options">
                         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"/></svg>
                     </button>
                     <div
                         x-show="menuOpen"
                         x-cloak
                         @click.outside="menuOpen = false"
-                        class="absolute right-0 mt-1 w-40 rounded-md bg-[#3a3a3a] border border-white/10 shadow-lg py-1 z-10"
+                        class="absolute right-0 mt-1 w-40 rounded-md bg-white border border-slate-200 shadow-lg py-1 z-10"
                     >
-                        <button type="button" @click="clearNote(); menuOpen = false" class="w-full text-left px-3 py-1.5 text-xs text-white/90 hover:bg-white/10">Effacer la note</button>
-                        <button type="button" @click="save(true); menuOpen = false" class="w-full text-left px-3 py-1.5 text-xs text-white/90 hover:bg-white/10">Enregistrer</button>
+                        <button type="button" @click="clearNote(); menuOpen = false" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50">Effacer la note</button>
+                        <button type="button" @click="save(true); menuOpen = false" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50">Enregistrer</button>
                     </div>
                 </div>
-                <button type="button" @click="close()" class="p-1.5 rounded text-black/80 hover:bg-black/10" title="Fermer">
+                <button type="button" @click="close()" class="p-1.5 rounded text-white/90 hover:bg-white/15" title="Fermer">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
         </div>
 
         {{-- Zone d'édition --}}
-        <div class="relative">
+        <div class="relative bg-white">
             <div
                 x-ref="editor"
                 contenteditable="true"
                 @input="onInput()"
+                @keydown="onKeydown($event)"
                 @paste="onPaste($event)"
-                class="min-h-[14rem] max-h-[50vh] overflow-y-auto px-3 py-3 text-sm text-white/90 outline-none leading-relaxed"
+                class="sticky-note-editor min-h-[14rem] max-h-[50vh] overflow-y-auto px-3 py-3 text-sm text-slate-800 outline-none leading-relaxed"
                 style="word-break: break-word; overflow-wrap: anywhere;"
                 data-placeholder="Rédigez une note…"
             ></div>
             <p
                 x-show="empty"
                 x-cloak
-                class="pointer-events-none absolute top-3 left-3 text-sm text-white/35"
+                class="pointer-events-none absolute top-3 left-3 text-sm text-slate-400"
             >Rédigez une note…</p>
         </div>
 
         {{-- Toolbar bas --}}
-        <div class="flex items-center gap-0.5 px-2 py-1.5 border-t border-white/10" style="background:#1f1f1f;">
-            <button type="button" @click="format('bold')" class="w-8 h-8 rounded text-white/70 hover:bg-white/10 font-bold text-sm" title="Gras">B</button>
-            <button type="button" @click="format('italic')" class="w-8 h-8 rounded text-white/70 hover:bg-white/10 italic text-sm" title="Italique">I</button>
-            <button type="button" @click="format('underline')" class="w-8 h-8 rounded text-white/70 hover:bg-white/10 text-sm underline" title="Souligné">U</button>
-            <button type="button" @click="format('strikeThrough')" class="w-8 h-8 rounded text-white/70 hover:bg-white/10 text-sm line-through" title="Barré">ab</button>
-            <button type="button" @click="format('insertUnorderedList')" class="w-8 h-8 rounded text-white/70 hover:bg-white/10 flex items-center justify-center" title="Liste">
+        <div class="flex items-center gap-0.5 px-2 py-1.5 border-t border-slate-200 bg-slate-50">
+            <button type="button" @mousedown.prevent="format('bold')" class="w-8 h-8 rounded text-slate-600 hover:bg-escm-primary/10 hover:text-escm-primary font-bold text-sm" title="Gras">B</button>
+            <button type="button" @mousedown.prevent="format('italic')" class="w-8 h-8 rounded text-slate-600 hover:bg-escm-primary/10 hover:text-escm-primary italic text-sm" title="Italique">I</button>
+            <button type="button" @mousedown.prevent="format('underline')" class="w-8 h-8 rounded text-slate-600 hover:bg-escm-primary/10 hover:text-escm-primary text-sm underline" title="Souligné">U</button>
+            <button type="button" @mousedown.prevent="format('strikeThrough')" class="w-8 h-8 rounded text-slate-600 hover:bg-escm-primary/10 hover:text-escm-primary text-sm line-through" title="Barré">ab</button>
+            <button type="button" @mousedown.prevent="toggleList()" class="w-8 h-8 rounded text-slate-600 hover:bg-escm-primary/10 hover:text-escm-primary flex items-center justify-center" title="Liste">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
             </button>
-            <label class="w-8 h-8 rounded text-white/70 hover:bg-white/10 flex items-center justify-center cursor-pointer" title="Image">
+            <label class="w-8 h-8 rounded text-slate-600 hover:bg-escm-primary/10 hover:text-escm-primary flex items-center justify-center cursor-pointer" title="Image">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                 <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" @change="insertImage($event)">
             </label>
-            <span class="ml-auto text-[10px] text-white/30 pr-1" x-text="status"></span>
+            <span class="ml-auto text-[10px] text-slate-400 pr-1" x-text="status"></span>
         </div>
     </div>
 </div>
+
+<style>
+    .sticky-note-editor ul {
+        list-style: disc;
+        padding-left: 1.25rem;
+        margin: 0.25rem 0;
+    }
+    .sticky-note-editor ol {
+        list-style: decimal;
+        padding-left: 1.25rem;
+        margin: 0.25rem 0;
+    }
+    .sticky-note-editor li {
+        margin: 0.15rem 0;
+    }
+    .sticky-note-editor img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        margin: 0.35rem 0;
+    }
+</style>

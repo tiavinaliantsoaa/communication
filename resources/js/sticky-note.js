@@ -63,10 +63,93 @@ window.stickyNote = function stickyNote(config) {
             document.execCommand('insertText', false, text);
         },
 
+        onKeydown(event) {
+            // Allow Enter inside lists to create a new bullet
+            if (event.key === 'Enter' && !event.shiftKey) {
+                const inList = this.isSelectionInList();
+                if (inList) {
+                    // Let the browser handle list Enter natively
+                    return;
+                }
+            }
+        },
+
         format(cmd) {
-            this.$refs.editor?.focus();
+            const editor = this.$refs.editor;
+            if (!editor) return;
+            editor.focus();
             document.execCommand(cmd, false, null);
             this.onInput();
+        },
+
+        isSelectionInList() {
+            const sel = window.getSelection();
+            if (!sel || !sel.rangeCount) return false;
+            let node = sel.anchorNode;
+            if (node && node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+            return !!(node && node.closest && node.closest('ul, ol, li'));
+        },
+
+        /**
+         * insertUnorderedList is unreliable on empty / plain text contenteditable.
+         * Ensure a selection exists, then toggle list (with HTML fallback).
+         */
+        toggleList() {
+            const editor = this.$refs.editor;
+            if (!editor) return;
+            editor.focus();
+
+            const sel = window.getSelection();
+            if (!sel) return;
+
+            // If empty editor, seed a paragraph so list can attach
+            if (!editor.innerText.trim()) {
+                editor.innerHTML = '<div><br></div>';
+                const range = document.createRange();
+                range.selectNodeContents(editor.firstChild);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            } else if (sel.isCollapsed && sel.anchorNode) {
+                // Expand to the current line/block so the whole line becomes a list item
+                let block = sel.anchorNode;
+                if (block.nodeType === Node.TEXT_NODE) block = block.parentElement;
+                while (block && block !== editor && !/^(DIV|P|LI|H[1-6])$/i.test(block.tagName || '')) {
+                    block = block.parentElement;
+                }
+                if (block && block !== editor) {
+                    const range = document.createRange();
+                    range.selectNodeContents(block);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            }
+
+            const alreadyList = this.isSelectionInList();
+            let ok = false;
+            try {
+                ok = document.execCommand('insertUnorderedList', false, null);
+            } catch (_) {
+                ok = false;
+            }
+
+            // Fallback if execCommand failed or did nothing
+            if (!ok || (!alreadyList && !editor.querySelector('ul, ol'))) {
+                const text = (sel.toString() || editor.innerText || 'Élément').trim() || 'Élément';
+                const lines = text.split(/\n+/).filter(Boolean);
+                const items = lines.map((l) => '<li>' + this.escapeHtml(l) + '</li>').join('');
+                document.execCommand('insertHTML', false, '<ul>' + items + '</ul>');
+            }
+
+            this.onInput();
+            editor.focus();
+        },
+
+        escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
         },
 
         async insertImage(event) {
