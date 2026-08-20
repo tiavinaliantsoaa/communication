@@ -24,7 +24,7 @@ class UserController extends Controller
 
     public function create()
     {
-        return view('users.create', ['roles' => User::ROLES]);
+        return view('users.create', ['roles' => User::roleOptions()]);
     }
 
     public function store(Request $request)
@@ -33,10 +33,11 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Password::defaults()],
-            'role' => ['required', Rule::in(array_keys(User::ROLES))],
+            'role' => ['required', Rule::in(array_keys(User::roleOptions()))],
         ]);
 
         $created = User::create($validated);
+        \App\Services\AccessService::syncUserPermissionsFromRole($created);
 
         app(ActivityLogger::class)->log(
             'user',
@@ -53,7 +54,7 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        return view('users.edit', ['user' => $user, 'roles' => User::ROLES]);
+        return view('users.edit', ['user' => $user, 'roles' => User::roleOptions()]);
     }
 
     public function update(Request $request, User $user)
@@ -62,14 +63,19 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', 'confirmed', Password::defaults()],
-            'role' => ['required', Rule::in(array_keys(User::ROLES))],
+            'role' => ['required', Rule::in(array_keys(User::roleOptions()))],
         ]);
 
         if (empty($validated['password'])) {
             unset($validated['password']);
         }
 
+        $roleChanged = ($validated['role'] ?? null) !== $user->role;
         $user->update($validated);
+
+        if ($roleChanged) {
+            \App\Services\AccessService::syncUserPermissionsFromRole($user->fresh());
+        }
 
         app(ActivityLogger::class)->log(
             'user',

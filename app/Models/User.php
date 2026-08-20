@@ -18,6 +18,7 @@ class User extends Authenticatable
         'administrateur' => 'Administrateur',
         'responsable_communication' => 'Responsable Communication',
         'gestionnaire_budget' => 'Gestionnaire Budget',
+        'stagiaire' => 'Stagiaire',
     ];
 
     protected $fillable = [
@@ -38,9 +39,23 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
+    public function permissions(): BelongsToMany
+    {
+        return $this->belongsToMany(Permission::class);
+    }
+
     public function getRoleLabelAttribute(): string
     {
-        return self::ROLES[$this->role] ?? $this->role;
+        $fromDb = Role::where('slug', $this->role)->value('name');
+
+        return $fromDb ?: (self::ROLES[$this->role] ?? $this->role);
+    }
+
+    public static function roleOptions(): array
+    {
+        $db = Role::orderBy('name')->pluck('name', 'slug')->all();
+
+        return $db ?: self::ROLES;
     }
 
     public function isAdmin(): bool
@@ -55,12 +70,44 @@ class User extends Authenticatable
 
     public function canValidateEditorial(): bool
     {
-        return $this->isSuperAdmin();
+        return $this->isSuperAdmin() || $this->canAccess('calendrier_editorial.validate');
     }
 
     public function canApproveDepense(): bool
     {
-        return $this->isSuperAdmin();
+        return $this->isSuperAdmin() || $this->canAccess('depenses.approve');
+    }
+
+    /**
+     * Check a permission key. Super admin always allowed.
+     * Uses direct user permissions (synced from role / customized).
+     */
+    public function canAccess(string $permission): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($this->relationLoaded('permissions')) {
+            return $this->permissions->contains('key', $permission);
+        }
+
+        return $this->permissions()->where('key', $permission)->exists();
+    }
+
+    public function canAccessAny(array $permissions): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        foreach ($permissions as $permission) {
+            if ($this->canAccess($permission)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function projetCartes(): BelongsToMany

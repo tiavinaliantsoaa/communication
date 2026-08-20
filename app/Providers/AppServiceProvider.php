@@ -60,6 +60,25 @@ class AppServiceProvider extends ServiceProvider
                 'moisLabel' => $data['moisLabel'] ?? Carbon::create($annee, $mois, 1)->locale('fr')->isoFormat('MMMM YYYY'),
             ]);
         });
+        View::composer('layouts.partials.sidebar', function () {
+            if (! auth()->check()) {
+                return;
+            }
+
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasTable('permissions')) {
+                    $user = auth()->user();
+                    if (! $user->relationLoaded('permissions')) {
+                        if (! $user->permissions()->exists()) {
+                            \App\Services\AccessService::bootstrap();
+                        }
+                        $user->load('permissions');
+                    }
+                }
+            } catch (\Throwable $e) {
+                // ignore during early migrate
+            }
+        });
     }
 }
 

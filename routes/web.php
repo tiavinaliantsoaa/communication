@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccesController;
 use App\Http\Controllers\ActiviteController;
 use App\Http\Controllers\BudgetAnnuelController;
 use App\Http\Controllers\BudgetController;
@@ -33,22 +34,36 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/notes', [NoteController::class, 'update'])->name('notes.update');
     Route::post('/notes/image', [NoteController::class, 'uploadImage'])->name('notes.image');
     Route::get('/activite', [ActiviteController::class, 'index'])
-        ->middleware('role:super_admin')
+        ->middleware('permission:activite.view')
         ->name('activite.index');
 
-    Route::resource('budget-annuels', BudgetAnnuelController::class)->except(['show']);
-    Route::resource('budgets', BudgetController::class)->except(['show']);
-    Route::resource('depenses', DepenseController::class)->except(['show']);
-    Route::resource('fournisseurs', FournisseurController::class)->except(['show']);
-    Route::resource('campagnes', CampagneController::class)->except(['show']);
-    Route::prefix('stocks')->name('stocks.')->group(function () {
-        Route::resource('mouvements', StockMouvementController::class)
-            ->parameters(['mouvements' => 'mouvement'])
-            ->except(['show']);
+    Route::middleware('permission:budget_annuel.view')->group(function () {
+        Route::resource('budget-annuels', BudgetAnnuelController::class)->except(['show']);
     });
-    Route::resource('stocks', StockController::class)->except(['show']);
+    Route::middleware('permission:budget_mensuel.view')->group(function () {
+        Route::resource('budgets', BudgetController::class)->except(['show']);
+    });
+    Route::middleware('permission:depenses.view')->group(function () {
+        Route::resource('depenses', DepenseController::class)->except(['show']);
+    });
+    Route::middleware('permission:fournisseurs.view')->group(function () {
+        Route::resource('fournisseurs', FournisseurController::class)->except(['show']);
+    });
+    Route::middleware('permission:campagnes.view')->group(function () {
+        Route::resource('campagnes', CampagneController::class)->except(['show']);
+    });
+    Route::prefix('stocks')->name('stocks.')->group(function () {
+        Route::middleware('permission:stocks_mouvements.view')->group(function () {
+            Route::resource('mouvements', StockMouvementController::class)
+                ->parameters(['mouvements' => 'mouvement'])
+                ->except(['show']);
+        });
+    });
+    Route::middleware('permission:stocks.view')->group(function () {
+        Route::resource('stocks', StockController::class)->except(['show']);
+    });
 
-    Route::prefix('gestion-projet')->name('gestion-projet.')->group(function () {
+    Route::middleware('permission:gestion_projet.view')->prefix('gestion-projet')->name('gestion-projet.')->group(function () {
         Route::get('/', [ProjetController::class, 'index'])->name('index');
         Route::post('/listes', [ProjetController::class, 'storeListe'])->name('listes.store');
         Route::post('/listes/reorder', [ProjetController::class, 'reorderListes'])->name('listes.reorder');
@@ -79,17 +94,35 @@ Route::middleware(['auth'])->group(function () {
         return redirect()->route('gestion-projet.index');
     });
 
-    Route::resource('evenements', EvenementController::class)->except(['show']);
-    Route::get('/calendrier-editorial', [CalendrierEditorialController::class, 'index'])->name('calendrier-editorial');
-    Route::get('/calendrier-editorial/search', [CalendrierEditorialController::class, 'search'])->name('calendrier-editorial.search');
-    Route::post('/calendrier-editorial', [CalendrierEditorialController::class, 'store'])->name('calendrier-editorial.store');
-    Route::put('/calendrier-editorial/{editorialEvent}', [CalendrierEditorialController::class, 'update'])->name('calendrier-editorial.update');
-    Route::delete('/calendrier-editorial/{editorialEvent}', [CalendrierEditorialController::class, 'destroy'])->name('calendrier-editorial.destroy');
-    Route::get('/statistiques', [StatistiqueController::class, 'index'])->name('statistiques');
-    Route::get('/parametres/systeme', fn () => view('pages.placeholder', ['title' => 'Configuration système', 'subtitle' => 'Paramètres de l\'application']))->name('parametres.systeme');
+    Route::middleware('permission:evenements.view')->group(function () {
+        Route::resource('evenements', EvenementController::class)->except(['show']);
+    });
+    Route::middleware('permission:calendrier_editorial.view')->group(function () {
+        Route::get('/calendrier-editorial', [CalendrierEditorialController::class, 'index'])->name('calendrier-editorial');
+        Route::get('/calendrier-editorial/search', [CalendrierEditorialController::class, 'search'])->name('calendrier-editorial.search');
+        Route::post('/calendrier-editorial', [CalendrierEditorialController::class, 'store'])->name('calendrier-editorial.store');
+        Route::put('/calendrier-editorial/{editorialEvent}', [CalendrierEditorialController::class, 'update'])->name('calendrier-editorial.update');
+        Route::delete('/calendrier-editorial/{editorialEvent}', [CalendrierEditorialController::class, 'destroy'])->name('calendrier-editorial.destroy');
+    });
+    Route::get('/statistiques', [StatistiqueController::class, 'index'])
+        ->middleware('permission:statistiques.view')
+        ->name('statistiques');
+    Route::get('/parametres/systeme', fn () => view('pages.placeholder', ['title' => 'Configuration système', 'subtitle' => 'Paramètres de l\'application']))
+        ->middleware('permission:parametres.systeme')
+        ->name('parametres.systeme');
+
+    Route::prefix('acces')->name('acces.')->middleware('role:super_admin')->group(function () {
+        Route::get('/', [AccesController::class, 'index'])->name('index');
+        Route::post('/roles', [AccesController::class, 'storeRole'])->name('roles.store');
+        Route::get('/roles/{role}', [AccesController::class, 'editRole'])->name('roles.edit');
+        Route::put('/roles/{role}', [AccesController::class, 'updateRole'])->name('roles.update');
+        Route::delete('/roles/{role}', [AccesController::class, 'destroyRole'])->name('roles.destroy');
+        Route::get('/users/{user}', [AccesController::class, 'editUser'])->name('users.edit');
+        Route::put('/users/{user}', [AccesController::class, 'updateUser'])->name('users.update');
+    });
 
     Route::resource('users', UserController::class)
-        ->middleware('role:super_admin,administrateur');
+        ->middleware('permission:users.view');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
