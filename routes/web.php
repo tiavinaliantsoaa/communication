@@ -17,6 +17,9 @@ use App\Http\Controllers\ProjetController;
 use App\Http\Controllers\StatistiqueController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockMouvementController;
+use App\Http\Controllers\Crm\CandidateController as CrmCandidateController;
+use App\Http\Controllers\Crm\DashboardController as CrmDashboardController;
+use App\Http\Controllers\Crm\PipelineController as CrmPipelineController;
 use App\Http\Controllers\LinkRedirectController;
 use App\Http\Controllers\TrackedLinkController;
 use App\Http\Controllers\UserController;
@@ -77,6 +80,33 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('permission:suivi_liens.delete')
             ->name('suivi-liens.destroy');
     });
+
+    Route::middleware('permission:crm.view')->prefix('crm')->name('crm.')->group(function () {
+        Route::get('/', CrmDashboardController::class)->name('dashboard');
+        Route::get('/pipeline', CrmPipelineController::class)->name('pipeline');
+
+        Route::get('/candidats', [CrmCandidateController::class, 'index'])->name('candidats.index');
+        Route::get('/candidats/create', [CrmCandidateController::class, 'create'])
+            ->middleware('permission:crm.create')
+            ->name('candidats.create');
+        Route::post('/candidats', [CrmCandidateController::class, 'store'])
+            ->middleware('permission:crm.create')
+            ->name('candidats.store');
+        Route::get('/candidats/{candidat}', [CrmCandidateController::class, 'show'])->name('candidats.show');
+        Route::get('/candidats/{candidat}/edit', [CrmCandidateController::class, 'edit'])
+            ->middleware('permission:crm.update')
+            ->name('candidats.edit');
+        Route::put('/candidats/{candidat}', [CrmCandidateController::class, 'update'])
+            ->middleware('permission:crm.update')
+            ->name('candidats.update');
+        Route::delete('/candidats/{candidat}', [CrmCandidateController::class, 'destroy'])
+            ->middleware('permission:crm.delete')
+            ->name('candidats.destroy');
+        Route::post('/candidats/{candidat}/notes', [CrmCandidateController::class, 'storeNote'])
+            ->middleware('permission:crm.update')
+            ->name('candidats.notes.store');
+    });
+
     Route::prefix('stocks')->name('stocks.')->group(function () {
         Route::middleware('permission:stocks_mouvements.view')->group(function () {
             Route::resource('mouvements', StockMouvementController::class)

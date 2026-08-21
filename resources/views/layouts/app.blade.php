@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
     <style>[x-cloak]{display:none!important}</style>
     <script>
         window.escmDate = {
@@ -54,5 +55,6 @@
         </div>
     </div>
     @stack('scripts')
+    @livewireScripts
 </body>
 </html>

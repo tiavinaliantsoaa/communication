@@ -84,6 +84,12 @@ class Permission extends Model
                 'suivi_liens.update' => 'Modifier',
                 'suivi_liens.delete' => 'Supprimer',
             ],
+            'CRM' => [
+                'crm.view' => 'Voir',
+                'crm.create' => 'Créer',
+                'crm.update' => 'Modifier',
+                'crm.delete' => 'Supprimer',
+            ],
             'Calendrier éditorial' => [
                 'calendrier_editorial.view' => 'Voir',
                 'calendrier_editorial.create' => 'Créer',
