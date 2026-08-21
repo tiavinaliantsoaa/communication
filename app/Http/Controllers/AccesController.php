@@ -36,6 +36,7 @@ class AccesController extends Controller
             'roles' => $roles,
             'users' => $users,
             'permissionGroups' => $permissions,
+            'homePages' => Role::homePageOptions(),
         ]);
     }
 
@@ -44,6 +45,7 @@ class AccesController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:255'],
+            'home_route' => ['nullable', 'string', Rule::in(array_keys(Role::homePageOptions()))],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', 'exists:permissions,key'],
         ]);
@@ -52,6 +54,7 @@ class AccesController extends Controller
             'name' => $data['name'],
             'slug' => Role::makeSlug($data['name']),
             'description' => $data['description'] ?? null,
+            'home_route' => $data['home_route'] ?? null,
             'is_system' => false,
         ]);
 
@@ -76,6 +79,7 @@ class AccesController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:255'],
+            'home_route' => ['nullable', 'string', Rule::in(array_keys(Role::homePageOptions()))],
             'permissions' => ['nullable', 'array'],
             'permissions.*' => ['string', 'exists:permissions,key'],
         ]);
@@ -85,6 +89,7 @@ class AccesController extends Controller
             // keep slug stable for system; custom roles can keep slug
         }
         $role->description = $data['description'] ?? null;
+        $role->home_route = $data['home_route'] ?: null;
         $role->save();
 
         $ids = Permission::whereIn('key', $data['permissions'] ?? [])->pluck('id');
@@ -205,6 +210,7 @@ class AccesController extends Controller
             'role' => $role,
             'permissionGroups' => $permissionGroups,
             'roleKeys' => $roleKeys,
+            'homePages' => Role::homePageOptions(),
         ]);
     }
 }

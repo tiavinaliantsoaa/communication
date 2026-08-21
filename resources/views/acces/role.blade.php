@@ -27,6 +27,17 @@
                 <label class="block text-xs font-medium text-slate-600 mb-1">Description</label>
                 <input type="text" name="description" value="{{ old('description', $role->description) }}" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
             </div>
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-slate-600 mb-1">Page de démarrage</label>
+                <select name="home_route" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                    <option value="">Dashboard général (si accessible) — sinon première page autorisée</option>
+                    @foreach($homePages as $routeName => $meta)
+                        <option value="{{ $routeName }}" @selected(old('home_route', $role->home_route) === $routeName)>{{ $meta['label'] }}</option>
+                    @endforeach
+                </select>
+                <p class="mt-1.5 text-[11px] text-slate-500">Utilisée après connexion lorsque l’utilisateur n’a pas accès au dashboard général. Choisissez une page que ce rôle peut réellement ouvrir.</p>
+                @error('home_route')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
         </div>
 
         <div class="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center gap-3 bg-slate-50">

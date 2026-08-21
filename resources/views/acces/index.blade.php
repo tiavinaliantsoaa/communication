@@ -32,6 +32,16 @@
                         <label class="block text-xs font-medium text-slate-600 mb-1">Description <span class="text-slate-400">(optionnel)</span></label>
                         <input type="text" name="description" maxlength="255" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
                     </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Page de démarrage</label>
+                        <select name="home_route" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                            <option value="">Dashboard général (si accessible)</option>
+                            @foreach($homePages as $routeName => $meta)
+                                <option value="{{ $routeName }}">{{ $meta['label'] }}</option>
+                            @endforeach
+                        </select>
+                        <p class="mt-1 text-[11px] text-slate-500">Redirection après login si pas d’accès au dashboard général.</p>
+                    </div>
                     <p class="text-[11px] text-slate-500">Après création, ouvrez le rôle pour cocher les permissions.</p>
                     <button type="submit" class="rounded-lg bg-escm-primary text-white text-xs font-semibold px-4 py-2 hover:bg-escm-primary-dark">Créer</button>
                 </form>
@@ -47,7 +57,11 @@
                                     <span class="ml-1 inline-flex items-center rounded bg-slate-100 text-slate-500 text-[10px] font-semibold px-1.5 py-0.5">Système</span>
                                 @endif
                             </p>
-                            <p class="text-xs text-slate-500 mt-0.5">{{ $role->permissions_count }} permission(s)@if($role->description) · {{ $role->description }}@endif</p>
+                            <p class="text-xs text-slate-500 mt-0.5">
+                                {{ $role->permissions_count }} permission(s)
+                                · Démarrage : {{ $role->home_page_label }}
+                                @if($role->description) · {{ $role->description }}@endif
+                            </p>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
                             <a href="{{ route('acces.roles.edit', $role) }}" class="text-xs font-semibold text-escm-primary hover:underline">Permissions</a>

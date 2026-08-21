@@ -110,6 +110,61 @@ class User extends Authenticatable
         return false;
     }
 
+    /**
+     * Named route used after login / when visiting "/".
+     * Uses the role's "Page de démarrage" when the user cannot access the general dashboard.
+     */
+    public function homeRouteName(): string
+    {
+        if ($this->canAccess('dashboard.view')) {
+            return 'dashboard';
+        }
+
+        $role = Role::where('slug', $this->role)->first();
+        $preferred = $role?->home_route;
+
+        if ($preferred && $this->canUseHomeRoute($preferred)) {
+            return $preferred;
+        }
+
+        foreach (Role::homePageOptions() as $routeName => $meta) {
+            if ($routeName === 'dashboard') {
+                continue;
+            }
+            if ($this->canUseHomeRoute($routeName)) {
+                return $routeName;
+            }
+        }
+
+        return 'profile.edit';
+    }
+
+    public function homeUrl(): string
+    {
+        $name = $this->homeRouteName();
+
+        try {
+            return route($name);
+        } catch (\Throwable) {
+            return route('profile.edit');
+        }
+    }
+
+    public function canUseHomeRoute(string $routeName): bool
+    {
+        $options = Role::homePageOptions();
+        if (! isset($options[$routeName])) {
+            return false;
+        }
+
+        $permission = $options[$routeName]['permission'] ?? '';
+        if ($permission === '' || $permission === null) {
+            return true;
+        }
+
+        return $this->canAccess($permission);
+    }
+
     public function projetCartes(): BelongsToMany
     {
         return $this->belongsToMany(ProjetCarte::class, 'projet_carte_user');

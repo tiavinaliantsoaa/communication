@@ -15,6 +15,10 @@ class DashboardController extends Controller
 {
     public function index(Request $request, AlerteService $alerteService, BudgetMensuelService $budgetMensuel)
     {
+        if (! $request->user()?->canAccess('dashboard.view')) {
+            return redirect()->to($request->user()->homeUrl());
+        }
+
         $annee = (int) $request->get('annee', now()->year);
         $mois = (int) $request->get('mois', now()->month);
         if ($mois < 1 || $mois > 12) {

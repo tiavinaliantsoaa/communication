@@ -26,7 +26,9 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect()->route('dashboard');
+    return auth()->check()
+        ? redirect()->to(auth()->user()->homeUrl())
+        : redirect()->route('login');
 });
 
 Route::get('/l/{slug}', LinkRedirectController::class)
