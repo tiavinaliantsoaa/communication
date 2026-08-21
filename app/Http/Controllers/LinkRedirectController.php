@@ -20,7 +20,7 @@ class LinkRedirectController extends Controller
             abort(404);
         }
 
-        $info = $visitorInfo->fromRequest($request, true);
+        $info = $visitorInfo->fromRequest($request);
 
         try {
             DB::transaction(function () use ($link, $info) {

@@ -3,17 +3,20 @@
 namespace App\Services;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 
 class VisitorInfoService
 {
-    public function fromRequest(Request $request, bool $fast = false): array
+    public function fromRequest(Request $request): array
     {
         $ua = (string) $request->userAgent();
         $ip = $request->ip();
 
-        $geo = $fast
-            ? $this->geoFromHeaders($request)
-            : array_merge($this->geoFromHeaders($request), $this->lookupGeo($ip));
+        $geo = $this->geoFromHeaders($request);
+        if (empty($geo['country']) && empty($geo['city'])) {
+            $geo = $this->lookupGeo($ip);
+        }
 
         return [
             'ip' => $ip,
@@ -94,7 +97,6 @@ class VisitorInfoService
         ];
         foreach ($map as $label => $pattern) {
             if (preg_match($pattern, $ua)) {
-                // Chrome also matches Safari string — Chrome checked before Safari
                 if ($label === 'Safari' && preg_match('/chrome\//i', $ua)) {
                     continue;
                 }
@@ -107,31 +109,44 @@ class VisitorInfoService
     }
 
     /**
-     * Best-effort geo lookup (ip-api.com free, non-commercial). Fail silently.
+     * Geo lookup via ip-api.com (free). Cached 24h per IP. Fail silently.
      *
      * @return array{country?:string,city?:string}
      */
     private function lookupGeo(?string $ip): array
     {
-        if (! $ip || in_array($ip, ['127.0.0.1', '::1'], true) || ! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        if (! $ip || in_array($ip, ['127.0.0.1', '::1'], true)) {
             return [];
         }
 
-        try {
-            $ctx = stream_context_create(['http' => ['timeout' => 0.6]]);
-            $json = @file_get_contents('http://ip-api.com/json/'.urlencode($ip).'?fields=status,country,city', false, $ctx);
-            if (! $json) {
-                return [];
-            }
-            $data = json_decode($json, true);
-            if (($data['status'] ?? '') !== 'success') {
-                return [];
-            }
+        if (! filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+            return [];
+        }
 
-            return [
-                'country' => $data['country'] ?? null,
-                'city' => $data['city'] ?? null,
-            ];
+        $cacheKey = 'geo_ip:'.md5($ip);
+
+        try {
+            return Cache::remember($cacheKey, now()->addDay(), function () use ($ip) {
+                $response = Http::timeout(1.5)
+                    ->connectTimeout(1)
+                    ->get('http://ip-api.com/json/'.$ip, [
+                        'fields' => 'status,country,city',
+                    ]);
+
+                if (! $response->successful()) {
+                    return [];
+                }
+
+                $data = $response->json();
+                if (($data['status'] ?? '') !== 'success') {
+                    return [];
+                }
+
+                return array_filter([
+                    'country' => $data['country'] ?? null,
+                    'city' => $data['city'] ?? null,
+                ]);
+            });
         } catch (\Throwable $e) {
             return [];
         }
