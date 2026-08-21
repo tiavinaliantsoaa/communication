@@ -56,10 +56,11 @@
         <h3 class="text-sm font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-100">Informations académiques</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1.5">Programme d’intérêt</label>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Programme intéressé</label>
                 <input type="text" name="programme" value="{{ old('programme', $candidate->programme ?? '') }}" maxlength="255"
                        class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary"
-                       placeholder="Ex. Licence Marketing">
+                       placeholder="Ex. Licence Marketing, Master Finance…">
+                @error('programme')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Année / Intake</label>

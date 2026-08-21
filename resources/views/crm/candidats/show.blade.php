@@ -63,7 +63,7 @@
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <h3 class="text-sm font-semibold text-slate-800 mb-4">Informations académiques</h3>
         <dl class="space-y-3 text-sm">
-            <div class="flex justify-between gap-4"><dt class="text-slate-500">Programme</dt><dd class="text-slate-900 font-medium">{{ $candidate->programme ?: '—' }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-slate-500">Programme intéressé</dt><dd class="text-slate-900 font-medium">{{ $candidate->programme ?: '—' }}</dd></div>
             <div class="flex justify-between gap-4"><dt class="text-slate-500">Année / Intake</dt><dd class="text-slate-900 font-medium">{{ $candidate->annee_academique ?: '—' }}</dd></div>
             <div class="flex justify-between gap-4"><dt class="text-slate-500">Niveau d’études</dt><dd class="text-slate-900 font-medium">{{ $candidate->niveau_etudes ?: '—' }}</dd></div>
             <div class="flex justify-between gap-4"><dt class="text-slate-500">Établissement</dt><dd class="text-slate-900 font-medium text-right">{{ $candidate->etablissement_origine ?: '—' }}</dd></div>
