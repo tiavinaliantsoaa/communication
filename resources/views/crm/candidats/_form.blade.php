@@ -133,6 +133,13 @@
                        placeholder="https://facebook.com/…">
                 @error('facebook_profil_url')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
+            <div class="sm:col-span-2" x-show="source === 'escm_tour'" x-cloak x-transition>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Ville</label>
+                <input type="text" name="escm_tour_ville" value="{{ old('escm_tour_ville', $candidate->escm_tour_ville ?? '') }}" maxlength="120"
+                       class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary"
+                       placeholder="Ville où s’est déroulé l’ESCM Tour">
+                @error('escm_tour_ville')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
             <div class="sm:col-span-2">
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Conseiller assigné</label>
                 <select name="advisor_id" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">

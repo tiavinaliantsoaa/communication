@@ -21,11 +21,9 @@ class CrmCandidate extends Model
 
     public const SOURCES = [
         'facebook' => 'Facebook',
-        'website' => 'Website',
-        'whatsapp' => 'WhatsApp',
-        'referral' => 'Referral',
-        'walk_in' => 'Walk-in',
-        'other' => 'Other',
+        'site_web' => 'Site Web',
+        'salon' => 'Salon',
+        'escm_tour' => 'ESCM Tour',
     ];
 
     public const GENRES = [
@@ -62,6 +60,7 @@ class CrmCandidate extends Model
         'statut',
         'source',
         'facebook_profil_url',
+        'escm_tour_ville',
         'advisor_id',
         'notes',
         'last_interaction_at',

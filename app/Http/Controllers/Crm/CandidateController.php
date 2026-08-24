@@ -214,6 +214,7 @@ class CandidateController extends Controller
             'statut' => ['required', Rule::in(array_keys(CrmCandidate::STATUTS))],
             'source' => ['nullable', Rule::in(array_keys(CrmCandidate::SOURCES))],
             'facebook_profil_url' => ['nullable', 'string', 'max:500'],
+            'escm_tour_ville' => ['nullable', 'string', 'max:120'],
             'advisor_id' => ['nullable', 'exists:users,id'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ], [
@@ -226,6 +227,10 @@ class CandidateController extends Controller
 
         if (($validated['source'] ?? null) !== 'facebook') {
             $validated['facebook_profil_url'] = null;
+        }
+
+        if (($validated['source'] ?? null) !== 'escm_tour') {
+            $validated['escm_tour_ville'] = null;
         }
 
         if (($validated['annee_academique'] ?? '') === '') {

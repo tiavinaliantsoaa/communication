@@ -80,6 +80,9 @@
             @if($candidate->source === 'facebook' && $candidate->facebook_profil_url)
             <div class="sm:col-span-3"><dt class="text-slate-500 mb-1">Lien du profil Facebook</dt><dd class="text-slate-900 font-medium break-all"><a href="{{ $candidate->facebook_profil_url }}" target="_blank" rel="noopener" class="text-escm-primary hover:underline">{{ $candidate->facebook_profil_url }}</a></dd></div>
             @endif
+            @if($candidate->source === 'escm_tour' && $candidate->escm_tour_ville)
+            <div class="sm:col-span-3"><dt class="text-slate-500 mb-1">Ville ESCM Tour</dt><dd class="text-slate-900 font-medium">{{ $candidate->escm_tour_ville }}</dd></div>
+            @endif
         </dl>
         @if($candidate->notes)
             <div class="mt-4 pt-4 border-t border-slate-100">
