@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Crm;
 use App\Http\Controllers\Controller;
 use App\Models\CrmCandidate;
 use App\Models\CrmIntake;
+use App\Models\CrmProgramme;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\CrmActivityLogger;
@@ -190,12 +191,14 @@ class CandidateController extends Controller
             'genres' => CrmCandidate::GENRES,
             'advisors' => User::orderBy('name')->get(['id', 'name']),
             'intakes' => CrmIntake::optionsForSelect($candidate?->annee_academique),
+            'programmes' => CrmProgramme::optionsForSelect($candidate?->programme),
         ];
     }
 
     private function validateCandidate(Request $request, ?CrmCandidate $candidate = null): array
     {
         $intakeLabels = CrmIntake::optionsForSelect($candidate?->annee_academique);
+        $programmeLabels = CrmProgramme::optionsForSelect($candidate?->programme);
 
         $validated = $request->validate([
             'prenom' => ['required', 'string', 'max:100'],
@@ -207,7 +210,7 @@ class CandidateController extends Controller
             'adresse' => ['nullable', 'string', 'max:1000'],
             'contact_parent_1' => ['nullable', 'string', 'max:80'],
             'contact_parent_2' => ['nullable', 'string', 'max:80'],
-            'programme' => ['nullable', 'string', 'max:255'],
+            'programme' => ['nullable', 'string', 'max:255', Rule::in($programmeLabels)],
             'annee_academique' => ['nullable', 'string', 'max:50', Rule::in($intakeLabels)],
             'niveau_etudes' => ['nullable', 'string', 'max:100'],
             'etablissement_origine' => ['nullable', 'string', 'max:255'],
@@ -215,13 +218,15 @@ class CandidateController extends Controller
             'source' => ['nullable', Rule::in(array_keys(CrmCandidate::SOURCES))],
             'facebook_profil_url' => ['nullable', 'string', 'max:500'],
             'escm_tour_ville' => ['nullable', 'string', 'max:120'],
-            'advisor_id' => ['nullable', 'exists:users,id'],
+            'advisor_id' => ['required', 'exists:users,id'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ], [
             'prenom.required' => 'Le prénom est obligatoire.',
             'nom.required' => 'Le nom est obligatoire.',
             'email.email' => 'L’adresse e-mail n’est pas valide.',
             'statut.required' => 'Le statut est obligatoire.',
+            'advisor_id.required' => 'Le conseiller assigné est obligatoire.',
+            'programme.in' => 'Sélectionnez un programme défini dans les paramètres CRM.',
             'annee_academique.in' => 'Sélectionnez une rentrée définie dans les paramètres CRM.',
         ]);
 
@@ -235,6 +240,10 @@ class CandidateController extends Controller
 
         if (($validated['annee_academique'] ?? '') === '') {
             $validated['annee_academique'] = null;
+        }
+
+        if (($validated['programme'] ?? '') === '') {
+            $validated['programme'] = null;
         }
 
         return $validated;

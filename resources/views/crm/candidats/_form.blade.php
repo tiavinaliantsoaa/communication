@@ -72,9 +72,15 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Programme intéressé</label>
-                <input type="text" name="programme" value="{{ old('programme', $candidate->programme ?? '') }}" maxlength="255"
-                       class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary"
-                       placeholder="Ex. Licence Marketing, Master Finance…">
+                <select name="programme" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                    <option value="">—</option>
+                    @foreach($programmes as $programme)
+                        <option value="{{ $programme }}" @selected(old('programme', $candidate->programme ?? '') === $programme)>{{ $programme }}</option>
+                    @endforeach
+                </select>
+                @if(empty($programmes))
+                    <p class="mt-1.5 text-xs text-amber-700">Aucun programme défini. Ajoutez-en dans <a href="{{ route('crm.settings') }}" class="underline font-medium">Paramètres CRM</a>.</p>
+                @endif
                 @error('programme')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div>
@@ -141,13 +147,14 @@
                 @error('escm_tour_ville')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div class="sm:col-span-2">
-                <label class="block text-sm font-medium text-slate-700 mb-1.5">Conseiller assigné</label>
-                <select name="advisor_id" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
-                    <option value="">Non assigné</option>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Conseiller assigné <span class="text-red-500">*</span></label>
+                <select name="advisor_id" required class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                    <option value="" disabled @selected(! old('advisor_id', $candidate->advisor_id ?? null))>Choisir un conseiller</option>
                     @foreach($advisors as $advisor)
                         <option value="{{ $advisor->id }}" @selected((string) old('advisor_id', $candidate->advisor_id ?? '') === (string) $advisor->id)>{{ $advisor->name }}</option>
                     @endforeach
                 </select>
+                @error('advisor_id')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div class="sm:col-span-2">
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Notes</label>

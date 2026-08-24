@@ -100,6 +100,15 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/parametres/rentrees/{intake}', [CrmSettingsController::class, 'destroyIntake'])
             ->middleware('permission:crm.update')
             ->name('settings.intakes.destroy');
+        Route::post('/parametres/programmes', [CrmSettingsController::class, 'storeProgramme'])
+            ->middleware('permission:crm.update')
+            ->name('settings.programmes.store');
+        Route::patch('/parametres/programmes/{programme}/toggle', [CrmSettingsController::class, 'toggleProgramme'])
+            ->middleware('permission:crm.update')
+            ->name('settings.programmes.toggle');
+        Route::delete('/parametres/programmes/{programme}', [CrmSettingsController::class, 'destroyProgramme'])
+            ->middleware('permission:crm.update')
+            ->name('settings.programmes.destroy');
 
         Route::get('/candidats', [CrmCandidateController::class, 'index'])->name('candidats.index');
         Route::get('/candidats/create', [CrmCandidateController::class, 'create'])
