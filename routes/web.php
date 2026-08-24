@@ -20,6 +20,7 @@ use App\Http\Controllers\StockMouvementController;
 use App\Http\Controllers\Crm\CandidateController as CrmCandidateController;
 use App\Http\Controllers\Crm\DashboardController as CrmDashboardController;
 use App\Http\Controllers\Crm\PipelineController as CrmPipelineController;
+use App\Http\Controllers\Crm\SettingsController as CrmSettingsController;
 use App\Http\Controllers\LinkRedirectController;
 use App\Http\Controllers\TrackedLinkController;
 use App\Http\Controllers\UserController;
@@ -86,6 +87,19 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:crm.view')->prefix('crm')->name('crm.')->group(function () {
         Route::get('/', CrmDashboardController::class)->name('dashboard');
         Route::get('/pipeline', CrmPipelineController::class)->name('pipeline');
+        Route::get('/parametres', [CrmSettingsController::class, 'index'])->name('settings');
+        Route::post('/parametres/rentrees', [CrmSettingsController::class, 'storeIntake'])
+            ->middleware('permission:crm.update')
+            ->name('settings.intakes.store');
+        Route::patch('/parametres/rentrees/{intake}', [CrmSettingsController::class, 'updateIntake'])
+            ->middleware('permission:crm.update')
+            ->name('settings.intakes.update');
+        Route::patch('/parametres/rentrees/{intake}/toggle', [CrmSettingsController::class, 'toggleIntake'])
+            ->middleware('permission:crm.update')
+            ->name('settings.intakes.toggle');
+        Route::delete('/parametres/rentrees/{intake}', [CrmSettingsController::class, 'destroyIntake'])
+            ->middleware('permission:crm.update')
+            ->name('settings.intakes.destroy');
 
         Route::get('/candidats', [CrmCandidateController::class, 'index'])->name('candidats.index');
         Route::get('/candidats/create', [CrmCandidateController::class, 'create'])

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Crm;
 
 use App\Http\Controllers\Controller;
 use App\Models\CrmCandidate;
+use App\Models\CrmIntake;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\CrmActivityLogger;
@@ -110,14 +111,14 @@ class CandidateController extends Controller
 
     public function edit(CrmCandidate $candidat)
     {
-        return view('crm.candidats.edit', array_merge($this->formData(), [
+        return view('crm.candidats.edit', array_merge($this->formData($candidat), [
             'candidate' => $candidat,
         ]));
     }
 
     public function update(Request $request, CrmCandidate $candidat, CrmActivityLogger $crmLog)
     {
-        $validated = $this->validateCandidate($request);
+        $validated = $this->validateCandidate($request, $candidat);
         $oldStatut = $candidat->statut;
 
         $candidat->update([
@@ -181,19 +182,22 @@ class CandidateController extends Controller
             ->with('success', 'Note ajoutée.');
     }
 
-    private function formData(): array
+    private function formData(?CrmCandidate $candidate = null): array
     {
         return [
             'statuts' => CrmCandidate::STATUTS,
             'sources' => CrmCandidate::SOURCES,
             'genres' => CrmCandidate::GENRES,
             'advisors' => User::orderBy('name')->get(['id', 'name']),
+            'intakes' => CrmIntake::optionsForSelect($candidate?->annee_academique),
         ];
     }
 
-    private function validateCandidate(Request $request): array
+    private function validateCandidate(Request $request, ?CrmCandidate $candidate = null): array
     {
-        return $request->validate([
+        $intakeLabels = CrmIntake::optionsForSelect($candidate?->annee_academique);
+
+        $validated = $request->validate([
             'prenom' => ['required', 'string', 'max:100'],
             'nom' => ['required', 'string', 'max:100'],
             'genre' => ['nullable', Rule::in(array_keys(CrmCandidate::GENRES))],
@@ -201,12 +205,15 @@ class CandidateController extends Controller
             'telephone' => ['nullable', 'string', 'max:40'],
             'email' => ['nullable', 'email', 'max:255'],
             'adresse' => ['nullable', 'string', 'max:1000'],
+            'contact_parent_1' => ['nullable', 'string', 'max:80'],
+            'contact_parent_2' => ['nullable', 'string', 'max:80'],
             'programme' => ['nullable', 'string', 'max:255'],
-            'annee_academique' => ['nullable', 'string', 'max:50'],
+            'annee_academique' => ['nullable', 'string', 'max:50', Rule::in($intakeLabels)],
             'niveau_etudes' => ['nullable', 'string', 'max:100'],
             'etablissement_origine' => ['nullable', 'string', 'max:255'],
             'statut' => ['required', Rule::in(array_keys(CrmCandidate::STATUTS))],
             'source' => ['nullable', Rule::in(array_keys(CrmCandidate::SOURCES))],
+            'facebook_profil_url' => ['nullable', 'string', 'max:500'],
             'advisor_id' => ['nullable', 'exists:users,id'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ], [
@@ -214,6 +221,17 @@ class CandidateController extends Controller
             'nom.required' => 'Le nom est obligatoire.',
             'email.email' => 'L’adresse e-mail n’est pas valide.',
             'statut.required' => 'Le statut est obligatoire.',
+            'annee_academique.in' => 'Sélectionnez une rentrée définie dans les paramètres CRM.',
         ]);
+
+        if (($validated['source'] ?? null) !== 'facebook') {
+            $validated['facebook_profil_url'] = null;
+        }
+
+        if (($validated['annee_academique'] ?? '') === '') {
+            $validated['annee_academique'] = null;
+        }
+
+        return $validated;
     }
 }

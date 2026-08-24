@@ -57,6 +57,8 @@
             <div class="flex justify-between gap-4"><dt class="text-slate-500">Date de naissance</dt><dd class="text-slate-900 font-medium">{{ format_date($candidate->date_naissance) }}</dd></div>
             <div class="flex justify-between gap-4"><dt class="text-slate-500">Téléphone</dt><dd class="text-slate-900 font-medium">{{ $candidate->telephone ?: '—' }}</dd></div>
             <div class="flex justify-between gap-4"><dt class="text-slate-500">E-mail</dt><dd class="text-slate-900 font-medium break-all">{{ $candidate->email ?: '—' }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-slate-500">Contact parent 1</dt><dd class="text-slate-900 font-medium">{{ $candidate->contact_parent_1 ?: '—' }}</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-slate-500">Contact parent 2</dt><dd class="text-slate-900 font-medium">{{ $candidate->contact_parent_2 ?: '—' }}</dd></div>
             <div class="flex justify-between gap-4"><dt class="text-slate-500">Adresse</dt><dd class="text-slate-900 font-medium text-right">{{ $candidate->adresse ?: '—' }}</dd></div>
         </dl>
     </div>
@@ -75,6 +77,9 @@
             <div><dt class="text-slate-500 mb-1">Statut actuel</dt><dd><span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $candidate->statut_color }}">{{ $candidate->statut_label }}</span></dd></div>
             <div><dt class="text-slate-500 mb-1">Source</dt><dd class="text-slate-900 font-medium">{{ $candidate->source_label }}</dd></div>
             <div><dt class="text-slate-500 mb-1">Conseiller</dt><dd class="text-slate-900 font-medium">{{ $candidate->advisor?->name ?: 'Non assigné' }}</dd></div>
+            @if($candidate->source === 'facebook' && $candidate->facebook_profil_url)
+            <div class="sm:col-span-3"><dt class="text-slate-500 mb-1">Lien du profil Facebook</dt><dd class="text-slate-900 font-medium break-all"><a href="{{ $candidate->facebook_profil_url }}" target="_blank" rel="noopener" class="text-escm-primary hover:underline">{{ $candidate->facebook_profil_url }}</a></dd></div>
+            @endif
         </dl>
         @if($candidate->notes)
             <div class="mt-4 pt-4 border-t border-slate-100">

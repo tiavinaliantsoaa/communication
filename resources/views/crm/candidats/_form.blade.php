@@ -1,9 +1,10 @@
 @php
     /** @var \App\Models\CrmCandidate|null $candidate */
     $isEdit = isset($candidate);
+    $currentSource = old('source', $candidate->source ?? '');
 @endphp
 
-<div class="space-y-6">
+<div class="space-y-6" x-data="{ source: @js($currentSource) }">
     <div>
         <h3 class="text-sm font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-100">Informations personnelles</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -45,6 +46,20 @@
                        class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
                 @error('email')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Contact parent 1 <span class="text-slate-400 font-normal">(optionnel)</span></label>
+                <input type="text" name="contact_parent_1" value="{{ old('contact_parent_1', $candidate->contact_parent_1 ?? '') }}" maxlength="80"
+                       class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary"
+                       placeholder="Téléphone ou nom du parent">
+                @error('contact_parent_1')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Contact parent 2 <span class="text-slate-400 font-normal">(optionnel)</span></label>
+                <input type="text" name="contact_parent_2" value="{{ old('contact_parent_2', $candidate->contact_parent_2 ?? '') }}" maxlength="80"
+                       class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary"
+                       placeholder="Téléphone ou nom du parent">
+                @error('contact_parent_2')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
             <div class="sm:col-span-2">
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Adresse</label>
                 <textarea name="adresse" rows="2" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">{{ old('adresse', $candidate->adresse ?? '') }}</textarea>
@@ -64,9 +79,17 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Année / Intake</label>
-                <input type="text" name="annee_academique" value="{{ old('annee_academique', $candidate->annee_academique ?? '') }}" maxlength="50"
-                       class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary"
-                       placeholder="Ex. 2026-2027">
+                <select name="annee_academique" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                    <option value="">—</option>
+                    @forelse($intakes as $intake)
+                        <option value="{{ $intake }}" @selected(old('annee_academique', $candidate->annee_academique ?? '') === $intake)>{{ $intake }}</option>
+                    @empty
+                    @endforelse
+                </select>
+                @if(empty($intakes))
+                    <p class="mt-1.5 text-xs text-amber-700">Aucune rentrée définie. Ajoutez-en dans <a href="{{ route('crm.settings') }}" class="underline font-medium">Paramètres CRM</a>.</p>
+                @endif
+                @error('annee_academique')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Niveau d’études</label>
@@ -96,12 +119,19 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Source</label>
-                <select name="source" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                <select name="source" x-model="source" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
                     <option value="">—</option>
                     @foreach($sources as $key => $label)
-                        <option value="{{ $key }}" @selected(old('source', $candidate->source ?? '') === $key)>{{ $label }}</option>
+                        <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
+            </div>
+            <div class="sm:col-span-2" x-show="source === 'facebook'" x-cloak x-transition>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Lien du profil <span class="text-slate-400 font-normal">(optionnel)</span></label>
+                <input type="text" name="facebook_profil_url" value="{{ old('facebook_profil_url', $candidate->facebook_profil_url ?? '') }}" maxlength="500"
+                       class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary"
+                       placeholder="https://facebook.com/…">
+                @error('facebook_profil_url')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div class="sm:col-span-2">
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Conseiller assigné</label>
