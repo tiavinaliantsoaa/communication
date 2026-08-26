@@ -77,4 +77,16 @@ class CrmActivityLogger
             $user
         );
     }
+
+    public function interactionAdded(CrmCandidate $candidate, string $typeLabel, ?User $user = null): CrmActivity
+    {
+        return $this->log(
+            $candidate,
+            CrmActivity::TYPE_INTERACTION,
+            'Interaction enregistrée',
+            $typeLabel,
+            null,
+            $user
+        );
+    }
 }

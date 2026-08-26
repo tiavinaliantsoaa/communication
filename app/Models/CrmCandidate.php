@@ -94,6 +94,11 @@ class CrmCandidate extends Model
         return $this->hasMany(CrmCandidateDocument::class);
     }
 
+    public function interactions(): HasMany
+    {
+        return $this->hasMany(CrmInteraction::class)->latest();
+    }
+
     public function activities(): HasMany
     {
         return $this->hasMany(CrmActivity::class)->latest('created_at');

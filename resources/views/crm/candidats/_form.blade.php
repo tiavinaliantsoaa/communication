@@ -188,7 +188,7 @@
                             </div>
                         @endif
                         <input type="file" name="documents[{{ $docType->id }}]"
-                               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                               accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg"
                                class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-escm-primary/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-escm-primary hover:file:bg-escm-primary/20">
                         @error('documents.'.$docType->id)
                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
@@ -196,7 +196,7 @@
                     </div>
                 @endforeach
             </div>
-            <p class="mt-3 text-xs text-slate-500">Formats acceptés : PDF, JPG, PNG, DOC, DOCX — max. 10 Mo par fichier.</p>
+            <p class="mt-3 text-xs text-slate-500">Formats acceptés : PDF et JPEG uniquement — max. 10 Mo par fichier.</p>
         @endif
     </div>
 </div>

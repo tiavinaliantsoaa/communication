@@ -13,6 +13,7 @@ class CrmActivity extends Model
     public const TYPE_UPDATED = 'updated';
     public const TYPE_STATUS = 'status_changed';
     public const TYPE_NOTE = 'note_added';
+    public const TYPE_INTERACTION = 'interaction_added';
 
     protected $fillable = [
         'crm_candidate_id',

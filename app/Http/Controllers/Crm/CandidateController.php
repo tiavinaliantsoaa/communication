@@ -7,6 +7,7 @@ use App\Models\CrmCandidate;
 use App\Models\CrmCandidateDocument;
 use App\Models\CrmDocumentType;
 use App\Models\CrmIntake;
+use App\Models\CrmInteraction;
 use App\Models\CrmProgramme;
 use App\Models\User;
 use App\Services\ActivityLogger;
@@ -107,13 +108,14 @@ class CandidateController extends Controller
             'crmNotes.user',
             'activities.user',
             'documents.type',
+            'interactions.user',
         ]);
 
         $documentTypes = CrmDocumentType::active()->ordered()->get();
         $docsByType = $candidat->documents->keyBy('crm_document_type_id');
 
         $tab = request('tab', 'overview');
-        if (! in_array($tab, ['overview', 'notes', 'history', 'documents'], true)) {
+        if (! in_array($tab, ['overview', 'notes', 'history', 'documents', 'interactions'], true)) {
             $tab = 'overview';
         }
 
@@ -123,6 +125,7 @@ class CandidateController extends Controller
             'statuts' => CrmCandidate::STATUTS,
             'documentTypes' => $documentTypes,
             'docsByType' => $docsByType,
+            'interactionTypes' => CrmInteraction::TYPES,
         ]);
     }
 
@@ -221,6 +224,39 @@ class CandidateController extends Controller
             ->with('success', 'Note ajoutée.');
     }
 
+    public function storeInteraction(Request $request, CrmCandidate $candidat, CrmActivityLogger $crmLog)
+    {
+        $validated = $request->validate([
+            'type' => ['required', Rule::in(array_keys(CrmInteraction::TYPES))],
+            'commentaire' => ['required', 'string', 'max:5000'],
+        ], [
+            'type.required' => 'Le type d’interaction est obligatoire.',
+            'commentaire.required' => 'Le commentaire est obligatoire.',
+        ]);
+
+        $interaction = $candidat->interactions()->create([
+            'user_id' => auth()->id(),
+            'type' => $validated['type'],
+            'commentaire' => $validated['commentaire'],
+        ]);
+
+        $candidat->touchInteraction();
+        $crmLog->interactionAdded($candidat, $interaction->type_label);
+
+        return redirect()->route('crm.candidats.show', ['candidat' => $candidat, 'tab' => 'interactions'])
+            ->with('success', 'Interaction enregistrée.');
+    }
+
+    public function destroyInteraction(CrmCandidate $candidat, CrmInteraction $interaction)
+    {
+        abort_unless((int) $interaction->crm_candidate_id === (int) $candidat->id, 404);
+        abort_unless(auth()->user()?->canAccess('crm.update'), 403);
+
+        $interaction->delete();
+
+        return back()->with('success', 'Interaction supprimée.');
+    }
+
     private function formData(?CrmCandidate $candidate = null): array
     {
         $documentTypes = CrmDocumentType::active()->ordered()->get();
@@ -306,7 +342,7 @@ class CandidateController extends Controller
                 ? $candidate->documents()->where('crm_document_type_id', $type->id)->exists()
                 : false;
 
-            $fileRules = ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,doc,docx'];
+            $fileRules = ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg'];
             if ($type->is_required && ! $hasExisting) {
                 $fileRules[0] = 'required';
                 $messages[$key.'.required'] = 'Le document « '.$type->label.' » est obligatoire.';
