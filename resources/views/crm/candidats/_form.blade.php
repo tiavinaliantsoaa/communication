@@ -163,4 +163,40 @@
             </div>
         </div>
     </div>
+
+    <div>
+        <h3 class="text-sm font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-100">Documents</h3>
+        @if(($documentTypes ?? collect())->isEmpty())
+            <p class="text-sm text-slate-500">Aucun type de document défini. Configurez-les dans <a href="{{ route('crm.settings') }}" class="text-escm-primary hover:underline font-medium">Paramètres CRM</a>.</p>
+        @else
+            <div class="space-y-4">
+                @foreach($documentTypes as $docType)
+                    @php $existing = ($existingDocs ?? collect())->get($docType->id); @endphp
+                    <div class="rounded-lg border border-slate-200 p-4">
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <p class="text-sm font-medium text-slate-800">{{ $docType->label }}</p>
+                            @if($docType->is_required)
+                                <span class="inline-flex items-center rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold px-2 py-0.5">Requis</span>
+                            @else
+                                <span class="inline-flex items-center rounded-full bg-slate-100 text-slate-500 text-[10px] font-semibold px-2 py-0.5">Optionnel</span>
+                            @endif
+                        </div>
+                        @if($existing)
+                            <div class="mb-2 flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2 text-xs text-slate-600">
+                                <a href="{{ $existing->url }}" target="_blank" rel="noopener" class="text-escm-primary hover:underline truncate">{{ $existing->original_name ?: 'Fichier déposé' }}</a>
+                                <span class="shrink-0 text-slate-400">Déjà joint — remplacez ci-dessous si besoin</span>
+                            </div>
+                        @endif
+                        <input type="file" name="documents[{{ $docType->id }}]"
+                               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                               class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-escm-primary/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-escm-primary hover:file:bg-escm-primary/20">
+                        @error('documents.'.$docType->id)
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                @endforeach
+            </div>
+            <p class="mt-3 text-xs text-slate-500">Formats acceptés : PDF, JPG, PNG, DOC, DOCX — max. 10 Mo par fichier.</p>
+        @endif
+    </div>
 </div>

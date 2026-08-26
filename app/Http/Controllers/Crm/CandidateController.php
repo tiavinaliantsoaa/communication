@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Crm;
 
 use App\Http\Controllers\Controller;
 use App\Models\CrmCandidate;
+use App\Models\CrmCandidateDocument;
+use App\Models\CrmDocumentType;
 use App\Models\CrmIntake;
 use App\Models\CrmProgramme;
 use App\Models\User;
@@ -11,6 +13,7 @@ use App\Services\ActivityLogger;
 use App\Services\CrmActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class CandidateController extends Controller
@@ -66,13 +69,20 @@ class CandidateController extends Controller
     public function store(Request $request, CrmActivityLogger $crmLog)
     {
         $validated = $this->validateCandidate($request);
+        $this->validateDocuments($request);
 
-        $candidate = CrmCandidate::create([
-            ...$validated,
-            'created_by' => auth()->id(),
-            'last_interaction_at' => now(),
-            'pipeline_order' => (int) CrmCandidate::where('statut', $validated['statut'])->max('pipeline_order') + 1,
-        ]);
+        $candidate = DB::transaction(function () use ($validated, $request) {
+            $candidate = CrmCandidate::create([
+                ...$validated,
+                'created_by' => auth()->id(),
+                'last_interaction_at' => now(),
+                'pipeline_order' => (int) CrmCandidate::where('statut', $validated['statut'])->max('pipeline_order') + 1,
+            ]);
+
+            $this->storeUploadedDocuments($request, $candidate);
+
+            return $candidate;
+        });
 
         $crmLog->created($candidate);
         app(ActivityLogger::class)->log(
@@ -96,10 +106,14 @@ class CandidateController extends Controller
             'creator',
             'crmNotes.user',
             'activities.user',
+            'documents.type',
         ]);
 
+        $documentTypes = CrmDocumentType::active()->ordered()->get();
+        $docsByType = $candidat->documents->keyBy('crm_document_type_id');
+
         $tab = request('tab', 'overview');
-        if (! in_array($tab, ['overview', 'notes', 'history'], true)) {
+        if (! in_array($tab, ['overview', 'notes', 'history', 'documents'], true)) {
             $tab = 'overview';
         }
 
@@ -107,11 +121,15 @@ class CandidateController extends Controller
             'candidate' => $candidat,
             'tab' => $tab,
             'statuts' => CrmCandidate::STATUTS,
+            'documentTypes' => $documentTypes,
+            'docsByType' => $docsByType,
         ]);
     }
 
     public function edit(CrmCandidate $candidat)
     {
+        $candidat->load('documents');
+
         return view('crm.candidats.edit', array_merge($this->formData($candidat), [
             'candidate' => $candidat,
         ]));
@@ -120,12 +138,17 @@ class CandidateController extends Controller
     public function update(Request $request, CrmCandidate $candidat, CrmActivityLogger $crmLog)
     {
         $validated = $this->validateCandidate($request, $candidat);
+        $this->validateDocuments($request, $candidat);
         $oldStatut = $candidat->statut;
 
-        $candidat->update([
-            ...$validated,
-            'last_interaction_at' => now(),
-        ]);
+        DB::transaction(function () use ($validated, $request, $candidat) {
+            $candidat->update([
+                ...$validated,
+                'last_interaction_at' => now(),
+            ]);
+
+            $this->storeUploadedDocuments($request, $candidat);
+        });
 
         if ($oldStatut !== $candidat->statut) {
             $crmLog->statusChanged($candidat, $oldStatut, $candidat->statut);
@@ -150,6 +173,10 @@ class CandidateController extends Controller
     public function destroy(CrmCandidate $candidat)
     {
         $name = $candidat->full_name;
+        $candidat->load('documents');
+        foreach ($candidat->documents as $doc) {
+            $doc->delete();
+        }
         $candidat->delete();
 
         app(ActivityLogger::class)->log(
@@ -163,6 +190,17 @@ class CandidateController extends Controller
 
         return redirect()->route('crm.candidats.index')
             ->with('success', 'Candidat supprimé.');
+    }
+
+    public function destroyDocument(CrmCandidate $candidat, CrmCandidateDocument $document)
+    {
+        abort_unless((int) $document->crm_candidate_id === (int) $candidat->id, 404);
+        abort_unless(auth()->user()?->canAccess('crm.update'), 403);
+
+        $document->delete();
+        $candidat->touchInteraction();
+
+        return back()->with('success', 'Document supprimé.');
     }
 
     public function storeNote(Request $request, CrmCandidate $candidat, CrmActivityLogger $crmLog)
@@ -185,6 +223,11 @@ class CandidateController extends Controller
 
     private function formData(?CrmCandidate $candidate = null): array
     {
+        $documentTypes = CrmDocumentType::active()->ordered()->get();
+        $existingDocs = $candidate
+            ? $candidate->documents()->get()->keyBy('crm_document_type_id')
+            : collect();
+
         return [
             'statuts' => CrmCandidate::STATUTS,
             'sources' => CrmCandidate::SOURCES,
@@ -192,6 +235,8 @@ class CandidateController extends Controller
             'advisors' => User::orderBy('name')->get(['id', 'name']),
             'intakes' => CrmIntake::optionsForSelect($candidate?->annee_academique),
             'programmes' => CrmProgramme::optionsForSelect($candidate?->programme),
+            'documentTypes' => $documentTypes,
+            'existingDocs' => $existingDocs,
         ];
     }
 
@@ -247,5 +292,68 @@ class CandidateController extends Controller
         }
 
         return $validated;
+    }
+
+    private function validateDocuments(Request $request, ?CrmCandidate $candidate = null): void
+    {
+        $types = CrmDocumentType::active()->ordered()->get();
+        $rules = [];
+        $messages = [];
+
+        foreach ($types as $type) {
+            $key = 'documents.'.$type->id;
+            $hasExisting = $candidate
+                ? $candidate->documents()->where('crm_document_type_id', $type->id)->exists()
+                : false;
+
+            $fileRules = ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,doc,docx'];
+            if ($type->is_required && ! $hasExisting) {
+                $fileRules[0] = 'required';
+                $messages[$key.'.required'] = 'Le document « '.$type->label.' » est obligatoire.';
+            }
+
+            $rules[$key] = $fileRules;
+        }
+
+        $request->validate($rules, $messages);
+    }
+
+    private function storeUploadedDocuments(Request $request, CrmCandidate $candidate): void
+    {
+        $uploads = $request->file('documents', []);
+        if (! is_array($uploads) || $uploads === []) {
+            return;
+        }
+
+        $allowedIds = CrmDocumentType::active()->pluck('id')->all();
+
+        foreach ($uploads as $typeId => $file) {
+            if (! $file || ! in_array((int) $typeId, $allowedIds, true)) {
+                continue;
+            }
+
+            $path = $file->store('crm/documents/'.$candidate->id, 'public');
+
+            $existing = $candidate->documents()->where('crm_document_type_id', $typeId)->first();
+            if ($existing) {
+                Storage::disk('public')->delete($existing->path);
+                $existing->update([
+                    'path' => $path,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime' => $file->getClientMimeType(),
+                    'size' => $file->getSize(),
+                    'uploaded_by' => auth()->id(),
+                ]);
+            } else {
+                $candidate->documents()->create([
+                    'crm_document_type_id' => $typeId,
+                    'path' => $path,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime' => $file->getClientMimeType(),
+                    'size' => $file->getSize(),
+                    'uploaded_by' => auth()->id(),
+                ]);
+            }
+        }
     }
 }

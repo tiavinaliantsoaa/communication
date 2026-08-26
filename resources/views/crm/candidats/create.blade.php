@@ -8,7 +8,7 @@
 @section('content')
 <div class="max-w-3xl">
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-        <form action="{{ route('crm.candidats.store') }}" method="POST">
+        <form action="{{ route('crm.candidats.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             @include('crm.candidats._form')
             <div class="flex items-center gap-3 pt-6 mt-2 border-t border-slate-100">

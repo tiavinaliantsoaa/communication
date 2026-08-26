@@ -37,6 +37,7 @@
     <nav class="flex gap-1 -mb-px overflow-x-auto">
         @foreach([
             'overview' => 'Vue d’ensemble',
+            'documents' => 'Documents',
             'notes' => 'Notes',
             'history' => 'Historique',
         ] as $key => $label)
@@ -90,6 +91,48 @@
                 <p class="text-sm text-slate-700 whitespace-pre-wrap">{{ $candidate->notes }}</p>
             </div>
         @endif
+    </div>
+</div>
+@endif
+
+@if($tab === 'documents')
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
+        <h3 class="text-sm font-semibold text-slate-800">Documents du dossier</h3>
+        @if(auth()->user()->canAccess('crm.update'))
+            <a href="{{ route('crm.candidats.edit', $candidate) }}" class="text-xs font-semibold text-escm-primary hover:underline">Ajouter / remplacer</a>
+        @endif
+    </div>
+    <div class="divide-y divide-slate-100">
+        @forelse($documentTypes as $docType)
+            @php $doc = $docsByType->get($docType->id); @endphp
+            <div class="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <p class="text-sm font-medium text-slate-900">{{ $docType->label }}</p>
+                        @if($docType->is_required)
+                            <span class="inline-flex items-center rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold px-2 py-0.5">Requis</span>
+                        @endif
+                    </div>
+                    @if($doc)
+                        <a href="{{ $doc->url }}" target="_blank" rel="noopener" class="mt-1 inline-block text-sm text-escm-primary hover:underline truncate max-w-full">{{ $doc->original_name ?: 'Voir le fichier' }}</a>
+                        <p class="text-[11px] text-slate-400 mt-0.5">Déposé le {{ $doc->updated_at?->format('d/m/Y H:i') }}</p>
+                    @else
+                        <p class="mt-1 text-sm text-slate-400">Non fourni</p>
+                    @endif
+                </div>
+                @if($doc && auth()->user()->canAccess('crm.update'))
+                <form method="POST" action="{{ route('crm.candidats.documents.destroy', [$candidate, $doc]) }}" onsubmit="return confirm('Supprimer ce document ?')">
+                    @csrf @method('DELETE')
+                    <button type="submit" class="text-xs font-semibold text-red-600 hover:underline">Supprimer</button>
+                </form>
+                @endif
+            </div>
+        @empty
+            <div class="px-5 py-10 text-center text-sm text-slate-500">
+                Aucun type de document défini. Configurez-les dans <a href="{{ route('crm.settings') }}" class="text-escm-primary hover:underline">Paramètres CRM</a>.
+            </div>
+        @endforelse
     </div>
 </div>
 @endif

@@ -109,6 +109,18 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/parametres/programmes/{programme}', [CrmSettingsController::class, 'destroyProgramme'])
             ->middleware('permission:crm.update')
             ->name('settings.programmes.destroy');
+        Route::post('/parametres/documents', [CrmSettingsController::class, 'storeDocumentType'])
+            ->middleware('permission:crm.update')
+            ->name('settings.document-types.store');
+        Route::patch('/parametres/documents/{documentType}/required', [CrmSettingsController::class, 'toggleDocumentTypeRequired'])
+            ->middleware('permission:crm.update')
+            ->name('settings.document-types.toggle-required');
+        Route::patch('/parametres/documents/{documentType}/toggle', [CrmSettingsController::class, 'toggleDocumentType'])
+            ->middleware('permission:crm.update')
+            ->name('settings.document-types.toggle');
+        Route::delete('/parametres/documents/{documentType}', [CrmSettingsController::class, 'destroyDocumentType'])
+            ->middleware('permission:crm.update')
+            ->name('settings.document-types.destroy');
 
         Route::get('/candidats', [CrmCandidateController::class, 'index'])->name('candidats.index');
         Route::get('/candidats/create', [CrmCandidateController::class, 'create'])
@@ -130,6 +142,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/candidats/{candidat}/notes', [CrmCandidateController::class, 'storeNote'])
             ->middleware('permission:crm.update')
             ->name('candidats.notes.store');
+        Route::delete('/candidats/{candidat}/documents/{document}', [CrmCandidateController::class, 'destroyDocument'])
+            ->middleware('permission:crm.update')
+            ->name('candidats.documents.destroy');
     });
 
     Route::prefix('stocks')->name('stocks.')->group(function () {

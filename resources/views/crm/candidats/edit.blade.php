@@ -8,7 +8,7 @@
 @section('content')
 <div class="max-w-3xl">
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-        <form action="{{ route('crm.candidats.update', $candidate) }}" method="POST">
+        <form action="{{ route('crm.candidats.update', $candidate) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             @include('crm.candidats._form', ['candidate' => $candidate])
