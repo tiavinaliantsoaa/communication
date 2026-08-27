@@ -1,0 +1,4 @@
+🔒 Row ID,Type,URL,Applicants Unique/ID,Uploaded_at,Uploaded_by,Name,Contact ID
+doc-cv,CV,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/demo/pub/cv.pdf,app-jean,19/03/2024 10:00:09,alice,cv.pdf,
+doc-lm,Lettre de motivation,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/demo/pub/lm.pdf,app-jean,19/03/2024 10:01:39,alice,lm.pdf,
+doc-orphan,CV,https://storage.googleapis.com/glide-prod.appspot.com/uploads-v2/demo/pub/orphan.pdf,unknown-id,19/03/2024 10:02:00,alice,orphan.pdf,

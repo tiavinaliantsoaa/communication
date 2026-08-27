@@ -6,22 +6,23 @@ use App\Http\Controllers\BudgetAnnuelController;
 use App\Http\Controllers\BudgetController;
 use App\Http\Controllers\CalendrierEditorialController;
 use App\Http\Controllers\CampagneController;
+use App\Http\Controllers\Crm\CandidateController as CrmCandidateController;
+use App\Http\Controllers\Crm\DashboardController as CrmDashboardController;
+use App\Http\Controllers\Crm\ImportController as CrmImportController;
+use App\Http\Controllers\Crm\PipelineController as CrmPipelineController;
+use App\Http\Controllers\Crm\SettingsController as CrmSettingsController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepenseController;
 use App\Http\Controllers\EvenementController;
 use App\Http\Controllers\FournisseurController;
-use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\LinkRedirectController;
 use App\Http\Controllers\NoteController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjetController;
 use App\Http\Controllers\StatistiqueController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockMouvementController;
-use App\Http\Controllers\Crm\CandidateController as CrmCandidateController;
-use App\Http\Controllers\Crm\DashboardController as CrmDashboardController;
-use App\Http\Controllers\Crm\PipelineController as CrmPipelineController;
-use App\Http\Controllers\Crm\SettingsController as CrmSettingsController;
-use App\Http\Controllers\LinkRedirectController;
 use App\Http\Controllers\TrackedLinkController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -121,6 +122,9 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/parametres/documents/{documentType}', [CrmSettingsController::class, 'destroyDocumentType'])
             ->middleware('permission:crm.update')
             ->name('settings.document-types.destroy');
+        Route::post('/parametres/import', [CrmImportController::class, 'store'])
+            ->middleware('permission:crm.update')
+            ->name('settings.import');
 
         Route::get('/candidats', [CrmCandidateController::class, 'index'])->name('candidats.index');
         Route::get('/candidats/create', [CrmCandidateController::class, 'create'])

@@ -12,6 +12,8 @@ class CrmCandidateDocument extends Model
         'crm_candidate_id',
         'crm_document_type_id',
         'path',
+        'external_url',
+        'glide_document_id',
         'original_name',
         'mime',
         'size',
@@ -39,17 +41,26 @@ class CrmCandidateDocument extends Model
 
     public function getUrlAttribute(): ?string
     {
-        if (! $this->path) {
-            return null;
+        if (filled($this->path)) {
+            return Storage::disk('public')->url($this->path);
         }
 
-        return Storage::disk('public')->url($this->path);
+        if (filled($this->external_url)) {
+            return $this->external_url;
+        }
+
+        return null;
+    }
+
+    public function isExternal(): bool
+    {
+        return filled($this->external_url) && ! filled($this->path);
     }
 
     protected static function booted(): void
     {
         static::deleting(function (self $doc) {
-            if ($doc->path) {
+            if (filled($doc->path)) {
                 Storage::disk('public')->delete($doc->path);
             }
         });

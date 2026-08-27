@@ -10,6 +10,7 @@ class PipelineBoard extends Component
     public function getColumnsProperty(): array
     {
         $candidates = CrmCandidate::with('advisor')
+            ->where('abandon', false)
             ->orderBy('pipeline_order')
             ->orderByDesc('updated_at')
             ->get()

@@ -11,6 +11,9 @@
         <div class="flex items-center gap-3 flex-wrap">
             <h2 class="text-xl font-semibold text-slate-900">{{ $candidate->full_name }}</h2>
             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $candidate->statut_color }}">{{ $candidate->statut_label }}</span>
+            @if($candidate->abandon)
+                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-50 text-red-700">Abandon</span>
+            @endif
         </div>
         <p class="mt-1 text-sm text-slate-500">
             {{ $candidate->programme ?: 'Programme non renseigné' }}
@@ -38,6 +41,13 @@
         @endif
     </div>
 </div>
+
+@if($candidate->abandon)
+    <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        Candidature abandonnée{{ $candidate->abandon_raison ? ' — '.$candidate->abandon_raison : '' }}.
+        Elle n’apparaît pas dans le pipeline actif.
+    </div>
+@endif
 
 <div class="border-b border-slate-200 mb-6">
     <nav class="flex gap-1 -mb-px overflow-x-auto">
@@ -137,9 +147,9 @@
     </div>
     <div class="divide-y divide-slate-100">
         @forelse($documentTypes as $docType)
-            @php $doc = $docsByType->get($docType->id); @endphp
+            @php $docs = $docsByType->get($docType->id, collect()); @endphp
             <div class="px-5 py-4 space-y-3">
-                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div class="flex flex-col sm:flex-row sm:items-start gap-3">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
                             <p class="text-sm font-medium text-slate-900">{{ $docType->label }}</p>
@@ -147,19 +157,32 @@
                                 <span class="inline-flex items-center rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold px-2 py-0.5">Requis</span>
                             @endif
                         </div>
-                        @if($doc)
-                            <a href="{{ $doc->url }}" target="_blank" rel="noopener" class="mt-1 inline-block text-sm text-escm-primary hover:underline truncate max-w-full">{{ $doc->original_name ?: 'Voir le fichier' }}</a>
-                            <p class="text-[11px] text-slate-400 mt-0.5">Déposé le {{ $doc->updated_at?->format('d/m/Y H:i') }}</p>
-                        @else
+                        @forelse($docs as $doc)
+                            <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    @if($doc->url)
+                                        <a href="{{ $doc->url }}" target="_blank" rel="noopener" class="inline-block text-sm text-escm-primary hover:underline truncate max-w-full">{{ $doc->original_name ?: 'Voir le fichier' }}</a>
+                                    @else
+                                        <span class="text-sm text-slate-600">{{ $doc->original_name ?: 'Fichier' }}</span>
+                                    @endif
+                                    <p class="text-[11px] text-slate-400 mt-0.5">
+                                        Déposé le {{ $doc->updated_at?->format('d/m/Y H:i') }}
+                                        @if($doc->isExternal())
+                                            · Lien Glide
+                                        @endif
+                                    </p>
+                                </div>
+                                @if(auth()->user()->canAccess('crm.update'))
+                                <form method="POST" action="{{ route('crm.candidats.documents.destroy', [$candidate, $doc]) }}" onsubmit="return confirm('Supprimer ce document ?')">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="text-xs font-semibold text-red-600 hover:underline">Supprimer</button>
+                                </form>
+                                @endif
+                            </div>
+                        @empty
                             <p class="mt-1 text-sm text-slate-400">Non fourni</p>
-                        @endif
+                        @endforelse
                     </div>
-                    @if($doc && auth()->user()->canAccess('crm.update'))
-                    <form method="POST" action="{{ route('crm.candidats.documents.destroy', [$candidate, $doc]) }}" onsubmit="return confirm('Supprimer ce document ?')">
-                        @csrf @method('DELETE')
-                        <button type="submit" class="text-xs font-semibold text-red-600 hover:underline">Supprimer</button>
-                    </form>
-                    @endif
                 </div>
             </div>
         @empty

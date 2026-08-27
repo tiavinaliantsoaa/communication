@@ -50,6 +50,11 @@
             <option value="newest" @selected(($filters['sort'] ?? 'newest') === 'newest')>Plus récents</option>
             <option value="oldest" @selected(($filters['sort'] ?? '') === 'oldest')>Plus anciens</option>
         </select>
+        <select name="abandon" class="rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+            <option value="" @selected(($filters['abandon'] ?? '') === '')>Tous (actifs + abandons)</option>
+            <option value="0" @selected(($filters['abandon'] ?? '') === '0')>Actifs seulement</option>
+            <option value="1" @selected(($filters['abandon'] ?? '') === '1')>Abandons seulement</option>
+        </select>
         <button type="submit" class="bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2 rounded-lg">Filtrer</button>
         <a href="{{ route('crm.candidats.index') }}" class="text-sm text-slate-600 hover:text-slate-900">Réinitialiser</a>
     </div>
@@ -75,6 +80,9 @@
                 <tr class="hover:bg-slate-50/50">
                     <td class="px-5 py-3">
                         <a href="{{ route('crm.candidats.show', $c) }}" class="font-medium text-slate-900 hover:text-escm-primary">{{ $c->full_name }}</a>
+                        @if($c->abandon)
+                            <span class="ml-1 inline-flex items-center rounded-full bg-red-50 text-red-700 text-[10px] font-semibold px-1.5 py-0.5">Abandon</span>
+                        @endif
                     </td>
                     <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $c->telephone ?: '—' }}</td>
                     <td class="px-3 py-3 text-slate-600 hidden lg:table-cell">{{ $c->email ?: '—' }}</td>

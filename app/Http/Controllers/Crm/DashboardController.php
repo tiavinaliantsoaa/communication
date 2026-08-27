@@ -12,10 +12,12 @@ class DashboardController extends Controller
     public function __invoke()
     {
         $total = CrmCandidate::count();
+        $abandons = CrmCandidate::where('abandon', true)->count();
+        $actifs = max(0, $total - $abandons);
         $nouveauxMois = CrmCandidate::where('created_at', '>=', now()->startOfMonth())->count();
-        $inscrits = CrmCandidate::where('statut', 'inscrit')->count();
-        $prospects = CrmCandidate::where('statut', 'prospect')->count();
-        $conversion = $total > 0 ? round(($inscrits / $total) * 100, 1) : 0;
+        $inscrits = CrmCandidate::where('abandon', false)->where('statut', 'inscrit')->count();
+        $prospects = CrmCandidate::where('abandon', false)->where('statut', 'prospect')->count();
+        $conversion = $actifs > 0 ? round(($inscrits / $actifs) * 100, 1) : 0;
 
         $kpis = [
             'total' => $total,
@@ -23,6 +25,7 @@ class DashboardController extends Controller
             'inscrits' => $inscrits,
             'conversion' => $conversion,
             'prospects' => $prospects,
+            'abandons' => $abandons,
         ];
 
         $months = collect(range(11, 0))->map(fn ($i) => now()->subMonths($i)->startOfMonth());
@@ -44,6 +47,7 @@ class DashboardController extends Controller
 
         $byStatus = CrmCandidate::query()
             ->select('statut', DB::raw('COUNT(*) as total'))
+            ->where('abandon', false)
             ->groupBy('statut')
             ->pluck('total', 'statut');
 
@@ -53,7 +57,7 @@ class DashboardController extends Controller
         ];
 
         $funnelCounts = collect(CrmCandidate::FUNNEL_STATUTS)->mapWithKeys(function ($key) {
-            return [$key => CrmCandidate::where('statut', $key)->count()];
+            return [$key => CrmCandidate::where('abandon', false)->where('statut', $key)->count()];
         });
 
         $chartFunnel = [

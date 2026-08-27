@@ -13,7 +13,87 @@
     </div>
 </div>
 
-<div class="max-w-2xl space-y-6">
+<div class="max-w-3xl space-y-6">
+    @if(session('import_report'))
+        @php $report = session('import_report'); @endphp
+        <div class="rounded-xl border {{ ($report['dry_run'] ?? false) ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50' }} px-5 py-4">
+            <p class="text-sm font-semibold {{ ($report['dry_run'] ?? false) ? 'text-amber-900' : 'text-emerald-900' }}">
+                {{ ($report['dry_run'] ?? false) ? 'Résultat de la simulation' : 'Résultat de l’import' }}
+            </p>
+            <ul class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-sm {{ ($report['dry_run'] ?? false) ? 'text-amber-900' : 'text-emerald-900' }}">
+                <li>Candidats créés : <strong>{{ $report['candidates_created'] ?? 0 }}</strong></li>
+                <li>Candidats mis à jour : <strong>{{ $report['candidates_updated'] ?? 0 }}</strong></li>
+                <li>Candidats déjà présents : <strong>{{ $report['candidates_skipped_existing'] ?? 0 }}</strong></li>
+                <li>Candidats invalides : <strong>{{ $report['candidates_skipped_invalid'] ?? 0 }}</strong></li>
+                <li>Abandons ignorés : <strong>{{ $report['candidates_skipped_abandon'] ?? 0 }}</strong></li>
+                <li>Documents liés : <strong>{{ $report['documents_created'] ?? 0 }}</strong></li>
+                <li>Documents mis à jour : <strong>{{ $report['documents_updated'] ?? 0 }}</strong></li>
+                <li>Documents sans candidat : <strong>{{ $report['documents_skipped_unmatched'] ?? 0 }}</strong></li>
+                <li>Programmes ajoutés : <strong>{{ $report['programmes_created'] ?? 0 }}</strong></li>
+                <li>Rentrées ajoutées : <strong>{{ $report['intakes_created'] ?? 0 }}</strong></li>
+                <li>Types de documents ajoutés : <strong>{{ $report['document_types_created'] ?? 0 }}</strong></li>
+            </ul>
+            @if(!empty($report['errors']))
+                <ul class="mt-3 list-disc list-inside text-xs text-red-700 space-y-0.5">
+                    @foreach($report['errors'] as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            @endif
+        </div>
+    @endif
+
+    {{-- Import Glide --}}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100">
+            <h3 class="text-sm font-semibold text-slate-900">Import depuis Glide</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Importez les CSV exportés de l’ancien CRM (candidats + documents). Rien n’est inséré tant que vous ne lancez pas l’import. Utilisez d’abord « Simuler » pour vérifier le mapping.</p>
+        </div>
+
+        @if(auth()->user()->canAccess('crm.update'))
+        <form method="POST" action="{{ route('crm.settings.import') }}" enctype="multipart/form-data" class="px-5 py-4 space-y-4">
+            @csrf
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">CSV candidats <span class="text-slate-400 font-normal">(Data glide.csv)</span></label>
+                    <input type="file" name="candidates_csv" accept=".csv,text/csv"
+                           class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-escm-primary/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-escm-primary hover:file:bg-escm-primary/20">
+                    @error('candidates_csv')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">CSV documents <span class="text-slate-400 font-normal">(doc glide.csv)</span></label>
+                    <input type="file" name="documents_csv" accept=".csv,text/csv"
+                           class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-escm-primary/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-escm-primary hover:file:bg-escm-primary/20">
+                    @error('documents_csv')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+            </div>
+            <div class="space-y-2 text-sm text-slate-700">
+                <label class="flex items-start gap-2">
+                    <input type="hidden" name="create_lookups" value="0">
+                    <input type="checkbox" name="create_lookups" value="1" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary" checked>
+                    <span>Créer automatiquement les programmes, rentrées et types de documents manquants</span>
+                </label>
+                <label class="flex items-start gap-2">
+                    <input type="checkbox" name="skip_abandoned" value="1" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
+                    <span>Ignorer les candidatures abandonnées</span>
+                </label>
+                <label class="flex items-start gap-2">
+                    <input type="checkbox" name="update_existing" value="1" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
+                    <span>Mettre à jour les candidats déjà importés (même identifiant Glide)</span>
+                </label>
+            </div>
+            <p class="text-[11px] text-slate-500">Les documents Glide restent des liens vers les fichiers d’origine (Google Storage) — ils ne sont pas téléchargés sur le serveur. Fichiers jusqu’à 20 Mo. Si l’envoi échoue, augmentez <code>upload_max_filesize</code> et <code>post_max_size</code> côté PHP, ou importez les deux CSV l’un après l’autre.</p>
+            <div class="flex flex-wrap items-center gap-2">
+                <button type="submit" name="mode" value="dry_run" class="inline-flex items-center bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg">Simuler</button>
+                <button type="submit" name="mode" value="import" class="inline-flex items-center bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2 rounded-lg"
+                        onclick="return confirm('Lancer l’import Glide maintenant ? Cette opération peut prendre une à deux minutes.')">Importer</button>
+            </div>
+        </form>
+        @else
+        <div class="px-5 py-6 text-sm text-slate-500">Vous n’avez pas le droit d’importer des données CRM.</div>
+        @endif
+    </div>
+
     {{-- Programmes --}}
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100">

@@ -41,6 +41,9 @@ class CandidateController extends Controller
             ->when($request->filled('statut'), fn ($q) => $q->where('statut', $request->statut))
             ->when($request->filled('programme'), fn ($q) => $q->where('programme', $request->programme))
             ->when($request->filled('advisor_id'), fn ($q) => $q->where('advisor_id', $request->advisor_id))
+            ->when($request->has('abandon') && $request->input('abandon') !== '', function ($q) use ($request) {
+                $q->where('abandon', $request->input('abandon') === '1');
+            })
             ->orderBy('created_at', $sort)
             ->paginate(15)
             ->withQueryString();
@@ -58,7 +61,7 @@ class CandidateController extends Controller
             'advisors' => $advisors,
             'programmes' => $programmes,
             'statuts' => CrmCandidate::STATUTS,
-            'filters' => $request->only(['q', 'statut', 'programme', 'advisor_id', 'sort']),
+            'filters' => $request->only(['q', 'statut', 'programme', 'advisor_id', 'sort', 'abandon']),
         ]);
     }
 
@@ -114,7 +117,7 @@ class CandidateController extends Controller
         ]);
 
         $documentTypes = CrmDocumentType::active()->ordered()->get();
-        $docsByType = $candidat->documents->keyBy('crm_document_type_id');
+        $docsByType = $candidat->documents->groupBy('crm_document_type_id');
 
         $tab = request('tab', 'overview');
         if (! in_array($tab, ['overview', 'notes', 'history', 'documents', 'interactions'], true)) {
@@ -427,6 +430,7 @@ class CandidateController extends Controller
                 Storage::disk('public')->delete($existing->path);
                 $existing->update([
                     'path' => $path,
+                    'external_url' => null,
                     'original_name' => $file->getClientOriginalName(),
                     'mime' => $file->getClientMimeType(),
                     'size' => $file->getSize(),

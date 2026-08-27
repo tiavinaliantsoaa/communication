@@ -72,6 +72,10 @@ class CrmCandidate extends Model
         'lettre_admission',
         'paiement_acompte',
         'paiement_totalite',
+        'abandon',
+        'abandon_raison',
+        'glide_applicant_id',
+        'glide_row_id',
         'last_interaction_at',
         'created_by',
         'pipeline_order',
@@ -86,6 +90,7 @@ class CrmCandidate extends Model
         'lettre_admission' => 'boolean',
         'paiement_acompte' => 'boolean',
         'paiement_totalite' => 'boolean',
+        'abandon' => 'boolean',
     ];
 
     public function advisor(): BelongsTo
