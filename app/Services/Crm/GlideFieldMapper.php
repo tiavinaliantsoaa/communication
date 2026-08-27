@@ -221,8 +221,6 @@ class GlideFieldMapper
             $this->first($row, 'applications/ all program name list'),
             $this->first($row, 'template/ program + promotion + current level'),
             $this->first($row, 'année de paiement', 'annee de paiement'),
-            $this->first($row, 'created_at year'),
-            $this->first($row, 'created_at'),
         ]);
 
         foreach ($years as $year) {

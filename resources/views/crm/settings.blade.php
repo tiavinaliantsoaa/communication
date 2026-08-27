@@ -72,7 +72,7 @@
                 <label class="flex items-start gap-2">
                     <input type="hidden" name="filter_2025_2026" value="0">
                     <input type="checkbox" name="filter_2025_2026" value="1" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary" checked>
-                    <span>Importer uniquement l’année <strong>2025-2026</strong> <span class="text-slate-500 font-normal">(Fall / Spring 2025 et 2026, ou date de création 2025-2026)</span></span>
+                    <span>Importer uniquement l’année <strong>2025-2026</strong> <span class="text-slate-500 font-normal">(rentrée / programme Fall ou Spring 2025 et 2026 — pas la date de création de la fiche)</span></span>
                 </label>
                 <label class="flex items-start gap-2">
                     <input type="hidden" name="create_lookups" value="0">

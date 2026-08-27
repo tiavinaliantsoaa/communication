@@ -316,9 +316,7 @@ class GlideImporter
                 $q->where('annee_academique', 'like', '%2025%')
                     ->orWhere('annee_academique', 'like', '%2026%')
                     ->orWhere('programme', 'like', '%2025%')
-                    ->orWhere('programme', 'like', '%2026%')
-                    ->orWhereYear('created_at', 2025)
-                    ->orWhereYear('created_at', 2026);
+                    ->orWhere('programme', 'like', '%2026%');
             });
         }
 
@@ -367,8 +365,12 @@ class GlideImporter
     private function advisorIndex(): array
     {
         $index = [];
-        foreach (User::query()->get(['id', 'name']) as $user) {
+        foreach (User::query()->get(['id', 'name', 'email']) as $user) {
             $index[$this->mapper->normalizePersonName($user->name)] = $user->id;
+            $local = strstr((string) $user->email, '@', true);
+            if (is_string($local) && $local !== '') {
+                $index[$this->mapper->normalizePersonName(str_replace(['.', '_', '-'], ' ', $local))] = $user->id;
+            }
         }
 
         return $index;

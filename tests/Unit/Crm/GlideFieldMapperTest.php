@@ -82,4 +82,14 @@ class GlideFieldMapperTest extends TestCase
         $this->assertTrue($mapper->matchesYearFilter($rows[2], '2025-2026'));
         $this->assertTrue($mapper->matchesYearFilter($rows[1], 'all'));
     }
+
+    public function test_year_filter_ignores_created_at_alone(): void
+    {
+        $rows = GlideCsv::rows(base_path('tests/fixtures/glide/candidates.csv'));
+        $marie = $rows[1];
+        $marie['created_at'] = '10/03/2025';
+        $marie['created_at year'] = '2025';
+
+        $this->assertFalse((new GlideFieldMapper)->matchesYearFilter($marie, '2025-2026'));
+    }
 }

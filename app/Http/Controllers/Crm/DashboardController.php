@@ -65,33 +65,46 @@ class DashboardController extends Controller
             'series' => $funnelCounts->values()->all(),
         ];
 
-        $chartByCreator = $this->chartCountsByUser(
-            CrmCandidate::query()
-                ->select('created_by', DB::raw('COUNT(*) as total'))
-                ->whereNotNull('created_by')
-                ->groupBy('created_by')
-                ->pluck('total', 'created_by')
-        );
-
-        $chartInscritsByAdvisor = $this->chartCountsByUser(
+        $chartByAdvisor = $this->chartCountsByAdvisor(
             CrmCandidate::query()
                 ->select('advisor_id', DB::raw('COUNT(*) as total'))
-                ->where('statut', 'inscrit')
-                ->whereNotNull('advisor_id')
+                ->where('abandon', false)
                 ->groupBy('advisor_id')
-                ->pluck('total', 'advisor_id')
+                ->get()
+        );
+
+        $chartInscritsByAdvisor = $this->chartCountsByAdvisor(
+            CrmCandidate::query()
+                ->select('advisor_id', DB::raw('COUNT(*) as total'))
+                ->where('abandon', false)
+                ->where('statut', 'inscrit')
+                ->groupBy('advisor_id')
+                ->get()
         );
 
         $programmeExpr = "COALESCE(NULLIF(TRIM(programme), ''), 'Sans programme')";
         $byProgramme = CrmCandidate::query()
             ->select(DB::raw("{$programmeExpr} as programme_label"), DB::raw('COUNT(*) as total'))
+            ->where('abandon', false)
             ->groupBy(DB::raw($programmeExpr))
             ->orderByDesc('total')
             ->get();
 
+        $topProgrammes = $byProgramme->take(10);
+        $autres = (int) $byProgramme->skip(10)->sum('total');
+        if ($autres > 0) {
+            $topProgrammes = $topProgrammes->concat(collect([
+                (object) ['programme_label' => 'Autres', 'total' => $autres],
+            ]));
+        }
+
         $chartByProgramme = [
-            'labels' => $byProgramme->pluck('programme_label')->values()->all(),
-            'series' => $byProgramme->pluck('total')->map(fn ($n) => (int) $n)->values()->all(),
+            'labels' => $topProgrammes->pluck('programme_label')->map(function ($label) {
+                $label = (string) $label;
+
+                return mb_strlen($label) > 28 ? mb_substr($label, 0, 27).'…' : $label;
+            })->values()->all(),
+            'series' => $topProgrammes->pluck('total')->map(fn ($n) => (int) $n)->values()->all(),
         ];
 
         $recent = CrmCandidate::with('advisor')
@@ -104,7 +117,7 @@ class DashboardController extends Controller
             'chartMonthly',
             'chartStatus',
             'chartFunnel',
-            'chartByCreator',
+            'chartByAdvisor',
             'chartInscritsByAdvisor',
             'chartByProgramme',
             'recent'
@@ -112,24 +125,31 @@ class DashboardController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int|string, int>  $countsByUserId
+     * @param  \Illuminate\Support\Collection<int, object{advisor_id: mixed, total: mixed}>  $rows
      * @return array{labels: list<string>, series: list<int>}
      */
-    private function chartCountsByUser($countsByUserId): array
+    private function chartCountsByAdvisor($rows): array
     {
-        if ($countsByUserId->isEmpty()) {
+        if ($rows->isEmpty()) {
             return ['labels' => [], 'series' => []];
         }
 
-        $names = User::query()
-            ->whereIn('id', $countsByUserId->keys())
-            ->pluck('name', 'id');
+        $ids = $rows->pluck('advisor_id')->filter()->unique()->values();
+        $names = $ids->isEmpty()
+            ? collect()
+            : User::query()->whereIn('id', $ids)->pluck('name', 'id');
 
-        $sorted = $countsByUserId->sortDesc();
+        $sorted = $rows->sortByDesc(fn ($row) => (int) $row->total)->values();
 
         return [
-            'labels' => $sorted->keys()->map(fn ($id) => $names[$id] ?? 'Utilisateur #'.$id)->values()->all(),
-            'series' => $sorted->values()->map(fn ($n) => (int) $n)->values()->all(),
+            'labels' => $sorted->map(function ($row) use ($names) {
+                if ($row->advisor_id === null || $row->advisor_id === '') {
+                    return 'Non assigné';
+                }
+
+                return $names[$row->advisor_id] ?? 'Utilisateur #'.$row->advisor_id;
+            })->all(),
+            'series' => $sorted->map(fn ($row) => (int) $row->total)->all(),
         ];
     }
 }
