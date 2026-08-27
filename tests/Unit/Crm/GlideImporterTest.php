@@ -92,6 +92,48 @@ class GlideImporterTest extends TestCase
         $this->assertSame(3, CrmCandidate::count());
     }
 
+    public function test_year_filter_imports_only_2025_2026(): void
+    {
+        $user = $this->makeUser();
+        $importer = app(GlideImporter::class);
+
+        $report = $importer->import(
+            base_path('tests/fixtures/glide/candidates.csv'),
+            base_path('tests/fixtures/glide/documents.csv'),
+            ['dry_run' => false, 'create_lookups' => true, 'academic_year' => '2025-2026'],
+            $user
+        );
+
+        $this->assertSame(2, $report['candidates_created']);
+        $this->assertSame(1, $report['candidates_skipped_year']);
+        $this->assertSame(2, CrmCandidate::count());
+        $this->assertNull(CrmCandidate::where('glide_applicant_id', 'app-marie')->first());
+        $this->assertNotNull(CrmCandidate::where('glide_applicant_id', 'app-jean')->first());
+        $this->assertNotNull(CrmCandidate::where('glide_applicant_id', 'app-paul')->first());
+    }
+
+    public function test_purge_all_removes_candidates_and_documents(): void
+    {
+        $user = $this->makeUser(['name' => 'Alice Advisor']);
+        $importer = app(GlideImporter::class);
+        $importer->import(
+            base_path('tests/fixtures/glide/candidates.csv'),
+            base_path('tests/fixtures/glide/documents.csv'),
+            ['dry_run' => false, 'create_lookups' => true],
+            $user
+        );
+
+        $this->assertSame(3, CrmCandidate::count());
+        $this->assertGreaterThan(0, CrmCandidateDocument::count());
+
+        $counts = $importer->purgeAll();
+
+        $this->assertSame(3, $counts['candidates']);
+        $this->assertSame(0, CrmCandidate::count());
+        $this->assertSame(0, CrmCandidateDocument::count());
+        $this->assertTrue(CrmProgramme::where('label', 'Marketing')->exists());
+    }
+
     private function makeUser(array $overrides = []): User
     {
         return User::factory()->create(array_merge([

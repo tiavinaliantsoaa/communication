@@ -125,6 +125,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/parametres/import', [CrmImportController::class, 'store'])
             ->middleware('permission:crm.update')
             ->name('settings.import');
+        Route::delete('/parametres/donnees', [CrmImportController::class, 'destroyAll'])
+            ->middleware('permission:crm.update')
+            ->name('settings.destroy-all');
 
         Route::get('/candidats', [CrmCandidateController::class, 'index'])->name('candidats.index');
         Route::get('/candidats/create', [CrmCandidateController::class, 'create'])

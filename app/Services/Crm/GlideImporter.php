@@ -9,13 +9,14 @@ use App\Models\CrmIntake;
 use App\Models\CrmProgramme;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class GlideImporter
 {
     public function __construct(private readonly GlideFieldMapper $mapper) {}
 
     /**
-     * @param  array{dry_run?: bool, skip_abandoned?: bool, update_existing?: bool, create_lookups?: bool}  $options
+     * @param  array{dry_run?: bool, skip_abandoned?: bool, update_existing?: bool, create_lookups?: bool, academic_year?: string|null}  $options
      * @return array<string, mixed>
      */
     public function import(?string $candidatesPath, ?string $documentsPath, array $options, User $user): array
@@ -27,6 +28,10 @@ class GlideImporter
         $skipAbandoned = (bool) ($options['skip_abandoned'] ?? false);
         $updateExisting = (bool) ($options['update_existing'] ?? false);
         $createLookups = (bool) ($options['create_lookups'] ?? true);
+        $academicYear = $options['academic_year'] ?? null;
+        if ($academicYear === 'all' || $academicYear === '') {
+            $academicYear = null;
+        }
 
         $report = $this->emptyReport($dryRun);
 
@@ -51,15 +56,13 @@ class GlideImporter
             $skipAbandoned,
             $updateExisting,
             $createLookups,
+            $academicYear,
             $user,
             &$report
         ) {
             $advisorIdsByName = $this->advisorIndex();
-            $idMap = $this->candidateIdMap();
-            $existingByGlide = [];
-            foreach ($idMap as $glideKey => $pk) {
-                $existingByGlide[$glideKey] = $pk;
-            }
+            $existingByGlide = $this->candidateIdMap();
+            $idMap = $candidateRows === [] ? $this->candidateIdMap($academicYear) : [];
 
             $pipelineOrders = CrmCandidate::query()
                 ->select('statut')
@@ -81,6 +84,12 @@ class GlideImporter
                     continue;
                 }
 
+                if (! $this->mapper->matchesYearFilter($row, $academicYear)) {
+                    $report['candidates_skipped_year']++;
+
+                    continue;
+                }
+
                 if ($skipAbandoned && ($mapped['abandon'] ?? false)) {
                     $report['candidates_skipped_abandon']++;
 
@@ -95,10 +104,17 @@ class GlideImporter
                 }
 
                 $glideId = $mapped['glide_applicant_id'];
-                $existingId = $idMap[$glideId] ?? $existingByGlide[$glideId] ?? null;
+                $existingId = $existingByGlide[$glideId] ?? $idMap[$glideId] ?? null;
+                if (! $existingId && ! empty($mapped['glide_row_id'])) {
+                    $existingId = $existingByGlide[$mapped['glide_row_id']] ?? null;
+                }
 
                 if ($existingId && ! $updateExisting) {
                     $report['candidates_skipped_existing']++;
+                    $idMap[$glideId] = (int) $existingId;
+                    if (! empty($mapped['glide_row_id'])) {
+                        $idMap[$mapped['glide_row_id']] = (int) $existingId;
+                    }
 
                     continue;
                 }
@@ -114,12 +130,13 @@ class GlideImporter
                 if ($dryRun) {
                     if ($existingId) {
                         $report['candidates_updated']++;
+                        $idMap[$glideId] = (int) $existingId;
                     } else {
                         $report['candidates_created']++;
                         $idMap[$glideId] = -1;
-                        if (! empty($mapped['glide_row_id'])) {
-                            $idMap[$mapped['glide_row_id']] = -1;
-                        }
+                    }
+                    if (! empty($mapped['glide_row_id'])) {
+                        $idMap[$mapped['glide_row_id']] = $idMap[$glideId];
                     }
 
                     continue;
@@ -137,6 +154,10 @@ class GlideImporter
                     }
                     unset($attrs['created_by']);
                     $candidate->forceFill($attrs)->save();
+                    $idMap[$glideId] = $candidate->id;
+                    if (! empty($mapped['glide_row_id'])) {
+                        $idMap[$mapped['glide_row_id']] = $candidate->id;
+                    }
                     $report['candidates_updated']++;
                 } else {
                     $pipelineOrders[$attrs['statut']] = ($pipelineOrders[$attrs['statut']] ?? 0) + 1;
@@ -282,14 +303,26 @@ class GlideImporter
     /**
      * @return array<string, int>
      */
-    private function candidateIdMap(): array
+    private function candidateIdMap(?string $academicYear = null): array
     {
         $map = [];
-        CrmCandidate::query()
+        $query = CrmCandidate::query()
             ->where(function ($q) {
                 $q->whereNotNull('glide_applicant_id')->orWhereNotNull('glide_row_id');
-            })
-            ->get(['id', 'glide_applicant_id', 'glide_row_id'])
+            });
+
+        if ($academicYear === '2025-2026') {
+            $query->where(function ($q) {
+                $q->where('annee_academique', 'like', '%2025%')
+                    ->orWhere('annee_academique', 'like', '%2026%')
+                    ->orWhere('programme', 'like', '%2025%')
+                    ->orWhere('programme', 'like', '%2026%')
+                    ->orWhereYear('created_at', 2025)
+                    ->orWhereYear('created_at', 2026);
+            });
+        }
+
+        $query->get(['id', 'glide_applicant_id', 'glide_row_id'])
             ->each(function (CrmCandidate $candidate) use (&$map) {
                 if ($candidate->glide_applicant_id) {
                     $map[$candidate->glide_applicant_id] = $candidate->id;
@@ -300,6 +333,32 @@ class GlideImporter
             });
 
         return $map;
+    }
+
+    /**
+     * @return array{candidates: int, documents: int}
+     */
+    public function purgeAll(): array
+    {
+        return DB::transaction(function () {
+            $documents = CrmCandidateDocument::query()->count();
+            $candidates = CrmCandidate::query()->count();
+
+            foreach (CrmCandidateDocument::query()->where('path', '!=', '')->cursor() as $doc) {
+                if (filled($doc->path)) {
+                    Storage::disk('public')->delete($doc->path);
+                }
+            }
+
+            Storage::disk('public')->deleteDirectory('crm/documents');
+
+            CrmCandidate::query()->delete();
+
+            return [
+                'candidates' => $candidates,
+                'documents' => $documents,
+            ];
+        });
     }
 
     /**
@@ -377,6 +436,7 @@ class GlideImporter
             'candidates_skipped_existing' => 0,
             'candidates_skipped_invalid' => 0,
             'candidates_skipped_abandon' => 0,
+            'candidates_skipped_year' => 0,
             'documents_created' => 0,
             'documents_updated' => 0,
             'documents_skipped_unmatched' => 0,

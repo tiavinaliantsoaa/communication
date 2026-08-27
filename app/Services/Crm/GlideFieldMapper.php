@@ -198,6 +198,42 @@ class GlideFieldMapper
         return in_array($value, ['1', 'true', 'yes', 'oui', 'vrai', 'on'], true);
     }
 
+    /**
+     * @param  array<string, string>  $row
+     */
+    public function matchesYearFilter(array $row, ?string $filter): bool
+    {
+        if ($filter === null || $filter === '' || $filter === 'all') {
+            return true;
+        }
+
+        $years = match ($filter) {
+            '2025-2026' => ['2025', '2026'],
+            default => [],
+        };
+        if ($years === []) {
+            return true;
+        }
+
+        $haystack = implode(' ', [
+            $this->first($row, 'applications/ all academic year'),
+            $this->first($row, 'wish/ academic years'),
+            $this->first($row, 'applications/ all program name list'),
+            $this->first($row, 'template/ program + promotion + current level'),
+            $this->first($row, 'année de paiement', 'annee de paiement'),
+            $this->first($row, 'created_at year'),
+            $this->first($row, 'created_at'),
+        ]);
+
+        foreach ($years as $year) {
+            if (preg_match('/\b'.preg_quote($year, '/').'\b/', $haystack) === 1) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function mapGenre(string $value): ?string
     {
         $value = mb_strtolower(trim($value));

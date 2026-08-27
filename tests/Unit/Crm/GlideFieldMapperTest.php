@@ -71,4 +71,15 @@ class GlideFieldMapperTest extends TestCase
         $this->assertStringContainsString('cv.pdf', $doc['external_url']);
         $this->assertSame('application/pdf', $doc['mime']);
     }
+
+    public function test_year_filter_keeps_2025_and_skips_2024(): void
+    {
+        $rows = GlideCsv::rows(base_path('tests/fixtures/glide/candidates.csv'));
+        $mapper = new GlideFieldMapper;
+
+        $this->assertTrue($mapper->matchesYearFilter($rows[0], '2025-2026'));
+        $this->assertFalse($mapper->matchesYearFilter($rows[1], '2025-2026'));
+        $this->assertTrue($mapper->matchesYearFilter($rows[2], '2025-2026'));
+        $this->assertTrue($mapper->matchesYearFilter($rows[1], 'all'));
+    }
 }

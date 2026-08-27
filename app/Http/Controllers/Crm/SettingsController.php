@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Crm;
 
 use App\Http\Controllers\Controller;
+use App\Models\CrmCandidate;
 use App\Models\CrmDocumentType;
 use App\Models\CrmIntake;
 use App\Models\CrmProgramme;
@@ -16,8 +17,9 @@ class SettingsController extends Controller
         $intakes = CrmIntake::ordered()->get();
         $programmes = CrmProgramme::ordered()->get();
         $documentTypes = CrmDocumentType::ordered()->get();
+        $candidatesCount = CrmCandidate::query()->count();
 
-        return view('crm.settings', compact('intakes', 'programmes', 'documentTypes'));
+        return view('crm.settings', compact('intakes', 'programmes', 'documentTypes', 'candidatesCount'));
     }
 
     public function storeIntake(Request $request)

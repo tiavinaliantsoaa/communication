@@ -26,6 +26,7 @@
                 <li>Candidats déjà présents : <strong>{{ $report['candidates_skipped_existing'] ?? 0 }}</strong></li>
                 <li>Candidats invalides : <strong>{{ $report['candidates_skipped_invalid'] ?? 0 }}</strong></li>
                 <li>Abandons ignorés : <strong>{{ $report['candidates_skipped_abandon'] ?? 0 }}</strong></li>
+                <li>Hors 2025-2026 : <strong>{{ $report['candidates_skipped_year'] ?? 0 }}</strong></li>
                 <li>Documents liés : <strong>{{ $report['documents_created'] ?? 0 }}</strong></li>
                 <li>Documents mis à jour : <strong>{{ $report['documents_updated'] ?? 0 }}</strong></li>
                 <li>Documents sans candidat : <strong>{{ $report['documents_skipped_unmatched'] ?? 0 }}</strong></li>
@@ -69,6 +70,11 @@
             </div>
             <div class="space-y-2 text-sm text-slate-700">
                 <label class="flex items-start gap-2">
+                    <input type="hidden" name="filter_2025_2026" value="0">
+                    <input type="checkbox" name="filter_2025_2026" value="1" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary" checked>
+                    <span>Importer uniquement l’année <strong>2025-2026</strong> <span class="text-slate-500 font-normal">(Fall / Spring 2025 et 2026, ou date de création 2025-2026)</span></span>
+                </label>
+                <label class="flex items-start gap-2">
                     <input type="hidden" name="create_lookups" value="0">
                     <input type="checkbox" name="create_lookups" value="1" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary" checked>
                     <span>Créer automatiquement les programmes, rentrées et types de documents manquants</span>
@@ -91,6 +97,30 @@
         </form>
         @else
         <div class="px-5 py-6 text-sm text-slate-500">Vous n’avez pas le droit d’importer des données CRM.</div>
+        @endif
+    </div>
+
+    {{-- Purge CRM --}}
+    <div class="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-red-100 bg-red-50/60">
+            <h3 class="text-sm font-semibold text-red-900">Réinitialiser le CRM</h3>
+            <p class="text-xs text-red-800/80 mt-0.5">Supprime tous les candidats, notes, documents et interactions pour repartir sur un import 2025-2026. Les programmes, rentrées et types de documents (paramètres) sont conservés.</p>
+        </div>
+        @if(auth()->user()->canAccess('crm.update'))
+        <div class="px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p class="text-sm text-slate-600"><strong>{{ number_format($candidatesCount ?? 0, 0, ',', ' ') }}</strong> candidat(s) actuellement dans le CRM.</p>
+            <form method="POST" action="{{ route('crm.settings.destroy-all') }}"
+                  onsubmit="return confirm('Supprimer TOUTES les données candidats du CRM ? Cette action est irréversible.')">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="inline-flex items-center bg-white border border-red-300 hover:bg-red-50 text-red-700 text-sm font-medium px-4 py-2 rounded-lg"
+                        @disabled(($candidatesCount ?? 0) === 0)>
+                    Supprimer toutes les données
+                </button>
+            </form>
+        </div>
+        @else
+        <div class="px-5 py-6 text-sm text-slate-500">Vous n’avez pas le droit de supprimer les données CRM.</div>
         @endif
     </div>
 

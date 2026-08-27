@@ -19,6 +19,7 @@ class ImportController extends Controller
             'skip_abandoned' => ['sometimes', 'boolean'],
             'update_existing' => ['sometimes', 'boolean'],
             'create_lookups' => ['sometimes', 'boolean'],
+            'filter_2025_2026' => ['sometimes', 'boolean'],
         ], [
             'candidates_csv.max' => 'Le fichier candidats ne doit pas dépasser 20 Mo.',
             'documents_csv.max' => 'Le fichier documents ne doit pas dépasser 20 Mo.',
@@ -62,6 +63,7 @@ class ImportController extends Controller
                 'skip_abandoned' => $request->boolean('skip_abandoned'),
                 'update_existing' => $request->boolean('update_existing'),
                 'create_lookups' => $request->boolean('create_lookups', true),
+                'academic_year' => $request->boolean('filter_2025_2026', true) ? '2025-2026' : 'all',
             ], $request->user());
         } finally {
             foreach ($stored as $path) {
@@ -85,5 +87,26 @@ class ImportController extends Controller
             : 'Import Glide terminé.';
 
         return back()->with('success', $message)->with('import_report', $report);
+    }
+
+    public function destroyAll(Request $request, GlideImporter $importer)
+    {
+        $counts = $importer->purgeAll();
+
+        app(ActivityLogger::class)->log(
+            'crm',
+            'Suppression de toutes les données CRM : '.$counts['candidates'].' candidat(s), '.$counts['documents'].' document(s).',
+            $request->user(),
+            'delete',
+            'CRM',
+            route('crm.settings')
+        );
+
+        return back()->with(
+            'success',
+            $counts['candidates'] === 0
+                ? 'Aucune donnée CRM à supprimer.'
+                : $counts['candidates'].' candidat(s) et '.$counts['documents'].' document(s) ont été supprimés. Vous pouvez relancer un import.'
+        );
     }
 }
