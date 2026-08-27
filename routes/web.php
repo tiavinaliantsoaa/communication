@@ -151,6 +151,9 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/candidats/{candidat}/documents/{document}', [CrmCandidateController::class, 'destroyDocument'])
             ->middleware('permission:crm.update')
             ->name('candidats.documents.destroy');
+        Route::post('/candidats/{candidat}/documents', [CrmCandidateController::class, 'storeDocuments'])
+            ->middleware('permission:crm.update')
+            ->name('candidats.documents.store');
     });
 
     Route::prefix('stocks')->name('stocks.')->group(function () {

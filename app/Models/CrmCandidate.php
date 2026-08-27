@@ -194,6 +194,12 @@ class CrmCandidate extends Model
         return $statut;
     }
 
+    /** Fiche verrouillée une fois le candidat inscrit (pas d’édition / suppression du profil). */
+    public function isProfileLocked(): bool
+    {
+        return $this->statut === 'inscrit';
+    }
+
     public function touchInteraction(): void
     {
         $this->forceFill(['last_interaction_at' => now()])->saveQuietly();

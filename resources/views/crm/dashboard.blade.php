@@ -58,6 +58,33 @@
     <div id="crm-chart-funnel" class="h-72"></div>
 </div>
 
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h3 class="text-sm font-semibold text-slate-800 mb-4">Candidatures par utilisateur</h3>
+        @if(!empty($chartByCreator['series']))
+            <div id="crm-chart-by-creator" class="h-72"></div>
+        @else
+            <p class="h-72 flex items-center justify-center text-sm text-slate-400">Aucune donnée</p>
+        @endif
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h3 class="text-sm font-semibold text-slate-800 mb-4">Inscrits par conseiller</h3>
+        @if(!empty($chartInscritsByAdvisor['series']))
+            <div id="crm-chart-inscrits-advisor" class="h-72"></div>
+        @else
+            <p class="h-72 flex items-center justify-center text-sm text-slate-400">Aucune donnée</p>
+        @endif
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+        <h3 class="text-sm font-semibold text-slate-800 mb-4">Candidatures par programme</h3>
+        @if(!empty($chartByProgramme['series']))
+            <div id="crm-chart-by-programme" class="h-72"></div>
+        @else
+            <p class="h-72 flex items-center justify-center text-sm text-slate-400">Aucune donnée</p>
+        @endif
+    </div>
+</div>
+
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
         <h3 class="text-sm font-semibold text-slate-800">Derniers candidats</h3>
@@ -132,6 +159,40 @@ document.addEventListener('DOMContentLoaded', function () {
         dataLabels: { enabled: true },
         grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
     }).render();
+
+    const horizontalBar = (el, labels, series, color) => {
+        if (!el || !series.length) return;
+        new ApexCharts(el, {
+            chart: { type: 'bar', height: 288, toolbar: { show: false }, fontFamily: 'inherit' },
+            series: [{ name: 'Candidats', data: series }],
+            plotOptions: { bar: { borderRadius: 6, barHeight: '55%', horizontal: true } },
+            colors: [color],
+            xaxis: { categories: labels, labels: { style: { fontSize: '11px' } }, min: 0, forceNiceScale: true },
+            yaxis: { labels: { style: { fontSize: '11px' }, maxWidth: 120 } },
+            dataLabels: { enabled: true },
+            grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+            tooltip: { y: { formatter: (v) => v } },
+        }).render();
+    };
+
+    horizontalBar(
+        document.querySelector('#crm-chart-by-creator'),
+        @json($chartByCreator['labels']),
+        @json($chartByCreator['series']),
+        '#1e40af'
+    );
+    horizontalBar(
+        document.querySelector('#crm-chart-inscrits-advisor'),
+        @json($chartInscritsByAdvisor['labels']),
+        @json($chartInscritsByAdvisor['series']),
+        '#15803d'
+    );
+    horizontalBar(
+        document.querySelector('#crm-chart-by-programme'),
+        @json($chartByProgramme['labels']),
+        @json($chartByProgramme['series']),
+        '#7c3aed'
+    );
 });
 </script>
 @endpush

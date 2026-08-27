@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Crm;
 
 use App\Http\Controllers\Controller;
 use App\Models\CrmCandidate;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -60,11 +61,71 @@ class DashboardController extends Controller
             'series' => $funnelCounts->values()->all(),
         ];
 
+        $chartByCreator = $this->chartCountsByUser(
+            CrmCandidate::query()
+                ->select('created_by', DB::raw('COUNT(*) as total'))
+                ->whereNotNull('created_by')
+                ->groupBy('created_by')
+                ->pluck('total', 'created_by')
+        );
+
+        $chartInscritsByAdvisor = $this->chartCountsByUser(
+            CrmCandidate::query()
+                ->select('advisor_id', DB::raw('COUNT(*) as total'))
+                ->where('statut', 'inscrit')
+                ->whereNotNull('advisor_id')
+                ->groupBy('advisor_id')
+                ->pluck('total', 'advisor_id')
+        );
+
+        $programmeExpr = "COALESCE(NULLIF(TRIM(programme), ''), 'Sans programme')";
+        $byProgramme = CrmCandidate::query()
+            ->select(DB::raw("{$programmeExpr} as programme_label"), DB::raw('COUNT(*) as total'))
+            ->groupBy(DB::raw($programmeExpr))
+            ->orderByDesc('total')
+            ->get();
+
+        $chartByProgramme = [
+            'labels' => $byProgramme->pluck('programme_label')->values()->all(),
+            'series' => $byProgramme->pluck('total')->map(fn ($n) => (int) $n)->values()->all(),
+        ];
+
         $recent = CrmCandidate::with('advisor')
             ->orderByDesc('created_at')
             ->limit(10)
             ->get();
 
-        return view('crm.dashboard', compact('kpis', 'chartMonthly', 'chartStatus', 'chartFunnel', 'recent'));
+        return view('crm.dashboard', compact(
+            'kpis',
+            'chartMonthly',
+            'chartStatus',
+            'chartFunnel',
+            'chartByCreator',
+            'chartInscritsByAdvisor',
+            'chartByProgramme',
+            'recent'
+        ));
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int|string, int>  $countsByUserId
+     * @return array{labels: list<string>, series: list<int>}
+     */
+    private function chartCountsByUser($countsByUserId): array
+    {
+        if ($countsByUserId->isEmpty()) {
+            return ['labels' => [], 'series' => []];
+        }
+
+        $names = User::query()
+            ->whereIn('id', $countsByUserId->keys())
+            ->pluck('name', 'id');
+
+        $sorted = $countsByUserId->sortDesc();
+
+        return [
+            'labels' => $sorted->keys()->map(fn ($id) => $names[$id] ?? 'Utilisateur #'.$id)->values()->all(),
+            'series' => $sorted->values()->map(fn ($n) => (int) $n)->values()->all(),
+        ];
     }
 }

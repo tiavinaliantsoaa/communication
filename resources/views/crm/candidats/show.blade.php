@@ -21,14 +21,20 @@
     </div>
     <div class="flex items-center gap-2 shrink-0">
         <a href="{{ route('crm.candidats.index') }}" class="text-sm text-slate-600 hover:text-slate-900 px-3 py-2">Retour</a>
-        @if(auth()->user()->canAccess('crm.update'))
-        <a href="{{ route('crm.candidats.edit', $candidate) }}" class="inline-flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg">Modifier</a>
-        @endif
-        @if(auth()->user()->canAccess('crm.delete'))
-        <form action="{{ route('crm.candidats.destroy', $candidate) }}" method="POST" onsubmit="return confirm('Supprimer ce candidat et tout son historique ?')">
-            @csrf @method('DELETE')
-            <button type="submit" class="inline-flex items-center gap-2 bg-white border border-red-200 hover:bg-red-50 text-red-700 text-sm font-medium px-4 py-2 rounded-lg">Supprimer</button>
-        </form>
+        @if($candidate->isProfileLocked())
+            <span class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-medium px-3 py-2">
+                Fiche verrouillée (inscrit)
+            </span>
+        @else
+            @if(auth()->user()->canAccess('crm.update'))
+            <a href="{{ route('crm.candidats.edit', $candidate) }}" class="inline-flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg">Modifier</a>
+            @endif
+            @if(auth()->user()->canAccess('crm.delete'))
+            <form action="{{ route('crm.candidats.destroy', $candidate) }}" method="POST" onsubmit="return confirm('Supprimer ce candidat et tout son historique ?')">
+                @csrf @method('DELETE')
+                <button type="submit" class="inline-flex items-center gap-2 bg-white border border-red-200 hover:bg-red-50 text-red-700 text-sm font-medium px-4 py-2 rounded-lg">Supprimer</button>
+            </form>
+            @endif
         @endif
     </div>
 </div>
@@ -125,34 +131,36 @@
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
         <h3 class="text-sm font-semibold text-slate-800">Documents du dossier</h3>
-        @if(auth()->user()->canAccess('crm.update'))
-            <a href="{{ route('crm.candidats.edit', $candidate) }}" class="text-xs font-semibold text-escm-primary hover:underline">Ajouter / remplacer</a>
+        @if($candidate->isProfileLocked())
+            <span class="text-[11px] text-slate-500">Ajout / remplacement possible — fiche profil verrouillée</span>
         @endif
     </div>
     <div class="divide-y divide-slate-100">
         @forelse($documentTypes as $docType)
             @php $doc = $docsByType->get($docType->id); @endphp
-            <div class="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <p class="text-sm font-medium text-slate-900">{{ $docType->label }}</p>
-                        @if($docType->is_required)
-                            <span class="inline-flex items-center rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold px-2 py-0.5">Requis</span>
+            <div class="px-5 py-4 space-y-3">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <p class="text-sm font-medium text-slate-900">{{ $docType->label }}</p>
+                            @if($docType->is_required)
+                                <span class="inline-flex items-center rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold px-2 py-0.5">Requis</span>
+                            @endif
+                        </div>
+                        @if($doc)
+                            <a href="{{ $doc->url }}" target="_blank" rel="noopener" class="mt-1 inline-block text-sm text-escm-primary hover:underline truncate max-w-full">{{ $doc->original_name ?: 'Voir le fichier' }}</a>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Déposé le {{ $doc->updated_at?->format('d/m/Y H:i') }}</p>
+                        @else
+                            <p class="mt-1 text-sm text-slate-400">Non fourni</p>
                         @endif
                     </div>
-                    @if($doc)
-                        <a href="{{ $doc->url }}" target="_blank" rel="noopener" class="mt-1 inline-block text-sm text-escm-primary hover:underline truncate max-w-full">{{ $doc->original_name ?: 'Voir le fichier' }}</a>
-                        <p class="text-[11px] text-slate-400 mt-0.5">Déposé le {{ $doc->updated_at?->format('d/m/Y H:i') }}</p>
-                    @else
-                        <p class="mt-1 text-sm text-slate-400">Non fourni</p>
+                    @if($doc && auth()->user()->canAccess('crm.update'))
+                    <form method="POST" action="{{ route('crm.candidats.documents.destroy', [$candidate, $doc]) }}" onsubmit="return confirm('Supprimer ce document ?')">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="text-xs font-semibold text-red-600 hover:underline">Supprimer</button>
+                    </form>
                     @endif
                 </div>
-                @if($doc && auth()->user()->canAccess('crm.update'))
-                <form method="POST" action="{{ route('crm.candidats.documents.destroy', [$candidate, $doc]) }}" onsubmit="return confirm('Supprimer ce document ?')">
-                    @csrf @method('DELETE')
-                    <button type="submit" class="text-xs font-semibold text-red-600 hover:underline">Supprimer</button>
-                </form>
-                @endif
             </div>
         @empty
             <div class="px-5 py-10 text-center text-sm text-slate-500">
@@ -160,6 +168,26 @@
             </div>
         @endforelse
     </div>
+    @if(auth()->user()->canAccess('crm.update') && $documentTypes->isNotEmpty())
+    <form method="POST" action="{{ route('crm.candidats.documents.store', $candidate) }}" enctype="multipart/form-data" class="border-t border-slate-100 px-5 py-4 space-y-4 bg-slate-50/40">
+        @csrf
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Ajouter / remplacer des fichiers</p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            @foreach($documentTypes as $docType)
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">{{ $docType->label }}</label>
+                    <input type="file" name="documents[{{ $docType->id }}]"
+                           accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg"
+                           class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-escm-primary/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-escm-primary hover:file:bg-escm-primary/20">
+                    @error('documents.'.$docType->id)
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+            @endforeach
+        </div>
+        <button type="submit" class="inline-flex items-center gap-2 bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2.5 rounded-lg">Enregistrer les documents</button>
+    </form>
+    @endif
 </div>
 @endif
 

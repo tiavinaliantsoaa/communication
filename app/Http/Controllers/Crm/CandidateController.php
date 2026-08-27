@@ -133,6 +133,11 @@ class CandidateController extends Controller
 
     public function edit(CrmCandidate $candidat)
     {
+        if ($candidat->isProfileLocked()) {
+            return redirect()->route('crm.candidats.show', $candidat)
+                ->with('error', 'Ce candidat est inscrit : la fiche ne peut plus être modifiée.');
+        }
+
         $candidat->load('documents');
 
         return view('crm.candidats.edit', array_merge($this->formData($candidat), [
@@ -142,6 +147,11 @@ class CandidateController extends Controller
 
     public function update(Request $request, CrmCandidate $candidat, CrmActivityLogger $crmLog)
     {
+        if ($candidat->isProfileLocked()) {
+            return redirect()->route('crm.candidats.show', $candidat)
+                ->with('error', 'Ce candidat est inscrit : la fiche ne peut plus être modifiée.');
+        }
+
         $validated = $this->validateCandidate($request, $candidat);
         $this->validateDocuments($request, $candidat);
         $oldStatut = $candidat->statut;
@@ -185,6 +195,11 @@ class CandidateController extends Controller
 
     public function destroy(CrmCandidate $candidat)
     {
+        if ($candidat->isProfileLocked()) {
+            return redirect()->route('crm.candidats.show', $candidat)
+                ->with('error', 'Ce candidat est inscrit : il ne peut plus être supprimé.');
+        }
+
         $name = $candidat->full_name;
         $candidat->load('documents');
         foreach ($candidat->documents as $doc) {
@@ -214,6 +229,24 @@ class CandidateController extends Controller
         $candidat->touchInteraction();
 
         return back()->with('success', 'Document supprimé.');
+    }
+
+    public function storeDocuments(Request $request, CrmCandidate $candidat)
+    {
+        abort_unless(auth()->user()?->canAccess('crm.update'), 403);
+
+        $types = CrmDocumentType::active()->ordered()->get();
+        $rules = [];
+        foreach ($types as $type) {
+            $rules['documents.'.$type->id] = ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg'];
+        }
+        $request->validate($rules);
+
+        $this->storeUploadedDocuments($request, $candidat);
+        $candidat->touchInteraction();
+
+        return redirect()->route('crm.candidats.show', ['candidat' => $candidat, 'tab' => 'documents'])
+            ->with('success', 'Documents enregistrés.');
     }
 
     public function storeNote(Request $request, CrmCandidate $candidat, CrmActivityLogger $crmLog)
