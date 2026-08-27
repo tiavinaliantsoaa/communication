@@ -13,7 +13,7 @@ class DashboardController extends Controller
         $total = CrmCandidate::count();
         $nouveauxMois = CrmCandidate::where('created_at', '>=', now()->startOfMonth())->count();
         $inscrits = CrmCandidate::where('statut', 'inscrit')->count();
-        $perdus = CrmCandidate::where('statut', 'perdu')->count();
+        $prospects = CrmCandidate::where('statut', 'prospect')->count();
         $conversion = $total > 0 ? round(($inscrits / $total) * 100, 1) : 0;
 
         $kpis = [
@@ -21,7 +21,7 @@ class DashboardController extends Controller
             'nouveaux_mois' => $nouveauxMois,
             'inscrits' => $inscrits,
             'conversion' => $conversion,
-            'perdus' => $perdus,
+            'prospects' => $prospects,
         ];
 
         $months = collect(range(11, 0))->map(fn ($i) => now()->subMonths($i)->startOfMonth());

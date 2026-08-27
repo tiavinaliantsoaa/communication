@@ -1,6 +1,6 @@
 @php
     $title = 'CRM — Pipeline';
-    $subtitle = 'Kanban des candidats par statut';
+    $subtitle = 'Statuts automatiques selon l’avancement du candidat';
 @endphp
 
 @extends('layouts.app')

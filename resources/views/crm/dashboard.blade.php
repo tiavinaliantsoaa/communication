@@ -35,9 +35,9 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
         </x-slot:icon>
     </x-kpi-card>
-    <x-kpi-card label="Perdus" :value="number_format($kpis['perdus'], 0, ',', ' ')" icon-color="red">
+    <x-kpi-card label="Prospects" :value="number_format($kpis['prospects'], 0, ',', ' ')" icon-color="orange">
         <x-slot:icon>
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/></svg>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
         </x-slot:icon>
     </x-kpi-card>
 </div>
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function () {
         chart: { type: 'donut', height: 256, fontFamily: 'inherit' },
         series: @json($chartStatus['series']),
         labels: @json($chartStatus['labels']),
-        colors: ['#64748b','#0ea5e9','#2563eb','#6366f1','#8b5cf6','#10b981','#15803d','#ef4444'],
+        colors: ['#64748b','#0ea5e9','#2563eb','#8b5cf6','#6366f1','#15803d'],
         legend: { position: 'bottom', fontSize: '11px' },
         dataLabels: { enabled: false },
         plotOptions: { pie: { donut: { size: '65%' } } },
@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', function () {
         chart: { type: 'bar', height: 288, toolbar: { show: false }, fontFamily: 'inherit' },
         series: [{ name: 'Candidats', data: @json($chartFunnel['series']) }],
         plotOptions: { bar: { borderRadius: 6, columnWidth: '45%', distributed: true } },
-        colors: ['#64748b','#0ea5e9','#2563eb','#6366f1','#8b5cf6','#10b981','#15803d'],
+        colors: ['#64748b','#0ea5e9','#2563eb','#8b5cf6','#6366f1','#15803d'],
         xaxis: { categories: @json($chartFunnel['labels']), labels: { style: { fontSize: '11px' } } },
         yaxis: { min: 0, forceNiceScale: true, labels: { style: { fontSize: '11px' } } },
         legend: { show: false },

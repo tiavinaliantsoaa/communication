@@ -9,14 +9,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CrmCandidate extends Model
 {
     public const STATUTS = [
-        'nouveau' => 'Nouveau',
-        'contacte' => 'Contacté',
-        'interesse' => 'Intéressé',
-        'dossier_recu' => 'Dossier reçu',
-        'entretien' => 'Entretien',
-        'admis' => 'Admis',
+        'prospect' => 'Prospect',
+        'decouverte' => 'Découverte',
+        'intention_deposee' => 'Intention déposée',
+        'evaluation' => 'Évaluation',
+        'inscription' => 'Inscription',
         'inscrit' => 'Inscrit',
-        'perdu' => 'Perdu',
+    ];
+
+    public const STATUT_CONDITIONS = [
+        'decouverte' => 'Choix du programme',
+        'intention_deposee' => 'Paiement frais de test',
+        'evaluation' => 'Validation du test',
+        'inscription' => 'Lettre d’admission',
+        'inscrit' => 'Paiement acompte ou totalité',
     ];
 
     public const SOURCES = [
@@ -32,14 +38,12 @@ class CrmCandidate extends Model
         'autre' => 'Autre',
     ];
 
-    /** Funnel order for conversion chart (excluding perdu). */
     public const FUNNEL_STATUTS = [
-        'nouveau',
-        'contacte',
-        'interesse',
-        'dossier_recu',
-        'entretien',
-        'admis',
+        'prospect',
+        'decouverte',
+        'intention_deposee',
+        'evaluation',
+        'inscription',
         'inscrit',
     ];
 
@@ -63,6 +67,11 @@ class CrmCandidate extends Model
         'escm_tour_ville',
         'advisor_id',
         'notes',
+        'paiement_frais_test',
+        'validation_test',
+        'lettre_admission',
+        'paiement_acompte',
+        'paiement_totalite',
         'last_interaction_at',
         'created_by',
         'pipeline_order',
@@ -72,6 +81,11 @@ class CrmCandidate extends Model
         'date_naissance' => 'date',
         'last_interaction_at' => 'datetime',
         'pipeline_order' => 'integer',
+        'paiement_frais_test' => 'boolean',
+        'validation_test' => 'boolean',
+        'lettre_admission' => 'boolean',
+        'paiement_acompte' => 'boolean',
+        'paiement_totalite' => 'boolean',
     ];
 
     public function advisor(): BelongsTo
@@ -127,16 +141,57 @@ class CrmCandidate extends Model
     public function getStatutColorAttribute(): string
     {
         return match ($this->statut) {
-            'nouveau' => 'bg-slate-100 text-slate-700',
-            'contacte' => 'bg-sky-50 text-sky-700',
-            'interesse' => 'bg-blue-50 text-blue-700',
-            'dossier_recu' => 'bg-indigo-50 text-indigo-700',
-            'entretien' => 'bg-violet-50 text-violet-700',
-            'admis' => 'bg-emerald-50 text-emerald-700',
+            'prospect' => 'bg-slate-100 text-slate-700',
+            'decouverte' => 'bg-sky-50 text-sky-700',
+            'intention_deposee' => 'bg-blue-50 text-blue-700',
+            'evaluation' => 'bg-violet-50 text-violet-700',
+            'inscription' => 'bg-indigo-50 text-indigo-700',
             'inscrit' => 'bg-green-50 text-green-800',
-            'perdu' => 'bg-red-50 text-red-700',
             default => 'bg-slate-100 text-slate-700',
         };
+    }
+
+    /**
+     * Highest pipeline stage reached from candidate info.
+     *
+     * @param  array<string, mixed>  $attrs
+     */
+    public static function resolveStatutFromAttributes(array $attrs): string
+    {
+        $programme = trim((string) ($attrs['programme'] ?? ''));
+        $frais = (bool) ($attrs['paiement_frais_test'] ?? false);
+        $validation = (bool) ($attrs['validation_test'] ?? false);
+        $lettre = (bool) ($attrs['lettre_admission'] ?? false);
+        $acompte = (bool) ($attrs['paiement_acompte'] ?? false);
+        $totalite = (bool) ($attrs['paiement_totalite'] ?? false);
+
+        if ($acompte || $totalite) {
+            return 'inscrit';
+        }
+        if ($lettre) {
+            return 'inscription';
+        }
+        if ($validation) {
+            return 'evaluation';
+        }
+        if ($frais) {
+            return 'intention_deposee';
+        }
+        if ($programme !== '') {
+            return 'decouverte';
+        }
+
+        return 'prospect';
+    }
+
+    public function syncStatutFromInfo(): string
+    {
+        $statut = self::resolveStatutFromAttributes($this->getAttributes());
+        if ($this->statut !== $statut) {
+            $this->forceFill(['statut' => $statut])->saveQuietly();
+        }
+
+        return $statut;
     }
 
     public function touchInteraction(): void

@@ -2,9 +2,28 @@
     /** @var \App\Models\CrmCandidate|null $candidate */
     $isEdit = isset($candidate);
     $currentSource = old('source', $candidate->source ?? '');
+    $statutLabels = \App\Models\CrmCandidate::STATUTS;
 @endphp
 
-<div class="space-y-6" x-data="{ source: @js($currentSource) }">
+<div class="space-y-6" x-data="{
+    source: @js($currentSource),
+    programme: @js(old('programme', $candidate->programme ?? '')),
+    frais: @js((bool) old('paiement_frais_test', $candidate->paiement_frais_test ?? false)),
+    validation: @js((bool) old('validation_test', $candidate->validation_test ?? false)),
+    lettre: @js((bool) old('lettre_admission', $candidate->lettre_admission ?? false)),
+    acompte: @js((bool) old('paiement_acompte', $candidate->paiement_acompte ?? false)),
+    totalite: @js((bool) old('paiement_totalite', $candidate->paiement_totalite ?? false)),
+    labels: @js($statutLabels),
+    get statutKey() {
+        if (this.acompte || this.totalite) return 'inscrit';
+        if (this.lettre) return 'inscription';
+        if (this.validation) return 'evaluation';
+        if (this.frais) return 'intention_deposee';
+        if ((this.programme || '').trim() !== '') return 'decouverte';
+        return 'prospect';
+    },
+    get statutLabel() { return this.labels[this.statutKey] || this.statutKey; }
+}">
     <div>
         <h3 class="text-sm font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-100">Informations personnelles</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -72,10 +91,10 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Programme intéressé</label>
-                <select name="programme" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                <select name="programme" x-model="programme" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
                     <option value="">—</option>
                     @foreach($programmes as $programme)
-                        <option value="{{ $programme }}" @selected(old('programme', $candidate->programme ?? '') === $programme)>{{ $programme }}</option>
+                        <option value="{{ $programme }}">{{ $programme }}</option>
                     @endforeach
                 </select>
                 @if(empty($programmes))
@@ -114,14 +133,10 @@
     <div>
         <h3 class="text-sm font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-100">Informations CRM</h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1.5">Statut <span class="text-red-500">*</span></label>
-                <select name="statut" required class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
-                    @foreach($statuts as $key => $label)
-                        <option value="{{ $key }}" @selected(old('statut', $candidate->statut ?? 'nouveau') === $key)>{{ $label }}</option>
-                    @endforeach
-                </select>
-                @error('statut')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            <div class="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-3">
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Statut pipeline (automatique)</p>
+                <p class="text-sm font-medium text-slate-800" x-text="statutLabel"></p>
+                <p class="mt-1 text-xs text-slate-500">Le statut change automatiquement selon le programme et les cases cochées ci-dessous.</p>
             </div>
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Source</label>
@@ -162,6 +177,49 @@
                           placeholder="Notes internes…">{{ old('notes', $candidate->notes ?? '') }}</textarea>
             </div>
         </div>
+    </div>
+
+    <div>
+        <h3 class="text-sm font-semibold text-slate-800 mb-3 pb-2 border-b border-slate-100">Avancement pipeline</h3>
+        <p class="text-xs text-slate-500 mb-3">Cochez les étapes validées. Le statut du candidat se met à jour automatiquement.</p>
+        <div class="space-y-2">
+            <label class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50 cursor-pointer">
+                <input type="checkbox" name="paiement_frais_test" value="1" x-model="frais" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
+                <span>
+                    <span class="block text-sm font-medium text-slate-800">Paiement frais de test</span>
+                    <span class="block text-xs text-slate-500">→ Intention déposée</span>
+                </span>
+            </label>
+            <label class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50 cursor-pointer">
+                <input type="checkbox" name="validation_test" value="1" x-model="validation" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
+                <span>
+                    <span class="block text-sm font-medium text-slate-800">Validation du test</span>
+                    <span class="block text-xs text-slate-500">→ Évaluation</span>
+                </span>
+            </label>
+            <label class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50 cursor-pointer">
+                <input type="checkbox" name="lettre_admission" value="1" x-model="lettre" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
+                <span>
+                    <span class="block text-sm font-medium text-slate-800">Lettre d’admission</span>
+                    <span class="block text-xs text-slate-500">→ Inscription</span>
+                </span>
+            </label>
+            <label class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50 cursor-pointer">
+                <input type="checkbox" name="paiement_acompte" value="1" x-model="acompte" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
+                <span>
+                    <span class="block text-sm font-medium text-slate-800">Paiement acompte</span>
+                    <span class="block text-xs text-slate-500">→ Inscrit</span>
+                </span>
+            </label>
+            <label class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50 cursor-pointer">
+                <input type="checkbox" name="paiement_totalite" value="1" x-model="totalite" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
+                <span>
+                    <span class="block text-sm font-medium text-slate-800">Paiement totalité</span>
+                    <span class="block text-xs text-slate-500">→ Inscrit</span>
+                </span>
+            </label>
+        </div>
+        <p class="mt-2 text-xs text-slate-500">Découverte : automatique dès qu’un programme intéressé est sélectionné.</p>
     </div>
 
     <div>

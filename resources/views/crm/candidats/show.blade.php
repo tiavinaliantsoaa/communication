@@ -75,7 +75,7 @@
     </div>
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 lg:col-span-2">
         <h3 class="text-sm font-semibold text-slate-800 mb-4">Statut CRM</h3>
-        <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+        <dl class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm mb-4">
             <div><dt class="text-slate-500 mb-1">Statut actuel</dt><dd><span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $candidate->statut_color }}">{{ $candidate->statut_label }}</span></dd></div>
             <div><dt class="text-slate-500 mb-1">Source</dt><dd class="text-slate-900 font-medium">{{ $candidate->source_label }}</dd></div>
             <div><dt class="text-slate-500 mb-1">Conseiller</dt><dd class="text-slate-900 font-medium">{{ $candidate->advisor?->name ?: 'Non assigné' }}</dd></div>
@@ -86,6 +86,31 @@
             <div class="sm:col-span-3"><dt class="text-slate-500 mb-1">Ville ESCM Tour</dt><dd class="text-slate-900 font-medium">{{ $candidate->escm_tour_ville }}</dd></div>
             @endif
         </dl>
+        <div class="pt-4 border-t border-slate-100">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-3">Conditions d’avancement</p>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                <li class="flex items-center gap-2 {{ $candidate->programme ? 'text-emerald-700' : 'text-slate-400' }}">
+                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full {{ $candidate->programme ? 'bg-emerald-100' : 'bg-slate-100' }} text-[10px] font-bold">{{ $candidate->programme ? '✓' : '—' }}</span>
+                    Programme (Découverte)
+                </li>
+                <li class="flex items-center gap-2 {{ $candidate->paiement_frais_test ? 'text-emerald-700' : 'text-slate-400' }}">
+                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full {{ $candidate->paiement_frais_test ? 'bg-emerald-100' : 'bg-slate-100' }} text-[10px] font-bold">{{ $candidate->paiement_frais_test ? '✓' : '—' }}</span>
+                    Paiement frais de test
+                </li>
+                <li class="flex items-center gap-2 {{ $candidate->validation_test ? 'text-emerald-700' : 'text-slate-400' }}">
+                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full {{ $candidate->validation_test ? 'bg-emerald-100' : 'bg-slate-100' }} text-[10px] font-bold">{{ $candidate->validation_test ? '✓' : '—' }}</span>
+                    Validation du test
+                </li>
+                <li class="flex items-center gap-2 {{ $candidate->lettre_admission ? 'text-emerald-700' : 'text-slate-400' }}">
+                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full {{ $candidate->lettre_admission ? 'bg-emerald-100' : 'bg-slate-100' }} text-[10px] font-bold">{{ $candidate->lettre_admission ? '✓' : '—' }}</span>
+                    Lettre d’admission
+                </li>
+                <li class="flex items-center gap-2 {{ ($candidate->paiement_acompte || $candidate->paiement_totalite) ? 'text-emerald-700' : 'text-slate-400' }}">
+                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full {{ ($candidate->paiement_acompte || $candidate->paiement_totalite) ? 'bg-emerald-100' : 'bg-slate-100' }} text-[10px] font-bold">{{ ($candidate->paiement_acompte || $candidate->paiement_totalite) ? '✓' : '—' }}</span>
+                    Paiement acompte / totalité
+                </li>
+            </ul>
+        </div>
         @if($candidate->notes)
             <div class="mt-4 pt-4 border-t border-slate-100">
                 <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Notes internes</p>

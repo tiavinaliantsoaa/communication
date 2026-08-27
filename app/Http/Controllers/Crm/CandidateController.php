@@ -73,11 +73,13 @@ class CandidateController extends Controller
         $this->validateDocuments($request);
 
         $candidate = DB::transaction(function () use ($validated, $request) {
+            $statut = CrmCandidate::resolveStatutFromAttributes($validated);
             $candidate = CrmCandidate::create([
                 ...$validated,
+                'statut' => $statut,
                 'created_by' => auth()->id(),
                 'last_interaction_at' => now(),
-                'pipeline_order' => (int) CrmCandidate::where('statut', $validated['statut'])->max('pipeline_order') + 1,
+                'pipeline_order' => (int) CrmCandidate::where('statut', $statut)->max('pipeline_order') + 1,
             ]);
 
             $this->storeUploadedDocuments($request, $candidate);
@@ -145,13 +147,21 @@ class CandidateController extends Controller
         $oldStatut = $candidat->statut;
 
         DB::transaction(function () use ($validated, $request, $candidat) {
+            $statut = CrmCandidate::resolveStatutFromAttributes([
+                ...$candidat->getAttributes(),
+                ...$validated,
+            ]);
+
             $candidat->update([
                 ...$validated,
+                'statut' => $statut,
                 'last_interaction_at' => now(),
             ]);
 
             $this->storeUploadedDocuments($request, $candidat);
         });
+
+        $candidat->refresh();
 
         if ($oldStatut !== $candidat->statut) {
             $crmLog->statusChanged($candidat, $oldStatut, $candidat->statut);
@@ -295,21 +305,30 @@ class CandidateController extends Controller
             'annee_academique' => ['nullable', 'string', 'max:50', Rule::in($intakeLabels)],
             'niveau_etudes' => ['nullable', 'string', 'max:100'],
             'etablissement_origine' => ['nullable', 'string', 'max:255'],
-            'statut' => ['required', Rule::in(array_keys(CrmCandidate::STATUTS))],
             'source' => ['nullable', Rule::in(array_keys(CrmCandidate::SOURCES))],
             'facebook_profil_url' => ['nullable', 'string', 'max:500'],
             'escm_tour_ville' => ['nullable', 'string', 'max:120'],
             'advisor_id' => ['required', 'exists:users,id'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'paiement_frais_test' => ['sometimes', 'boolean'],
+            'validation_test' => ['sometimes', 'boolean'],
+            'lettre_admission' => ['sometimes', 'boolean'],
+            'paiement_acompte' => ['sometimes', 'boolean'],
+            'paiement_totalite' => ['sometimes', 'boolean'],
         ], [
             'prenom.required' => 'Le prénom est obligatoire.',
             'nom.required' => 'Le nom est obligatoire.',
             'email.email' => 'L’adresse e-mail n’est pas valide.',
-            'statut.required' => 'Le statut est obligatoire.',
             'advisor_id.required' => 'Le conseiller assigné est obligatoire.',
             'programme.in' => 'Sélectionnez un programme défini dans les paramètres CRM.',
             'annee_academique.in' => 'Sélectionnez une rentrée définie dans les paramètres CRM.',
         ]);
+
+        $validated['paiement_frais_test'] = $request->boolean('paiement_frais_test');
+        $validated['validation_test'] = $request->boolean('validation_test');
+        $validated['lettre_admission'] = $request->boolean('lettre_admission');
+        $validated['paiement_acompte'] = $request->boolean('paiement_acompte');
+        $validated['paiement_totalite'] = $request->boolean('paiement_totalite');
 
         if (($validated['source'] ?? null) !== 'facebook') {
             $validated['facebook_profil_url'] = null;
