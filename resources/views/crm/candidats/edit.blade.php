@@ -7,6 +7,11 @@
 
 @section('content')
 <div class="max-w-3xl">
+    @if($candidate->isProfileLocked())
+        <div class="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            Cette fiche est inscrite et verrouillée pour les autres utilisateurs. Vous pouvez la modifier en tant que Super Admin.
+        </div>
+    @endif
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <form action="{{ route('crm.candidats.update', $candidate) }}" method="POST" enctype="multipart/form-data">
             @csrf

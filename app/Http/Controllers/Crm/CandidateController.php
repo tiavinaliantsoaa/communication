@@ -136,7 +136,7 @@ class CandidateController extends Controller
 
     public function edit(CrmCandidate $candidat)
     {
-        if ($candidat->isProfileLocked()) {
+        if (! $candidat->canEditProfile()) {
             return redirect()->route('crm.candidats.show', $candidat)
                 ->with('error', 'Ce candidat est inscrit : la fiche ne peut plus être modifiée.');
         }
@@ -150,7 +150,7 @@ class CandidateController extends Controller
 
     public function update(Request $request, CrmCandidate $candidat, CrmActivityLogger $crmLog)
     {
-        if ($candidat->isProfileLocked()) {
+        if (! $candidat->canEditProfile()) {
             return redirect()->route('crm.candidats.show', $candidat)
                 ->with('error', 'Ce candidat est inscrit : la fiche ne peut plus être modifiée.');
         }

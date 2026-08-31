@@ -205,6 +205,16 @@ class CrmCandidate extends Model
         return $this->statut === 'inscrit';
     }
 
+    /** Super Admin peut encore modifier une fiche inscrite ; les autres rôles non. */
+    public function canEditProfile(?User $user = null): bool
+    {
+        if (! $this->isProfileLocked()) {
+            return true;
+        }
+
+        return (bool) ($user ?? auth()->user())?->isSuperAdmin();
+    }
+
     public function touchInteraction(): void
     {
         $this->forceFill(['last_interaction_at' => now()])->saveQuietly();

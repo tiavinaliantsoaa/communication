@@ -28,16 +28,15 @@
             <span class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-medium px-3 py-2">
                 Fiche verrouillée (inscrit)
             </span>
-        @else
-            @if(auth()->user()->canAccess('crm.update'))
+        @endif
+        @if(auth()->user()->canAccess('crm.update') && $candidate->canEditProfile())
             <a href="{{ route('crm.candidats.edit', $candidate) }}" class="inline-flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg">Modifier</a>
-            @endif
-            @if(auth()->user()->canAccess('crm.delete'))
+        @endif
+        @if(auth()->user()->canAccess('crm.delete') && ! $candidate->isProfileLocked())
             <form action="{{ route('crm.candidats.destroy', $candidate) }}" method="POST" onsubmit="return confirm('Supprimer ce candidat et tout son historique ?')">
                 @csrf @method('DELETE')
                 <button type="submit" class="inline-flex items-center gap-2 bg-white border border-red-200 hover:bg-red-50 text-red-700 text-sm font-medium px-4 py-2 rounded-lg">Supprimer</button>
             </form>
-            @endif
         @endif
     </div>
 </div>
@@ -141,7 +140,7 @@
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
         <h3 class="text-sm font-semibold text-slate-800">Documents du dossier</h3>
-        @if($candidate->isProfileLocked())
+        @if($candidate->isProfileLocked() && ! $candidate->canEditProfile())
             <span class="text-[11px] text-slate-500">Ajout / remplacement possible — fiche profil verrouillée</span>
         @endif
     </div>
