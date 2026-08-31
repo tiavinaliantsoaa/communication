@@ -6,13 +6,18 @@
     RewriteEngine On
     RewriteBase /communication/public/
 
+    DirectoryIndex index.php
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Redirect Trailing Slashes If Not A Folder...
+    # Redirect trailing slashes if not a folder — except the app root.
+    # Stripping /communication/ → /communication makes Laravel treat GET /
+    # as HEAD-only (405) on this subdirectory deploy.
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteCond %{REQUEST_URI} !^/communication(/public)?/?$ [NC]
     RewriteRule ^ %1 [L,R=301]
 
     # Send Requests To Front Controller...

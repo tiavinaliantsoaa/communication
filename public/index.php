@@ -21,18 +21,24 @@ define('LARAVEL_START', microtime(true));
 
 $basePath = '/communication';
 $requestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '';
+$trimmedPath = '/'.trim($requestPath, '/');
 
-// Normaliser "/communication" -> "/communication/" pour que la détection du
-// base path fonctionne (sans slash final, Laravel générerait des URLs sans préfixe).
-if ($requestPath === $basePath) {
+// /communication et /communication/ (casse indifférente) ne doivent pas passer
+// par le routeur Laravel : en sous-dossier, GET / est souvent vu comme HEAD
+// seul (405) alors que /login fonctionne. Les utilisateurs déjà connectés
+// sont renvoyés vers l'accueil par le middleware guest de la page login.
+if (strcasecmp($trimmedPath, $basePath) === 0) {
     $query = $_SERVER['QUERY_STRING'] ?? '';
-    $_SERVER['REQUEST_URI'] = $basePath.'/'.($query !== '' ? '?'.$query : '');
-    $requestPath = $basePath.'/';
+    header('Location: '.$basePath.'/login'.($query !== '' ? '?'.$query : ''), true, 302);
+    header('Cache-Control: no-store');
+    exit;
 }
 
-if (str_starts_with($requestPath, $basePath.'/')) {
+if (strncasecmp($requestPath, $basePath.'/', strlen($basePath) + 1) === 0) {
     $_SERVER['SCRIPT_NAME'] = $basePath.'/index.php';
     $_SERVER['PHP_SELF'] = $basePath.'/index.php';
+    $after = substr($requestPath, strlen($basePath));
+    $_SERVER['PATH_INFO'] = ($after === '' || $after === false) ? '/' : $after;
 }
 
 /*
