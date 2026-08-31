@@ -66,11 +66,17 @@ if (! function_exists('format_ar_short')) {
 
 if (! function_exists('app_subdirectory_prefix')) {
     /**
-     * Préfixe URL quand l’app est servie sous /communication (OVH).
-     * Vide en local (php artisan serve) ou si la requête n’est pas préfixée.
+     * Préfixe URL quand l’app est servie dans un sous-dossier (ex: /communication sur OVH).
+     * On se base d’abord sur le chemin d’APP_URL (déterministe en production),
+     * puis, à défaut, sur le chemin de la requête. Vide en local sans sous-dossier.
      */
     function app_subdirectory_prefix(): string
     {
+        $fromConfig = trim((string) parse_url((string) config('app.url'), PHP_URL_PATH), '/');
+        if ($fromConfig !== '') {
+            return '/'.$fromConfig;
+        }
+
         $prefix = '/communication';
         $requestPath = parse_url(request()->getRequestUri() ?: '/', PHP_URL_PATH) ?: '/';
 
@@ -95,10 +101,13 @@ if (! function_exists('livewire_frontend_scripts')) {
             return $html;
         }
 
-        return str_replace(
+        // Livewire génère des chemins racine (/livewire/...). Sous un sous-dossier,
+        // on les préfixe pour que le navigateur charge le JS et poste les mises à
+        // jour sur le bon hôte (sinon 404 HTML et la recherche ne réagit pas).
+        return preg_replace(
             [
-                'src="/livewire/',
-                'data-update-uri="/livewire/',
+                '#src="/livewire/#',
+                '#data-update-uri="/livewire/#',
             ],
             [
                 'src="'.$prefix.'/livewire/',
