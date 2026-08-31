@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -121,6 +122,37 @@ class CrmCandidate extends Model
     public function activities(): HasMany
     {
         return $this->hasMany(CrmActivity::class)->latest('created_at');
+    }
+
+    public function scopeSearchNameOrPhone(Builder $query, ?string $term): Builder
+    {
+        $term = trim((string) $term);
+        if ($term === '') {
+            return $query;
+        }
+
+        $like = '%'.$term.'%';
+        $digits = preg_replace('/\D+/', '', $term) ?: '';
+        $driver = $query->getConnection()->getDriverName();
+        $fullName = $driver === 'sqlite'
+            ? "(prenom || ' ' || nom)"
+            : "CONCAT(prenom, ' ', nom)";
+        $fullNameRev = $driver === 'sqlite'
+            ? "(nom || ' ' || prenom)"
+            : "CONCAT(nom, ' ', prenom)";
+        $phoneDigits = "REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(telephone, ''), ' ', ''), '-', ''), '.', ''), '+', '')";
+
+        return $query->where(function (Builder $inner) use ($like, $digits, $fullName, $fullNameRev, $phoneDigits) {
+            $inner->where('prenom', 'like', $like)
+                ->orWhere('nom', 'like', $like)
+                ->orWhereRaw("{$fullName} LIKE ?", [$like])
+                ->orWhereRaw("{$fullNameRev} LIKE ?", [$like])
+                ->orWhere('telephone', 'like', $like);
+
+            if ($digits !== '') {
+                $inner->orWhereRaw("{$phoneDigits} LIKE ?", ['%'.$digits.'%']);
+            }
+        });
     }
 
     public function getFullNameAttribute(): string

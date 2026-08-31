@@ -1,4 +1,35 @@
 <div>
+    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="relative w-full max-w-md">
+            <label for="pipeline-search" class="sr-only">Rechercher un candidat par nom ou téléphone</label>
+            <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15z"/>
+            </svg>
+            <input id="pipeline-search"
+                   type="search"
+                   wire:model.live.debounce.300ms="search"
+                   placeholder="Rechercher par nom ou téléphone…"
+                   autocomplete="off"
+                   class="w-full rounded-lg border-slate-300 py-2 pl-9 pr-9 text-sm focus:border-escm-primary focus:ring-escm-primary">
+            @if($search !== '')
+                <button type="button"
+                        wire:click="$set('search', '')"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:text-slate-700"
+                        title="Effacer la recherche">
+                    <span class="sr-only">Effacer</span>
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            @endif
+        </div>
+        @if(trim($search) !== '')
+            <p class="text-sm text-slate-500 whitespace-nowrap">
+                {{ $matchCount }} résultat{{ $matchCount > 1 ? 's' : '' }}
+            </p>
+        @endif
+    </div>
+
     <div class="mb-4">
         <p class="text-sm text-slate-500">Les colonnes se mettent à jour automatiquement selon les informations du candidat (programme et cases d’avancement). Le glisser-déposer est désactivé. Les candidatures abandonnées n’apparaissent pas ici.</p>
     </div>

@@ -7,10 +7,13 @@ use Livewire\Component;
 
 class PipelineBoard extends Component
 {
+    public string $search = '';
+
     public function getColumnsProperty(): array
     {
         $candidates = CrmCandidate::with('advisor')
             ->where('abandon', false)
+            ->searchNameOrPhone($this->search)
             ->orderBy('pipeline_order')
             ->orderByDesc('updated_at')
             ->get()
@@ -31,8 +34,11 @@ class PipelineBoard extends Component
 
     public function render()
     {
+        $columns = $this->columns;
+
         return view('livewire.crm.pipeline-board', [
-            'columns' => $this->columns,
+            'columns' => $columns,
+            'matchCount' => collect($columns)->sum(fn (array $column) => $column['candidates']->count()),
         ]);
     }
 }
