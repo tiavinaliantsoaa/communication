@@ -29,6 +29,8 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
+        $this->configureLivewireForSubdirectory();
+
         View::composer('layouts.partials.header', function ($view) {
             if (! auth()->check()) {
                 $view->with([
@@ -79,6 +81,22 @@ class AppServiceProvider extends ServiceProvider
                 // ignore during early migrate
             }
         });
+    }
+
+    /**
+     * Livewire pose src="/livewire/livewire.min.js" (racine du domaine).
+     * Sous /communication, le navigateur charge alors escm.mg/livewire/… (404 HTML)
+     * et la recherche du pipeline ne s’exécute jamais.
+     */
+    private function configureLivewireForSubdirectory(): void
+    {
+        $prefix = app_subdirectory_prefix();
+        if ($prefix === '') {
+            return;
+        }
+
+        $script = config('app.debug') ? 'livewire.js' : 'livewire.min.js';
+        config(['livewire.asset_url' => $prefix.'/livewire/'.$script]);
     }
 }
 

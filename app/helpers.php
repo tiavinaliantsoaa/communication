@@ -63,3 +63,48 @@ if (! function_exists('format_ar_short')) {
         return $withCurrency ? $formatted.' Ar' : $formatted;
     }
 }
+
+if (! function_exists('app_subdirectory_prefix')) {
+    /**
+     * Préfixe URL quand l’app est servie sous /communication (OVH).
+     * Vide en local (php artisan serve) ou si la requête n’est pas préfixée.
+     */
+    function app_subdirectory_prefix(): string
+    {
+        $prefix = '/communication';
+        $requestPath = parse_url(request()->getRequestUri() ?: '/', PHP_URL_PATH) ?: '/';
+
+        if (strncasecmp($requestPath, $prefix.'/', strlen($prefix) + 1) === 0
+            || strcasecmp(rtrim($requestPath, '/'), $prefix) === 0) {
+            return $prefix;
+        }
+
+        return '';
+    }
+}
+
+if (! function_exists('livewire_frontend_scripts')) {
+    /**
+     * Scripts Livewire avec URLs compatibles sous-dossier (/communication).
+     */
+    function livewire_frontend_scripts(): string
+    {
+        $html = \Livewire\Mechanisms\FrontendAssets\FrontendAssets::scripts();
+        $prefix = app_subdirectory_prefix();
+        if ($prefix === '') {
+            return $html;
+        }
+
+        return str_replace(
+            [
+                'src="/livewire/',
+                'data-update-uri="/livewire/',
+            ],
+            [
+                'src="'.$prefix.'/livewire/',
+                'data-update-uri="'.$prefix.'/livewire/',
+            ],
+            $html
+        );
+    }
+}
