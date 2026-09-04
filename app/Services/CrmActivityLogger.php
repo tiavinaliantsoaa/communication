@@ -89,4 +89,16 @@ class CrmActivityLogger
             $user
         );
     }
+
+    public function abandoned(CrmCandidate $candidate, string $reason, ?User $user = null): CrmActivity
+    {
+        return $this->log(
+            $candidate,
+            CrmActivity::TYPE_ABANDON,
+            'Candidature abandonnée',
+            $reason,
+            ['raison' => $reason],
+            $user
+        );
+    }
 }

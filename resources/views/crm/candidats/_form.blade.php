@@ -8,18 +8,14 @@
 <div class="space-y-6" x-data="{
     source: @js($currentSource),
     programme: @js(old('programme', $candidate->programme ?? '')),
-    frais: @js((bool) old('paiement_frais_test', $candidate->paiement_frais_test ?? false)),
     validation: @js((bool) old('validation_test', $candidate->validation_test ?? false)),
-    lettre: @js((bool) old('lettre_admission', $candidate->lettre_admission ?? false)),
     acompte: @js((bool) old('paiement_acompte', $candidate->paiement_acompte ?? false)),
     totalite: @js((bool) old('paiement_totalite', $candidate->paiement_totalite ?? false)),
     labels: @js($statutLabels),
     get statutKey() {
         if (this.acompte || this.totalite) return 'inscrit';
-        if (this.lettre) return 'inscription';
         if (this.validation) return 'evaluation';
-        if (this.frais) return 'intention_deposee';
-        if ((this.programme || '').trim() !== '') return 'decouverte';
+        if ((this.programme || '').trim() !== '') return 'intention_deposee';
         return 'prospect';
     },
     get statutLabel() { return this.labels[this.statutKey] || this.statutKey; }
@@ -136,7 +132,7 @@
             <div class="sm:col-span-2 rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-3">
                 <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Statut pipeline (automatique)</p>
                 <p class="text-sm font-medium text-slate-800" x-text="statutLabel"></p>
-                <p class="mt-1 text-xs text-slate-500">Le statut change automatiquement selon le programme et les cases cochées ci-dessous.</p>
+                <p class="mt-1 text-xs text-slate-500">Le statut change automatiquement : programme → Intention déposée, test effectué → Évaluation, paiement → Inscrit.</p>
             </div>
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Source</label>
@@ -184,24 +180,10 @@
         <p class="text-xs text-slate-500 mb-3">Cochez les étapes validées. Le statut du candidat se met à jour automatiquement.</p>
         <div class="space-y-2">
             <label class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50 cursor-pointer">
-                <input type="checkbox" name="paiement_frais_test" value="1" x-model="frais" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
-                <span>
-                    <span class="block text-sm font-medium text-slate-800">Paiement frais de test</span>
-                    <span class="block text-xs text-slate-500">→ Intention déposée</span>
-                </span>
-            </label>
-            <label class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50 cursor-pointer">
                 <input type="checkbox" name="validation_test" value="1" x-model="validation" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
                 <span>
-                    <span class="block text-sm font-medium text-slate-800">Validation du test</span>
+                    <span class="block text-sm font-medium text-slate-800">Test effectué</span>
                     <span class="block text-xs text-slate-500">→ Évaluation</span>
-                </span>
-            </label>
-            <label class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50 cursor-pointer">
-                <input type="checkbox" name="lettre_admission" value="1" x-model="lettre" class="mt-0.5 rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
-                <span>
-                    <span class="block text-sm font-medium text-slate-800">Lettre d’admission</span>
-                    <span class="block text-xs text-slate-500">→ Inscription</span>
                 </span>
             </label>
             <label class="flex items-start gap-3 rounded-lg border border-slate-200 px-3 py-2.5 hover:bg-slate-50 cursor-pointer">
@@ -219,7 +201,7 @@
                 </span>
             </label>
         </div>
-        <p class="mt-2 text-xs text-slate-500">Découverte : automatique dès qu’un programme intéressé est sélectionné.</p>
+        <p class="mt-2 text-xs text-slate-500">Intention déposée : automatique dès qu’un programme intéressé est sélectionné.</p>
     </div>
 
     <div>

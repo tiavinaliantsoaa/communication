@@ -30,7 +30,7 @@ class GlideFieldMapperTest extends TestCase
         $this->assertFalse($jean['abandon']);
         $this->assertSame('+261340000001', $jean['contact_parent_1']);
         $this->assertSame('+261340000002', $jean['contact_parent_2']);
-        $this->assertSame('decouverte', $mapper->resolveStatut($jean));
+        $this->assertSame('intention_deposee', $mapper->resolveStatut($jean));
     }
 
     public function test_it_maps_abandon_and_escm_tour(): void

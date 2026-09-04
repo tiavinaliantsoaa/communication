@@ -306,10 +306,11 @@ class GlideFieldMapper
                 $acompte = true;
             }
         } elseif (str_contains($key, 'inscription')) {
+            $validation = true;
             $lettre = true;
         } elseif (str_contains($key, 'évaluation') || str_contains($key, 'evaluation')) {
             $validation = true;
-        } elseif (str_contains($key, 'intention') || str_contains($key, 'candidature déposée') || str_contains($key, 'candidature deposee')) {
+        } elseif (str_contains($key, 'intention') || str_contains($key, 'candidature déposée') || str_contains($key, 'candidature deposee') || str_contains($key, 'découverte') || str_contains($key, 'decouverte')) {
             $frais = true;
         }
     }

@@ -146,6 +146,9 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/candidats/{candidat}', [CrmCandidateController::class, 'destroy'])
             ->middleware('permission:crm.delete')
             ->name('candidats.destroy');
+        Route::post('/candidats/{candidat}/abandon', [CrmCandidateController::class, 'abandon'])
+            ->middleware('permission:crm.update')
+            ->name('candidats.abandon');
         Route::post('/candidats/{candidat}/notes', [CrmCandidateController::class, 'storeNote'])
             ->middleware('permission:crm.update')
             ->name('candidats.notes.store');

@@ -11,18 +11,14 @@ class CrmCandidate extends Model
 {
     public const STATUTS = [
         'prospect' => 'Prospect',
-        'decouverte' => 'Découverte',
         'intention_deposee' => 'Intention déposée',
         'evaluation' => 'Évaluation',
-        'inscription' => 'Inscription',
         'inscrit' => 'Inscrit',
     ];
 
     public const STATUT_CONDITIONS = [
-        'decouverte' => 'Choix du programme',
-        'intention_deposee' => 'Paiement frais de test',
-        'evaluation' => 'Validation du test',
-        'inscription' => 'Lettre d’admission',
+        'intention_deposee' => 'Choix du programme',
+        'evaluation' => 'Test effectué',
         'inscrit' => 'Paiement acompte ou totalité',
     ];
 
@@ -41,10 +37,8 @@ class CrmCandidate extends Model
 
     public const FUNNEL_STATUTS = [
         'prospect',
-        'decouverte',
         'intention_deposee',
         'evaluation',
-        'inscription',
         'inscrit',
     ];
 
@@ -179,10 +173,8 @@ class CrmCandidate extends Model
     {
         return match ($this->statut) {
             'prospect' => 'bg-slate-100 text-slate-700',
-            'decouverte' => 'bg-sky-50 text-sky-700',
             'intention_deposee' => 'bg-blue-50 text-blue-700',
             'evaluation' => 'bg-violet-50 text-violet-700',
-            'inscription' => 'bg-indigo-50 text-indigo-700',
             'inscrit' => 'bg-green-50 text-green-800',
             default => 'bg-slate-100 text-slate-700',
         };
@@ -196,26 +188,18 @@ class CrmCandidate extends Model
     public static function resolveStatutFromAttributes(array $attrs): string
     {
         $programme = trim((string) ($attrs['programme'] ?? ''));
-        $frais = (bool) ($attrs['paiement_frais_test'] ?? false);
-        $validation = (bool) ($attrs['validation_test'] ?? false);
-        $lettre = (bool) ($attrs['lettre_admission'] ?? false);
+        $testEffectue = (bool) ($attrs['validation_test'] ?? false);
         $acompte = (bool) ($attrs['paiement_acompte'] ?? false);
         $totalite = (bool) ($attrs['paiement_totalite'] ?? false);
 
         if ($acompte || $totalite) {
             return 'inscrit';
         }
-        if ($lettre) {
-            return 'inscription';
-        }
-        if ($validation) {
+        if ($testEffectue) {
             return 'evaluation';
         }
-        if ($frais) {
-            return 'intention_deposee';
-        }
         if ($programme !== '') {
-            return 'decouverte';
+            return 'intention_deposee';
         }
 
         return 'prospect';

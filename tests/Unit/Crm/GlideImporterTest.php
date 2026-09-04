@@ -57,7 +57,7 @@ class GlideImporterTest extends TestCase
         $this->assertSame('Jean', $jean->prenom);
         $this->assertSame('facebook', $jean->source);
         $this->assertSame($advisor->id, $jean->advisor_id);
-        $this->assertSame('decouverte', $jean->statut);
+        $this->assertSame('intention_deposee', $jean->statut);
         $this->assertFalse($jean->abandon);
         $this->assertSame(2, $jean->documents()->count());
 

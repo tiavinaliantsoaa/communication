@@ -30,7 +30,7 @@ class CrmCandidateSearchTest extends TestCase
             'prenom' => 'Marie',
             'nom' => 'Rabe',
             'telephone' => '032 98 765 43',
-            'statut' => 'decouverte',
+            'statut' => 'intention_deposee',
             'advisor_id' => $advisor->id,
             'abandon' => false,
         ]);

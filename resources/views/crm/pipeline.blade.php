@@ -37,16 +37,21 @@
     </div>
 
     <div class="mb-4">
-        <p class="text-sm text-slate-500">Les colonnes se mettent à jour automatiquement selon les informations du candidat (programme et cases d’avancement). Le glisser-déposer est désactivé. Les candidatures abandonnées n’apparaissent pas ici.</p>
+        <p class="text-sm text-slate-500">Les colonnes se mettent à jour automatiquement : choix du programme → Intention déposée, test effectué → Évaluation, paiement acompte ou totalité → Inscrit. Les candidatures abandonnées apparaissent dans la colonne Abandon.</p>
     </div>
 
     <div class="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1 snap-x" id="crm-pipeline-board">
         <template x-for="column in columns" :key="column.key">
-            <div class="snap-start shrink-0 w-72 flex flex-col bg-slate-50/80 rounded-xl border border-slate-200 max-h-[calc(100vh-14rem)]">
-                <div class="px-3 py-3 border-b border-slate-200/80 sticky top-0 bg-slate-50/95 backdrop-blur rounded-t-xl z-10">
+            <div class="snap-start shrink-0 w-72 flex flex-col rounded-xl border max-h-[calc(100vh-14rem)]"
+                 :class="column.tone === 'danger' ? 'bg-red-50/70 border-red-200' : 'bg-slate-50/80 border-slate-200'">
+                <div class="px-3 py-3 border-b sticky top-0 backdrop-blur rounded-t-xl z-10"
+                     :class="column.tone === 'danger' ? 'border-red-200/80 bg-red-50/95' : 'border-slate-200/80 bg-slate-50/95'">
                     <div class="flex items-center justify-between gap-2">
-                        <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-600" x-text="column.label"></h3>
-                        <span class="inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1.5 rounded-full bg-white border border-slate-200 text-[11px] font-semibold text-slate-600"
+                        <h3 class="text-xs font-semibold uppercase tracking-wider"
+                            :class="column.tone === 'danger' ? 'text-red-700' : 'text-slate-600'"
+                            x-text="column.label"></h3>
+                        <span class="inline-flex items-center justify-center min-w-[1.5rem] h-5 px-1.5 rounded-full bg-white border text-[11px] font-semibold"
+                              :class="column.tone === 'danger' ? 'border-red-200 text-red-700' : 'border-slate-200 text-slate-600'"
                               x-text="visibleCandidates(column).length"></span>
                     </div>
                     <p class="mt-1 text-[10px] text-slate-400 leading-snug" x-show="column.condition" x-text="column.condition"></p>

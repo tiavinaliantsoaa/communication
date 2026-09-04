@@ -223,6 +223,40 @@ class CandidateController extends Controller
             ->with('success', 'Candidat supprimé.');
     }
 
+    public function abandon(Request $request, CrmCandidate $candidat, CrmActivityLogger $crmLog)
+    {
+        if ($candidat->abandon) {
+            return redirect()->route('crm.candidats.show', $candidat)
+                ->with('error', 'Ce candidat est déjà marqué comme abandon.');
+        }
+
+        $validated = $request->validate([
+            'abandon_raison' => ['required', 'string', 'max:255'],
+        ], [
+            'abandon_raison.required' => 'Le motif de l’abandon est obligatoire.',
+        ]);
+
+        $candidat->update([
+            'abandon' => true,
+            'abandon_raison' => $validated['abandon_raison'],
+            'last_interaction_at' => now(),
+        ]);
+
+        $crmLog->abandoned($candidat, $validated['abandon_raison']);
+        app(ActivityLogger::class)->log(
+            'crm',
+            auth()->user()->name.' a marqué le candidat « '.$candidat->full_name.' » comme abandon',
+            auth()->user(),
+            'update',
+            'CRM',
+            route('crm.candidats.show', $candidat),
+            $candidat
+        );
+
+        return redirect()->route('crm.candidats.show', $candidat)
+            ->with('success', 'Candidat marqué comme abandon.');
+    }
+
     public function destroyDocument(CrmCandidate $candidat, CrmCandidateDocument $document)
     {
         abort_unless((int) $document->crm_candidate_id === (int) $candidat->id, 404);
@@ -346,9 +380,7 @@ class CandidateController extends Controller
             'escm_tour_ville' => ['nullable', 'string', 'max:120'],
             'advisor_id' => ['required', 'exists:users,id'],
             'notes' => ['nullable', 'string', 'max:5000'],
-            'paiement_frais_test' => ['sometimes', 'boolean'],
             'validation_test' => ['sometimes', 'boolean'],
-            'lettre_admission' => ['sometimes', 'boolean'],
             'paiement_acompte' => ['sometimes', 'boolean'],
             'paiement_totalite' => ['sometimes', 'boolean'],
         ], [
@@ -360,9 +392,7 @@ class CandidateController extends Controller
             'annee_academique.in' => 'Sélectionnez une rentrée définie dans les paramètres CRM.',
         ]);
 
-        $validated['paiement_frais_test'] = $request->boolean('paiement_frais_test');
         $validated['validation_test'] = $request->boolean('validation_test');
-        $validated['lettre_admission'] = $request->boolean('lettre_admission');
         $validated['paiement_acompte'] = $request->boolean('paiement_acompte');
         $validated['paiement_totalite'] = $request->boolean('paiement_totalite');
 

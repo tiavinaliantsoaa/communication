@@ -22,7 +22,7 @@
             @endif
         </p>
     </div>
-    <div class="flex items-center gap-2 shrink-0">
+    <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end" x-data="{ abandonOpen: {{ $errors->has('abandon_raison') ? 'true' : 'false' }} }">
         <a href="{{ route('crm.candidats.index') }}" class="text-sm text-slate-600 hover:text-slate-900 px-3 py-2">Retour</a>
         @if($candidate->isProfileLocked())
             <span class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-medium px-3 py-2">
@@ -32,11 +32,38 @@
         @if(auth()->user()->canAccess('crm.update') && $candidate->canEditProfile())
             <a href="{{ route('crm.candidats.edit', $candidate) }}" class="inline-flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg">Modifier</a>
         @endif
+        @if(auth()->user()->canAccess('crm.update') && ! $candidate->abandon)
+            <button type="button" @click="abandonOpen = true" class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg">Abandon</button>
+        @endif
         @if(auth()->user()->canAccess('crm.delete') && ! $candidate->isProfileLocked())
             <form action="{{ route('crm.candidats.destroy', $candidate) }}" method="POST" onsubmit="return confirm('Supprimer ce candidat et tout son historique ?')">
                 @csrf @method('DELETE')
                 <button type="submit" class="inline-flex items-center gap-2 bg-white border border-red-200 hover:bg-red-50 text-red-700 text-sm font-medium px-4 py-2 rounded-lg">Supprimer</button>
             </form>
+        @endif
+
+        @if(auth()->user()->canAccess('crm.update') && ! $candidate->abandon)
+        <div x-show="abandonOpen" x-cloak class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60" @keydown.escape.window="abandonOpen = false">
+            <div class="absolute inset-0" @click="abandonOpen = false"></div>
+            <div class="relative w-full max-w-md bg-white rounded-xl shadow-2xl p-5" @click.stop>
+                <h3 class="text-base font-semibold text-slate-900">Marquer comme abandon</h3>
+                <p class="mt-1 text-sm text-slate-500">Le candidat sera déplacé dans la colonne Abandon du pipeline. Indiquez le motif.</p>
+                <form action="{{ route('crm.candidats.abandon', $candidate) }}" method="POST" class="mt-4 space-y-4">
+                    @csrf
+                    <div>
+                        <label for="abandon_raison" class="block text-sm font-medium text-slate-700 mb-1.5">Motif de l’abandon <span class="text-red-500">*</span></label>
+                        <textarea id="abandon_raison" name="abandon_raison" rows="3" required maxlength="255"
+                                  class="w-full rounded-lg border-slate-300 text-sm focus:border-red-500 focus:ring-red-500"
+                                  placeholder="Ex. Choix d’une autre école, plus de réponse…">{{ old('abandon_raison') }}</textarea>
+                        @error('abandon_raison')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="flex items-center justify-end gap-2">
+                        <button type="button" @click="abandonOpen = false" class="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-900">Annuler</button>
+                        <button type="submit" class="inline-flex items-center bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg">Confirmer l’abandon</button>
+                    </div>
+                </form>
+            </div>
+        </div>
         @endif
     </div>
 </div>
@@ -44,7 +71,7 @@
 @if($candidate->abandon)
     <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
         Candidature abandonnée{{ $candidate->abandon_raison ? ' — '.$candidate->abandon_raison : '' }}.
-        Elle n’apparaît pas dans le pipeline actif.
+        Elle apparaît dans la colonne Abandon du pipeline.
     </div>
 @endif
 
@@ -106,23 +133,18 @@
             <ul class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                 <li class="flex items-center gap-2 {{ $candidate->programme ? 'text-emerald-700' : 'text-slate-400' }}">
                     <span class="inline-flex h-5 w-5 items-center justify-center rounded-full {{ $candidate->programme ? 'bg-emerald-100' : 'bg-slate-100' }} text-[10px] font-bold">{{ $candidate->programme ? '✓' : '—' }}</span>
-                    Programme (Découverte)
-                </li>
-                <li class="flex items-center gap-2 {{ $candidate->paiement_frais_test ? 'text-emerald-700' : 'text-slate-400' }}">
-                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full {{ $candidate->paiement_frais_test ? 'bg-emerald-100' : 'bg-slate-100' }} text-[10px] font-bold">{{ $candidate->paiement_frais_test ? '✓' : '—' }}</span>
-                    Paiement frais de test
+                    Choix du programme
+                    <span class="text-[11px] text-slate-400">→ Intention déposée</span>
                 </li>
                 <li class="flex items-center gap-2 {{ $candidate->validation_test ? 'text-emerald-700' : 'text-slate-400' }}">
                     <span class="inline-flex h-5 w-5 items-center justify-center rounded-full {{ $candidate->validation_test ? 'bg-emerald-100' : 'bg-slate-100' }} text-[10px] font-bold">{{ $candidate->validation_test ? '✓' : '—' }}</span>
-                    Validation du test
-                </li>
-                <li class="flex items-center gap-2 {{ $candidate->lettre_admission ? 'text-emerald-700' : 'text-slate-400' }}">
-                    <span class="inline-flex h-5 w-5 items-center justify-center rounded-full {{ $candidate->lettre_admission ? 'bg-emerald-100' : 'bg-slate-100' }} text-[10px] font-bold">{{ $candidate->lettre_admission ? '✓' : '—' }}</span>
-                    Lettre d’admission
+                    Test effectué
+                    <span class="text-[11px] text-slate-400">→ Évaluation</span>
                 </li>
                 <li class="flex items-center gap-2 {{ ($candidate->paiement_acompte || $candidate->paiement_totalite) ? 'text-emerald-700' : 'text-slate-400' }}">
                     <span class="inline-flex h-5 w-5 items-center justify-center rounded-full {{ ($candidate->paiement_acompte || $candidate->paiement_totalite) ? 'bg-emerald-100' : 'bg-slate-100' }} text-[10px] font-bold">{{ ($candidate->paiement_acompte || $candidate->paiement_totalite) ? '✓' : '—' }}</span>
                     Paiement acompte / totalité
+                    <span class="text-[11px] text-slate-400">→ Inscrit</span>
                 </li>
             </ul>
         </div>
@@ -356,6 +378,7 @@
                         'status_changed' => 'bg-violet-50 text-violet-600',
                         'note_added' => 'bg-amber-50 text-amber-600',
                         'interaction_added' => 'bg-emerald-50 text-emerald-600',
+                        'abandoned' => 'bg-red-50 text-red-600',
                         default => 'bg-slate-100 text-slate-600',
                     };
                 @endphp
