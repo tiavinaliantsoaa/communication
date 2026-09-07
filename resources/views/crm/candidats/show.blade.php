@@ -23,7 +23,7 @@
         </p>
     </div>
     <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end" x-data="{ abandonOpen: {{ $errors->has('abandon_raison') ? 'true' : 'false' }} }">
-        <a href="{{ route('crm.candidats.index') }}" class="text-sm text-slate-600 hover:text-slate-900 px-3 py-2">Retour</a>
+        <a href="{{ route($candidate->abandon ? 'crm.abandons' : 'crm.candidats.index') }}" class="text-sm text-slate-600 hover:text-slate-900 px-3 py-2">Retour</a>
         @if($candidate->isProfileLocked())
             <span class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-medium px-3 py-2">
                 Fiche verrouillée (inscrit)

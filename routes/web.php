@@ -130,6 +130,7 @@ Route::middleware(['auth'])->group(function () {
             ->name('settings.destroy-all');
 
         Route::get('/candidats', [CrmCandidateController::class, 'index'])->name('candidats.index');
+        Route::get('/abandons', [CrmCandidateController::class, 'index'])->name('abandons');
         Route::get('/candidats/create', [CrmCandidateController::class, 'create'])
             ->middleware('permission:crm.create')
             ->name('candidats.create');

@@ -42,6 +42,7 @@ class Role extends Model
             'suivi-liens.index' => ['label' => 'Suivi de lien', 'permission' => 'suivi_liens.view'],
             'crm.dashboard' => ['label' => 'CRM — Tableau de bord', 'permission' => 'crm.view'],
             'crm.candidats.index' => ['label' => 'CRM — Candidats', 'permission' => 'crm.view'],
+            'crm.abandons' => ['label' => 'CRM — Abandons', 'permission' => 'crm.view'],
             'crm.pipeline' => ['label' => 'CRM — Pipeline', 'permission' => 'crm.view'],
             'stocks.index' => ['label' => 'Stocks', 'permission' => 'stocks.view'],
             'stocks.mouvements.index' => ['label' => 'Entrées / Sorties', 'permission' => 'stocks_mouvements.view'],

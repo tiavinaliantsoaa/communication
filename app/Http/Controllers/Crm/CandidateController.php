@@ -22,9 +22,11 @@ class CandidateController extends Controller
     public function index(Request $request)
     {
         $sort = $request->get('sort', 'newest') === 'oldest' ? 'asc' : 'desc';
+        $abandonedOnly = $request->routeIs('crm.abandons');
 
         $candidates = CrmCandidate::query()
             ->with('advisor')
+            ->where('abandon', $abandonedOnly)
             ->when($request->filled('q'), function ($q) use ($request) {
                 $term = '%'.$request->q.'%';
                 $concat = DB::getDriverName() === 'sqlite'
@@ -41,15 +43,13 @@ class CandidateController extends Controller
             ->when($request->filled('statut'), fn ($q) => $q->where('statut', $request->statut))
             ->when($request->filled('programme'), fn ($q) => $q->where('programme', $request->programme))
             ->when($request->filled('advisor_id'), fn ($q) => $q->where('advisor_id', $request->advisor_id))
-            ->when($request->has('abandon') && $request->input('abandon') !== '', function ($q) use ($request) {
-                $q->where('abandon', $request->input('abandon') === '1');
-            })
             ->orderBy('created_at', $sort)
             ->paginate(15)
             ->withQueryString();
 
         $advisors = User::orderBy('name')->get(['id', 'name']);
         $programmes = CrmCandidate::query()
+            ->where('abandon', $abandonedOnly)
             ->whereNotNull('programme')
             ->where('programme', '!=', '')
             ->distinct()
@@ -61,7 +61,8 @@ class CandidateController extends Controller
             'advisors' => $advisors,
             'programmes' => $programmes,
             'statuts' => CrmCandidate::STATUTS,
-            'filters' => $request->only(['q', 'statut', 'programme', 'advisor_id', 'sort', 'abandon']),
+            'abandonedOnly' => $abandonedOnly,
+            'filters' => $request->only(['q', 'statut', 'programme', 'advisor_id', 'sort']),
         ]);
     }
 
@@ -204,6 +205,7 @@ class CandidateController extends Controller
         }
 
         $name = $candidat->full_name;
+        $wasAbandoned = $candidat->abandon;
         $candidat->load('documents');
         foreach ($candidat->documents as $doc) {
             $doc->delete();
@@ -219,7 +221,7 @@ class CandidateController extends Controller
             route('crm.candidats.index')
         );
 
-        return redirect()->route('crm.candidats.index')
+        return redirect()->route($wasAbandoned ? 'crm.abandons' : 'crm.candidats.index')
             ->with('success', 'Candidat supprimé.');
     }
 

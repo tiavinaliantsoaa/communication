@@ -1,16 +1,18 @@
 @php
-    $title = 'CRM — Candidats';
-    $subtitle = 'Gestion des prospects';
+    $abandonedOnly = $abandonedOnly ?? false;
+    $listRoute = $abandonedOnly ? 'crm.abandons' : 'crm.candidats.index';
+    $title = $abandonedOnly ? 'CRM — Abandons' : 'CRM — Candidats';
+    $subtitle = $abandonedOnly ? 'Candidatures abandonnées' : 'Candidats en cours';
 @endphp
 
 @extends('layouts.app')
 
 @section('content')
-@if(auth()->user()->canAccess('crm.create'))
+@if(! $abandonedOnly && auth()->user()->canAccess('crm.create'))
 <x-page-actions :create-route="route('crm.candidats.create')" create-label="Nouveau candidat" />
 @endif
 
-<form method="GET" action="{{ route('crm.candidats.index') }}" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
+<form method="GET" action="{{ route($listRoute) }}" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <div class="lg:col-span-2">
             <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Recherche</label>
@@ -50,13 +52,8 @@
             <option value="newest" @selected(($filters['sort'] ?? 'newest') === 'newest')>Plus récents</option>
             <option value="oldest" @selected(($filters['sort'] ?? '') === 'oldest')>Plus anciens</option>
         </select>
-        <select name="abandon" class="rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
-            <option value="" @selected(($filters['abandon'] ?? '') === '')>Tous (actifs + abandons)</option>
-            <option value="0" @selected(($filters['abandon'] ?? '') === '0')>Actifs seulement</option>
-            <option value="1" @selected(($filters['abandon'] ?? '') === '1')>Abandons seulement</option>
-        </select>
         <button type="submit" class="bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2 rounded-lg">Filtrer</button>
-        <a href="{{ route('crm.candidats.index') }}" class="text-sm text-slate-600 hover:text-slate-900">Réinitialiser</a>
+        <a href="{{ route($listRoute) }}" class="text-sm text-slate-600 hover:text-slate-900">Réinitialiser</a>
     </div>
 </form>
 
@@ -70,7 +67,7 @@
                     <th class="px-3 py-3 hidden lg:table-cell">E-mail</th>
                     <th class="px-3 py-3 hidden md:table-cell">Programme</th>
                     <th class="px-3 py-3 hidden xl:table-cell">Conseiller</th>
-                    <th class="px-3 py-3">Statut</th>
+                    <th class="px-3 py-3">{{ $abandonedOnly ? 'Motif' : 'Statut' }}</th>
                     <th class="px-3 py-3 hidden md:table-cell">Dernière interaction</th>
                     <th class="px-5 py-3 text-right">Actions</th>
                 </tr>
@@ -80,16 +77,17 @@
                 <tr class="hover:bg-slate-50/50">
                     <td class="px-5 py-3">
                         <a href="{{ route('crm.candidats.show', $c) }}" class="font-medium text-slate-900 hover:text-escm-primary">{{ $c->full_name }}</a>
-                        @if($c->abandon)
-                            <span class="ml-1 inline-flex items-center rounded-full bg-red-50 text-red-700 text-[10px] font-semibold px-1.5 py-0.5">Abandon</span>
-                        @endif
                     </td>
                     <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ $c->telephone ?: '—' }}</td>
                     <td class="px-3 py-3 text-slate-600 hidden lg:table-cell">{{ $c->email ?: '—' }}</td>
                     <td class="px-3 py-3 text-slate-600 hidden md:table-cell">{{ $c->programme ?: '—' }}</td>
                     <td class="px-3 py-3 text-slate-600 hidden xl:table-cell">{{ $c->advisor?->name ?: '—' }}</td>
                     <td class="px-3 py-3">
-                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $c->statut_color }}">{{ $c->statut_label }}</span>
+                        @if($abandonedOnly)
+                            <span class="text-slate-700">{{ $c->abandon_raison ?: '—' }}</span>
+                        @else
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $c->statut_color }}">{{ $c->statut_label }}</span>
+                        @endif
                     </td>
                     <td class="px-3 py-3 text-slate-600 whitespace-nowrap hidden md:table-cell">{{ $c->last_interaction_at ? $c->last_interaction_at->format('d/m/Y H:i') : '—' }}</td>
                     <td class="px-5 py-3">
@@ -114,7 +112,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="8" class="px-5 py-10 text-center text-slate-500">Aucun candidat trouvé.</td></tr>
+                <tr><td colspan="8" class="px-5 py-10 text-center text-slate-500">{{ $abandonedOnly ? 'Aucun abandon trouvé.' : 'Aucun candidat en cours.' }}</td></tr>
                 @endforelse
             </tbody>
         </table>

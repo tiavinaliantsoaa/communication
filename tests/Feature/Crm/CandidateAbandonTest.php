@@ -59,4 +59,43 @@ class CandidateAbandonTest extends TestCase
             'title' => 'Candidature abandonnée',
         ]);
     }
+
+    public function test_candidats_menu_lists_active_candidates_and_abandons_menu_lists_dropouts(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'super_admin',
+            'password' => 'password',
+        ]);
+
+        $actif = CrmCandidate::create([
+            'prenom' => 'Jean',
+            'nom' => 'Rakoto',
+            'statut' => 'prospect',
+            'advisor_id' => $user->id,
+            'abandon' => false,
+        ]);
+        $abandonne = CrmCandidate::create([
+            'prenom' => 'Marie',
+            'nom' => 'Rabe',
+            'statut' => 'evaluation',
+            'advisor_id' => $user->id,
+            'abandon' => true,
+            'abandon_raison' => 'Plus de réponse',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('crm.candidats.index'))
+            ->assertOk()
+            ->assertSee('Jean Rakoto')
+            ->assertDontSee('Marie Rabe');
+
+        $this->actingAs($user)
+            ->get(route('crm.abandons'))
+            ->assertOk()
+            ->assertSee('Marie Rabe')
+            ->assertSee('Plus de réponse')
+            ->assertDontSee('Jean Rakoto');
+
+        $this->assertNotSame($actif->id, $abandonne->id);
+    }
 }
