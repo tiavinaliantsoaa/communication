@@ -50,6 +50,13 @@ class ExportController extends Controller
 
         $filters = $exporter->filtersFromRequest($request);
         $candidates = $exporter->query($filters)->get();
+
+        if ($candidates->isEmpty()) {
+            return redirect()->route('crm.export')
+                ->withInput()
+                ->with('error', 'Aucun candidat ne correspond aux filtres choisis.');
+        }
+
         $binary = $exporter->xlsx($candidates, $filters);
         $filename = 'candidats-'.now()->format('Y-m-d').'.xlsx';
 
@@ -62,9 +69,11 @@ class ExportController extends Controller
             route('crm.export')
         );
 
-        return response($binary, 200, [
+        return response()->streamDownload(function () use ($binary) {
+            echo $binary;
+        }, $filename, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate',
         ]);
     }
 }

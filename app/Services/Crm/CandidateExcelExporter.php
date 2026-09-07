@@ -89,7 +89,9 @@ class CandidateExcelExporter
     {
         return CrmCandidate::query()
             ->with('advisor')
-            ->when($filters['population'] === 'actifs', fn (Builder $q) => $q->where('abandon', false))
+            ->when($filters['population'] === 'actifs', fn (Builder $q) => $q->where(function (Builder $inner) {
+                $inner->where('abandon', false)->orWhereNull('abandon');
+            }))
             ->when($filters['population'] === 'abandons', fn (Builder $q) => $q->where('abandon', true))
             ->when($filters['programmes'] !== [], fn (Builder $q) => $q->whereIn('programme', $filters['programmes']))
             ->when($filters['intakes'] !== [], fn (Builder $q) => $q->whereIn('annee_academique', $filters['intakes']))

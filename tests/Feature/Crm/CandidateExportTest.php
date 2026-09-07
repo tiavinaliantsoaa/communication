@@ -83,7 +83,7 @@ class CandidateExportTest extends TestCase
         $response->assertOk();
         $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
 
-        $sheet = $this->sheetXml($response->getContent());
+        $sheet = $this->sheetXml($response->streamedContent());
         $this->assertStringContainsString('Nom complet', $sheet);
         $this->assertStringContainsString('Téléphone', $sheet);
         $this->assertStringContainsString('Jean Rakoto', $sheet);
@@ -108,11 +108,13 @@ class CandidateExportTest extends TestCase
         $zip = new ZipArchive;
         $this->assertTrue($zip->open($tmp) === true);
         $xml = $zip->getFromName('xl/worksheets/sheet1.xml');
+        $shared = $zip->getFromName('xl/sharedStrings.xml');
         $zip->close();
         @unlink($tmp);
 
         $this->assertNotFalse($xml);
+        $this->assertNotFalse($shared);
 
-        return $xml;
+        return $xml."\n".$shared;
     }
 }
