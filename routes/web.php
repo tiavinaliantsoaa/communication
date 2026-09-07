@@ -8,6 +8,7 @@ use App\Http\Controllers\CalendrierEditorialController;
 use App\Http\Controllers\CampagneController;
 use App\Http\Controllers\Crm\CandidateController as CrmCandidateController;
 use App\Http\Controllers\Crm\DashboardController as CrmDashboardController;
+use App\Http\Controllers\Crm\ExportController as CrmExportController;
 use App\Http\Controllers\Crm\ImportController as CrmImportController;
 use App\Http\Controllers\Crm\PipelineController as CrmPipelineController;
 use App\Http\Controllers\Crm\SettingsController as CrmSettingsController;
@@ -88,6 +89,8 @@ Route::middleware(['auth'])->group(function () {
     Route::middleware('permission:crm.view')->prefix('crm')->name('crm.')->group(function () {
         Route::get('/', CrmDashboardController::class)->name('dashboard');
         Route::get('/pipeline', CrmPipelineController::class)->name('pipeline');
+        Route::get('/export', [CrmExportController::class, 'index'])->name('export');
+        Route::post('/export', [CrmExportController::class, 'download'])->name('export.download');
         Route::get('/parametres', [CrmSettingsController::class, 'index'])->name('settings');
         Route::post('/parametres/rentrees', [CrmSettingsController::class, 'storeIntake'])
             ->middleware('permission:crm.update')

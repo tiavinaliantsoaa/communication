@@ -44,6 +44,7 @@ class Role extends Model
             'crm.candidats.index' => ['label' => 'CRM — Candidats', 'permission' => 'crm.view'],
             'crm.abandons' => ['label' => 'CRM — Abandons', 'permission' => 'crm.view'],
             'crm.pipeline' => ['label' => 'CRM — Pipeline', 'permission' => 'crm.view'],
+            'crm.export' => ['label' => 'CRM — Export', 'permission' => 'crm.view'],
             'stocks.index' => ['label' => 'Stocks', 'permission' => 'stocks.view'],
             'stocks.mouvements.index' => ['label' => 'Entrées / Sorties', 'permission' => 'stocks_mouvements.view'],
             'users.index' => ['label' => 'Utilisateurs', 'permission' => 'users.view'],
