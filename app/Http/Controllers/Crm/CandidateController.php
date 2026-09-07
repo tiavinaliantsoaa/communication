@@ -23,6 +23,7 @@ class CandidateController extends Controller
     {
         $sort = $request->get('sort', 'newest') === 'oldest' ? 'asc' : 'desc';
         $abandonedOnly = $request->routeIs('crm.abandons');
+        $programmesFilter = $this->programmeFilterValues($request);
 
         $candidates = CrmCandidate::query()
             ->with('advisor')
@@ -41,7 +42,7 @@ class CandidateController extends Controller
                 });
             })
             ->when($request->filled('statut'), fn ($q) => $q->where('statut', $request->statut))
-            ->when($request->filled('programme'), fn ($q) => $q->where('programme', $request->programme))
+            ->when($programmesFilter !== [], fn ($q) => $q->whereIn('programme', $programmesFilter))
             ->when($request->filled('advisor_id'), fn ($q) => $q->where('advisor_id', $request->advisor_id))
             ->orderBy('created_at', $sort)
             ->paginate(15)
@@ -62,7 +63,13 @@ class CandidateController extends Controller
             'programmes' => $programmes,
             'statuts' => CrmCandidate::STATUTS,
             'abandonedOnly' => $abandonedOnly,
-            'filters' => $request->only(['q', 'statut', 'programme', 'advisor_id', 'sort']),
+            'filters' => [
+                'q' => $request->input('q'),
+                'statut' => $request->input('statut'),
+                'programme' => $programmesFilter,
+                'advisor_id' => $request->input('advisor_id'),
+                'sort' => $request->input('sort'),
+            ],
         ]);
     }
 
@@ -337,6 +344,21 @@ class CandidateController extends Controller
         $interaction->delete();
 
         return back()->with('success', 'Interaction supprimée.');
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function programmeFilterValues(Request $request): array
+    {
+        $raw = $request->input('programme', []);
+
+        return collect(is_array($raw) ? $raw : [$raw])
+            ->map(fn ($value) => trim((string) $value))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function formData(?CrmCandidate $candidate = null): array

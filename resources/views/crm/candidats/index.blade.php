@@ -30,12 +30,34 @@
         </div>
         <div>
             <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Programme</label>
-            <select name="programme" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
-                <option value="">Tous</option>
-                @foreach($programmes as $programme)
-                    <option value="{{ $programme }}" @selected(($filters['programme'] ?? '') === $programme)>{{ $programme }}</option>
-                @endforeach
-            </select>
+            <div class="relative" x-data="{
+                open: false,
+                selected: @js($filters['programme'] ?? []),
+                label() {
+                    if (!this.selected.length) return 'Tous';
+                    return this.selected.join(', ');
+                }
+            }" @keydown.escape.window="open = false">
+                <button type="button"
+                        @click="open = !open"
+                        class="w-full flex items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-left text-slate-700 focus:border-escm-primary focus:ring-1 focus:ring-escm-primary">
+                    <span class="truncate" x-text="label()"></span>
+                    <svg class="w-4 h-4 text-slate-400 shrink-0 transition-transform" :class="open && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div x-show="open" x-cloak @click.outside="open = false"
+                     class="absolute z-30 mt-1 w-full rounded-lg border border-slate-200 bg-white shadow-lg py-1 max-h-56 overflow-y-auto">
+                    @forelse($programmes as $programme)
+                        <label class="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer">
+                            <input type="checkbox" name="programme[]" value="{{ $programme }}"
+                                   x-model="selected"
+                                   class="rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
+                            <span>{{ $programme }}</span>
+                        </label>
+                    @empty
+                        <p class="px-3 py-2 text-sm text-slate-400">Aucun programme</p>
+                    @endforelse
+                </div>
+            </div>
         </div>
         <div>
             <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Conseiller</label>

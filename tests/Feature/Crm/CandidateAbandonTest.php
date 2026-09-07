@@ -98,4 +98,44 @@ class CandidateAbandonTest extends TestCase
 
         $this->assertNotSame($actif->id, $abandonne->id);
     }
+
+    public function test_programme_filter_accepts_multiple_values(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'super_admin',
+            'password' => 'password',
+        ]);
+
+        CrmCandidate::create([
+            'prenom' => 'Anna',
+            'nom' => 'B1',
+            'programme' => 'B1',
+            'statut' => 'intention_deposee',
+            'advisor_id' => $user->id,
+            'abandon' => false,
+        ]);
+        CrmCandidate::create([
+            'prenom' => 'Benoit',
+            'nom' => 'B2',
+            'programme' => 'B2',
+            'statut' => 'intention_deposee',
+            'advisor_id' => $user->id,
+            'abandon' => false,
+        ]);
+        CrmCandidate::create([
+            'prenom' => 'Clara',
+            'nom' => 'MBA',
+            'programme' => 'MBA1',
+            'statut' => 'intention_deposee',
+            'advisor_id' => $user->id,
+            'abandon' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('crm.candidats.index', ['programme' => ['B1', 'B2']]))
+            ->assertOk()
+            ->assertSee('Anna B1')
+            ->assertSee('Benoit B2')
+            ->assertDontSee('Clara MBA');
+    }
 }
