@@ -75,6 +75,10 @@ Route::middleware(['auth'])->group(function () {
             ->middleware('permission:suivi_liens.create')
             ->name('suivi-liens.store');
         Route::get('suivi-liens/{suivi_lien}', [TrackedLinkController::class, 'show'])->name('suivi-liens.show');
+        Route::get('suivi-liens/{suivi_lien}/qr', [TrackedLinkController::class, 'qr'])
+            ->name('suivi-liens.qr');
+        Route::get('suivi-liens/{suivi_lien}/qr/download', [TrackedLinkController::class, 'downloadQr'])
+            ->name('suivi-liens.qr.download');
         Route::get('suivi-liens/{suivi_lien}/edit', [TrackedLinkController::class, 'edit'])
             ->middleware('permission:suivi_liens.update')
             ->name('suivi-liens.edit');

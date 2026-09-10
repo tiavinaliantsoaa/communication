@@ -21,11 +21,56 @@
         </div>
         <p class="mt-1 text-sm text-slate-500 truncate" title="{{ $link->destination_url }}">→ {{ $link->destination_url }}</p>
     </div>
-    <div class="flex items-center gap-2 shrink-0">
+    <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end" x-data="{ qrOpen: false, downloadOpen: false }" @keydown.escape.window="qrOpen = false; downloadOpen = false">
         <a href="{{ route('suivi-liens.index') }}" class="text-sm text-slate-600 hover:text-slate-900 px-3 py-2">Retour</a>
+        <button type="button"
+                @click="qrOpen = true"
+                class="inline-flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg">
+            Voir QR code
+        </button>
+        <div class="relative" @click.outside="downloadOpen = false">
+            <button type="button"
+                    @click="downloadOpen = !downloadOpen"
+                    class="inline-flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg">
+                Télécharger QR code
+                <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </button>
+            <div x-show="downloadOpen" x-cloak x-transition
+                 class="absolute right-0 mt-2 w-48 rounded-lg bg-white border border-slate-200 shadow-lg z-20 py-1">
+                <a href="{{ route('suivi-liens.qr.download', ['suivi_lien' => $link, 'format' => 'png']) }}"
+                   class="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                    Image PNG
+                </a>
+                <a href="{{ route('suivi-liens.qr.download', ['suivi_lien' => $link, 'format' => 'pdf']) }}"
+                   class="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+                    Document PDF
+                </a>
+            </div>
+        </div>
         @if(auth()->user()->canAccess('suivi_liens.update'))
         <a href="{{ route('suivi-liens.edit', $link) }}" class="inline-flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium px-4 py-2 rounded-lg">Modifier</a>
         @endif
+
+        <div x-show="qrOpen" x-cloak class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60">
+            <div class="absolute inset-0" @click="qrOpen = false"></div>
+            <div class="relative w-full max-w-sm bg-white rounded-xl shadow-2xl p-5" @click.stop>
+                <div class="flex items-start justify-between gap-3 mb-4">
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-900">QR code</h3>
+                        <p class="mt-0.5 text-sm text-slate-500">Scannez pour ouvrir le lien de suivi.</p>
+                    </div>
+                    <button type="button" @click="qrOpen = false" class="text-slate-400 hover:text-slate-700 p-1" aria-label="Fermer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="rounded-lg border border-slate-200 bg-white p-4 flex items-center justify-center">
+                    <img src="{{ route('suivi-liens.qr', $link) }}" alt="QR code {{ $link->nom }}" class="w-56 h-56">
+                </div>
+                <p class="mt-3 text-xs text-slate-500 font-mono break-all">{{ $link->short_url }}</p>
+            </div>
+        </div>
     </div>
 </div>
 

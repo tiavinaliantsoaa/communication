@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\TrackedLink;
 use App\Models\TrackedLinkVisit;
 use App\Services\ActivityLogger;
+use App\Services\TrackedLinkQrCodeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -61,7 +62,7 @@ class TrackedLinkController extends Controller
         );
 
         return redirect()->route('suivi-liens.show', $link)
-            ->with('success', 'Lien de suivi créé.');
+            ->with('success', 'Lien de suivi créé. Le QR code est disponible sur cette fiche.');
     }
 
     public function show(TrackedLink $suivi_lien)
@@ -188,6 +189,38 @@ class TrackedLinkController extends Controller
 
         return redirect()->route('suivi-liens.index')
             ->with('success', 'Lien de suivi supprimé.');
+    }
+
+    public function qr(TrackedLink $suivi_lien, TrackedLinkQrCodeService $qrCodes)
+    {
+        return response($qrCodes->png($suivi_lien), 200, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'private, max-age=300',
+        ]);
+    }
+
+    public function downloadQr(Request $request, TrackedLink $suivi_lien, TrackedLinkQrCodeService $qrCodes)
+    {
+        $format = $request->validate([
+            'format' => ['required', Rule::in(['png', 'pdf'])],
+        ], [
+            'format.required' => 'Choisissez un format de téléchargement.',
+            'format.in' => 'Le format doit être une image PNG ou un PDF.',
+        ])['format'];
+
+        $basename = $qrCodes->downloadBasename($suivi_lien);
+
+        if ($format === 'pdf') {
+            return response($qrCodes->pdf($suivi_lien), 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="'.$basename.'.pdf"',
+            ]);
+        }
+
+        return response($qrCodes->png($suivi_lien), 200, [
+            'Content-Type' => 'image/png',
+            'Content-Disposition' => 'attachment; filename="'.$basename.'.png"',
+        ]);
     }
 
     private function validateLink(Request $request, ?TrackedLink $link = null): array
