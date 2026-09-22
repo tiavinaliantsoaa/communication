@@ -22,6 +22,16 @@
                 <dd class="mt-1"><span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">{{ $user->role_label }}</span></dd>
             </div>
             <div>
+                <dt class="text-xs font-semibold uppercase tracking-wider text-slate-500">Département</dt>
+                <dd class="mt-1">
+                    @if($user->departement)
+                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $user->departement->badgeClasses() }}">{{ $user->departement->nom }}</span>
+                    @else
+                        <span class="text-sm text-slate-500">Non assigné</span>
+                    @endif
+                </dd>
+            </div>
+            <div>
                 <dt class="text-xs font-semibold uppercase tracking-wider text-slate-500">Date de création</dt>
                 <dd class="mt-1 text-sm text-slate-900">{{ $user->created_at->format('d/m/Y à H:i') }}</dd>
             </div>

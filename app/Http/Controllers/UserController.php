@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Departement;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
@@ -10,21 +11,31 @@ use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::orderByDesc('created_at')->paginate(10);
+        $departementId = $request->integer('departement') ?: null;
+        $users = User::query()
+            ->with('departement')
+            ->when($departementId, fn ($query) => $query->where('departement_id', $departementId))
+            ->orderByDesc('created_at')
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('users.index', compact('users'));
+        $departements = Departement::query()->withCount('users')->orderBy('nom')->get();
+
+        return view('users.index', compact('users', 'departements', 'departementId'));
     }
 
     public function show(User $user)
     {
+        $user->load('departement');
+
         return view('users.show', compact('user'));
     }
 
     public function create()
     {
-        return view('users.create', ['roles' => User::roleOptions()]);
+        return view('users.create', $this->formLookups());
     }
 
     public function store(Request $request)
@@ -34,6 +45,9 @@ class UserController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'confirmed', Password::defaults()],
             'role' => ['required', Rule::in(array_keys(User::roleOptions()))],
+            'departement_id' => ['required', 'exists:departements,id'],
+        ], [
+            'departement_id.required' => 'Assignez un département à cet utilisateur.',
         ]);
 
         $created = User::create($validated);
@@ -54,7 +68,7 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        return view('users.edit', ['user' => $user, 'roles' => User::roleOptions()]);
+        return view('users.edit', array_merge(['user' => $user], $this->formLookups()));
     }
 
     public function update(Request $request, User $user)
@@ -64,6 +78,9 @@ class UserController extends Controller
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'role' => ['required', Rule::in(array_keys(User::roleOptions()))],
+            'departement_id' => ['required', 'exists:departements,id'],
+        ], [
+            'departement_id.required' => 'Assignez un département à cet utilisateur.',
         ]);
 
         if (empty($validated['password'])) {
@@ -109,5 +126,13 @@ class UserController extends Controller
         );
 
         return redirect()->route('users.index')->with('success', 'Utilisateur supprimé avec succès.');
+    }
+
+    private function formLookups(): array
+    {
+        return [
+            'roles' => User::roleOptions(),
+            'departements' => Departement::query()->orderBy('nom')->get(),
+        ];
     }
 }

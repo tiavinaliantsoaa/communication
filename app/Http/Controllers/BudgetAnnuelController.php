@@ -4,9 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Budget;
 use App\Models\BudgetAnnuel;
+use App\Models\Departement;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class BudgetAnnuelController extends Controller
@@ -35,7 +35,7 @@ class BudgetAnnuelController extends Controller
     {
         $validated = $request->validate([
             'montant' => ['required', 'numeric', 'min:0'],
-            'annee' => ['required', 'integer', 'min:2020', 'max:2100', 'unique:budget_annuels,annee'],
+            'annee' => ['required', 'integer', 'min:2020', 'max:2100', Departement::uniqueRule('budget_annuels', 'annee')],
         ], [
             'annee.unique' => 'Un budget annuel existe déjà pour cette année.',
         ]);
@@ -71,7 +71,7 @@ class BudgetAnnuelController extends Controller
     {
         $validated = $request->validate([
             'montant' => ['required', 'numeric', 'min:0'],
-            'annee' => ['required', 'integer', 'min:2020', 'max:2100', Rule::unique('budget_annuels', 'annee')->ignore($budgetAnnuel->id)],
+            'annee' => ['required', 'integer', 'min:2020', 'max:2100', Departement::uniqueRule('budget_annuels', 'annee', $budgetAnnuel->id)],
         ], [
             'annee.unique' => 'Un budget annuel existe déjà pour cette année.',
         ]);

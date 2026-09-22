@@ -27,7 +27,7 @@ class ExportController extends Controller
             'programmes' => $exporter->programmeOptions(),
             'intakes' => $exporter->intakeOptions(),
             'statuts' => CrmCandidate::STATUTS,
-            'advisors' => User::orderBy('name')->get(['id', 'name']),
+            'advisors' => User::query()->inCurrentDepartement()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

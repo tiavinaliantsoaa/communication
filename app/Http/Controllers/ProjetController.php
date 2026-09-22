@@ -8,8 +8,8 @@ use App\Models\ProjetChecklist;
 use App\Models\ProjetChecklistItem;
 use App\Models\ProjetCommentaire;
 use App\Models\ProjetCommentaireImage;
-use App\Models\ProjetListe;
 use App\Models\ProjetEtiquette;
+use App\Models\ProjetListe;
 use App\Models\ProjetPieceJointe;
 use App\Models\ProjetTableau;
 use App\Models\User;
@@ -24,8 +24,7 @@ class ProjetController extends Controller
     public function __construct(
         private ProjetNotificationService $notifications,
         private ActivityLogger $activityLogger
-    ) {
-    }
+    ) {}
 
     public function index()
     {
@@ -44,7 +43,7 @@ class ProjetController extends Controller
 
         $listes = $tableau->listes;
         $etiquettes = ProjetEtiquette::orderBy('nom')->get();
-        $users = User::orderBy('name')->get(['id', 'name', 'email', 'avatar_path']);
+        $users = User::query()->inCurrentDepartement()->orderBy('name')->get(['id', 'name', 'email', 'avatar_path']);
         $mentionUsers = $users->map->toMentionArray()->values();
 
         return view('projets.index', [
@@ -351,7 +350,8 @@ class ProjetController extends Controller
         ]);
 
         $before = $projet->membres()->allRelatedIds()->map(fn ($id) => (int) $id);
-        $after = collect($data['user_ids'] ?? [])->map(fn ($id) => (int) $id)->unique()->values();
+        $allowedIds = User::query()->inCurrentDepartement()->pluck('id');
+        $after = collect($data['user_ids'] ?? [])->map(fn ($id) => (int) $id)->unique()->intersect($allowedIds)->values();
 
         $projet->membres()->sync($after->all());
         $projet->load('membres');

@@ -7,8 +7,8 @@ use App\Models\CrmCandidate;
 use App\Models\CrmDocumentType;
 use App\Models\CrmIntake;
 use App\Models\CrmProgramme;
+use App\Models\Departement;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 
 class SettingsController extends Controller
 {
@@ -25,7 +25,7 @@ class SettingsController extends Controller
     public function storeIntake(Request $request)
     {
         $data = $request->validate([
-            'label' => ['required', 'string', 'max:100', 'unique:crm_intakes,label'],
+            'label' => ['required', 'string', 'max:100', Departement::uniqueRule('crm_intakes', 'label')],
         ], [
             'label.required' => 'Le libellé de la rentrée est obligatoire.',
             'label.unique' => 'Cette rentrée existe déjà.',
@@ -45,7 +45,7 @@ class SettingsController extends Controller
     public function updateIntake(Request $request, CrmIntake $intake)
     {
         $data = $request->validate([
-            'label' => ['required', 'string', 'max:100', Rule::unique('crm_intakes', 'label')->ignore($intake->id)],
+            'label' => ['required', 'string', 'max:100', Departement::uniqueRule('crm_intakes', 'label', $intake->id)],
             'actif' => ['sometimes', 'boolean'],
         ]);
 
@@ -74,7 +74,7 @@ class SettingsController extends Controller
     public function storeProgramme(Request $request)
     {
         $data = $request->validate([
-            'label' => ['required', 'string', 'max:255', 'unique:crm_programmes,label'],
+            'label' => ['required', 'string', 'max:255', Departement::uniqueRule('crm_programmes', 'label')],
         ], [
             'label.required' => 'Le libellé du programme est obligatoire.',
             'label.unique' => 'Ce programme existe déjà.',
@@ -108,7 +108,7 @@ class SettingsController extends Controller
     public function storeDocumentType(Request $request)
     {
         $data = $request->validate([
-            'label' => ['required', 'string', 'max:255', 'unique:crm_document_types,label'],
+            'label' => ['required', 'string', 'max:255', Departement::uniqueRule('crm_document_types', 'label')],
             'is_required' => ['sometimes', 'boolean'],
         ], [
             'label.required' => 'Le nom du document est obligatoire.',

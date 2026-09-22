@@ -11,7 +11,7 @@ class LinkRedirectController extends Controller
 {
     public function __invoke(Request $request, string $slug, VisitorInfoService $visitorInfo)
     {
-        $link = TrackedLink::query()
+        $link = TrackedLink::withoutGlobalScope('departement')
             ->where('slug', $slug)
             ->where('actif', true)
             ->first();
@@ -25,7 +25,7 @@ class LinkRedirectController extends Controller
         try {
             DB::transaction(function () use ($link, $info) {
                 $link->visits()->create($info);
-                TrackedLink::whereKey($link->id)->increment('clicks_count');
+                TrackedLink::withoutGlobalScope('departement')->whereKey($link->id)->increment('clicks_count');
             });
         } catch (\Throwable $e) {
             report($e);

@@ -11,7 +11,7 @@
         </div>
         <div>
             <div class="text-white font-bold text-lg leading-tight tracking-wide">ESCM</div>
-            <div class="text-slate-400 text-[10px] uppercase tracking-widest">Communication</div>
+            <div class="text-slate-400 text-[10px] uppercase tracking-widest">{{ $departementActif->nom ?? 'ESCM' }}</div>
         </div>
     </div>
 

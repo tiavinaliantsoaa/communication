@@ -365,7 +365,7 @@ class GlideImporter
     private function advisorIndex(): array
     {
         $index = [];
-        foreach (User::query()->get(['id', 'name', 'email']) as $user) {
+        foreach (User::query()->inCurrentDepartement()->get(['id', 'name', 'email']) as $user) {
             $index[$this->mapper->normalizePersonName($user->name)] = $user->id;
             $local = strstr((string) $user->email, '@', true);
             if (is_string($local) && $local !== '') {

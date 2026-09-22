@@ -48,7 +48,7 @@ class CandidateController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $advisors = User::orderBy('name')->get(['id', 'name']);
+        $advisors = User::query()->inCurrentDepartement()->orderBy('name')->get(['id', 'name']);
         $programmes = CrmCandidate::query()
             ->where('abandon', $abandonedOnly)
             ->whereNotNull('programme')
@@ -372,7 +372,7 @@ class CandidateController extends Controller
             'statuts' => CrmCandidate::STATUTS,
             'sources' => CrmCandidate::SOURCES,
             'genres' => CrmCandidate::GENRES,
-            'advisors' => User::orderBy('name')->get(['id', 'name']),
+            'advisors' => User::query()->inCurrentDepartement()->orderBy('name')->get(['id', 'name']),
             'intakes' => CrmIntake::optionsForSelect($candidate?->annee_academique),
             'programmes' => CrmProgramme::optionsForSelect($candidate?->programme),
             'documentTypes' => $documentTypes,
@@ -402,7 +402,7 @@ class CandidateController extends Controller
             'source' => ['nullable', Rule::in(array_keys(CrmCandidate::SOURCES))],
             'facebook_profil_url' => ['nullable', 'string', 'max:500'],
             'escm_tour_ville' => ['nullable', 'string', 'max:120'],
-            'advisor_id' => ['required', 'exists:users,id'],
+            'advisor_id' => ['required', User::existsInCurrentDepartement()],
             'notes' => ['nullable', 'string', 'max:5000'],
             'validation_test' => ['sometimes', 'boolean'],
             'paiement_acompte' => ['sometimes', 'boolean'],

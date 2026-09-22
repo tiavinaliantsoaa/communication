@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\Departement;
+use App\Models\DepartementScope;
 use App\Models\UserNotification;
 use App\Services\AlerteService;
 use Carbon\Carbon;
@@ -28,6 +30,44 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
         }
+
+        foreach (DepartementScope::models() as $model) {
+            $model::addGlobalScope('departement', new DepartementScope);
+            $model::creating(function ($record) {
+                if ($record->departement_id) {
+                    return;
+                }
+
+                $departementId = auth()->user()?->currentDepartementId();
+                if ($departementId) {
+                    $record->departement_id = $departementId;
+                }
+            });
+        }
+
+        View::composer('layouts.app', function () {
+            $actif = null;
+            $liste = collect();
+
+            if ($user = auth()->user()) {
+                if ($user->isSuperAdmin()) {
+                    $liste = Departement::query()->orderBy('nom')->get();
+                    $selected = session('departement_actif_id');
+                    if ($selected && ! $liste->contains(fn ($departement) => (int) $departement->id === (int) $selected)) {
+                        session()->forget('departement_actif_id');
+                    }
+                }
+
+                $actifId = $user->currentDepartementId();
+                $actif = $liste->firstWhere('id', $actifId);
+                if (! $actif && $actifId) {
+                    $actif = Departement::query()->find($actifId);
+                }
+            }
+
+            View::share('departementActif', $actif);
+            View::share('departementsListe', $liste);
+        });
 
         View::composer('layouts.partials.header', function ($view) {
             if (! auth()->check()) {
@@ -81,4 +121,3 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 }
-

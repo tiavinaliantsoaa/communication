@@ -13,6 +13,7 @@ use App\Http\Controllers\Crm\ImportController as CrmImportController;
 use App\Http\Controllers\Crm\PipelineController as CrmPipelineController;
 use App\Http\Controllers\Crm\SettingsController as CrmSettingsController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DepartementController;
 use App\Http\Controllers\DepenseController;
 use App\Http\Controllers\EvenementController;
 use App\Http\Controllers\FournisseurController;
@@ -243,8 +244,14 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/users/{user}', [AccesController::class, 'updateUser'])->name('users.update');
     });
 
-    Route::resource('users', UserController::class)
-        ->middleware('permission:users.view');
+    Route::post('/departement-actif', [DepartementController::class, 'switch'])->name('departement.switch');
+
+    Route::middleware('permission:users.view')->group(function () {
+        Route::post('/departements', [DepartementController::class, 'store'])->name('departements.store');
+        Route::put('/departements/{departement}', [DepartementController::class, 'update'])->name('departements.update');
+        Route::delete('/departements/{departement}', [DepartementController::class, 'destroy'])->name('departements.destroy');
+        Route::resource('users', UserController::class);
+    });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

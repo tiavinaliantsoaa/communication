@@ -28,7 +28,7 @@ class BudgetController extends Controller
         $validated = $request->validate([
             'montant' => ['required', 'numeric', 'min:0'],
             'annee' => ['required', 'integer', 'min:2020', 'max:2100'],
-            'mois' => ['required', 'integer', 'min:1', 'max:12', Rule::unique('budgets')->where(fn ($q) => $q->where('annee', $request->annee))],
+            'mois' => ['required', 'integer', 'min:1', 'max:12', $this->uniqueMonthRule($request)],
         ], [
             'mois.unique' => 'Un budget existe déjà pour ce mois et cette année.',
         ]);
@@ -60,7 +60,7 @@ class BudgetController extends Controller
         $validated = $request->validate([
             'montant' => ['required', 'numeric', 'min:0'],
             'annee' => ['required', 'integer', 'min:2020', 'max:2100'],
-            'mois' => ['required', 'integer', 'min:1', 'max:12', Rule::unique('budgets')->where(fn ($q) => $q->where('annee', $request->annee))->ignore($budget->id)],
+            'mois' => ['required', 'integer', 'min:1', 'max:12', $this->uniqueMonthRule($request, $budget->id)],
         ], [
             'mois.unique' => 'Un budget existe déjà pour ce mois et cette année.',
         ]);
@@ -98,6 +98,24 @@ class BudgetController extends Controller
         );
 
         return redirect()->route('budgets.index')->with('success', 'Budget supprimé avec succès.');
+    }
+
+    private function uniqueMonthRule(Request $request, ?int $ignoreId = null)
+    {
+        $rule = Rule::unique('budgets')->where(function ($query) use ($request) {
+            $query->where('annee', $request->annee);
+            $user = $request->user();
+            $departementId = $user?->currentDepartementId();
+            if ($user && $user->restrictsDepartementData() && $departementId) {
+                $query->where('departement_id', $departementId);
+            }
+        });
+
+        if ($ignoreId) {
+            $rule->ignore($ignoreId);
+        }
+
+        return $rule;
     }
 
     private function assertWithinAnnualBudget(int $annee, float $montant, ?int $ignoreBudgetId = null): void

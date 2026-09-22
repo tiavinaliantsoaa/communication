@@ -3,7 +3,7 @@
                 <button @click="open = !open" type="button" class="flex items-center gap-3 rounded-lg p-1.5 hover:bg-white transition-colors focus:outline-none focus:ring-2 focus:ring-escm-primary/30">
                     <div class="hidden sm:block text-right">
                         <div class="text-sm font-semibold text-slate-900">{{ auth()->user()->name }}</div>
-                        <div class="text-xs text-slate-500">{{ auth()->user()->role_label }}</div>
+                        <div class="text-xs text-slate-500">{{ auth()->user()->role_label }}@if($departementActif) · {{ $departementActif->nom }}@endif</div>
                     </div>
                     <div class="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold ring-2 ring-white shadow overflow-hidden">
                         @if(auth()->user()->avatar_url)

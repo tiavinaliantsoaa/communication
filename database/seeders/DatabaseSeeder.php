@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Budget;
 use App\Models\BudgetAnnuel;
 use App\Models\Campagne;
+use App\Models\Departement;
 use App\Models\Depense;
 use App\Models\Fournisseur;
 use App\Models\Stock;
@@ -119,5 +120,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call(EditorialEventSeeder::class);
         $this->call(ProjetSeeder::class);
+
+        Departement::backfillUnassigned();
     }
 }

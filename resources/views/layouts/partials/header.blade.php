@@ -27,6 +27,28 @@
         </div>
 
         <div class="flex items-center gap-3 sm:gap-5">
+            @if(auth()->user()->isSuperAdmin() && ($departementsListe ?? collect())->isNotEmpty())
+                <form method="POST" action="{{ route('departement.switch') }}">
+                    @csrf
+                    <label class="sr-only" for="departement-actif">Département affiché</label>
+                    <select
+                        id="departement-actif"
+                        name="departement_id"
+                        onchange="this.form.submit()"
+                        class="bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-700 shadow-sm focus:border-escm-primary focus:ring-escm-primary"
+                        title="Département dont les données sont affichées"
+                    >
+                        @foreach($departementsListe as $departement)
+                            <option value="{{ $departement->id }}" @selected((int) optional($departementActif)->id === (int) $departement->id)>{{ $departement->nom }}</option>
+                        @endforeach
+                    </select>
+                </form>
+            @elseif($departementActif)
+                <span class="inline-flex items-center rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm font-medium text-slate-700 shadow-sm">
+                    {{ $departementActif->nom }}
+                </span>
+            @endif
+
             {{-- Sélecteur mois / année --}}
             <div
                 class="relative"

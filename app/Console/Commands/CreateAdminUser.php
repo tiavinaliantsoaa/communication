@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Departement;
 use App\Models\User;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
@@ -49,6 +50,7 @@ class CreateAdminUser extends Command
             'email' => $email,
             'password' => $password,
             'role' => $role,
+            'departement_id' => Departement::query()->where('slug', 'communication')->value('id'),
             'email_verified_at' => now(),
         ]);
 

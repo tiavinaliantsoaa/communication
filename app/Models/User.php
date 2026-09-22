@@ -2,11 +2,15 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Exists;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -26,6 +30,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'departement_id',
         'avatar_path',
     ];
 
@@ -42,6 +47,74 @@ class User extends Authenticatable
     public function permissions(): BelongsToMany
     {
         return $this->belongsToMany(Permission::class);
+    }
+
+    public function departement(): BelongsTo
+    {
+        return $this->belongsTo(Departement::class);
+    }
+
+    /**
+     * Department whose data this session can see.
+     * Super admins can switch; everyone else stays on their assignment.
+     */
+    public function currentDepartementId(): ?int
+    {
+        if ($this->isSuperAdmin()) {
+            $selected = session('departement_actif_id');
+            if ($selected) {
+                return (int) $selected;
+            }
+        }
+
+        return $this->departement_id ? (int) $this->departement_id : null;
+    }
+
+    /**
+     * Super admins without an assignment or an active switch see every department.
+     * Assigned users, including super admins, only see their current department.
+     */
+    public function restrictsDepartementData(): bool
+    {
+        if ($this->isSuperAdmin() && ! $this->currentDepartementId()) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function scopeInCurrentDepartement(Builder $query): Builder
+    {
+        $user = auth()->user();
+        if (! $user || ! $user->restrictsDepartementData()) {
+            return $query;
+        }
+
+        $departementId = $user->currentDepartementId();
+        if (! $departementId) {
+            return $query->whereRaw('0 = 1');
+        }
+
+        return $query->where($query->getModel()->getTable().'.departement_id', $departementId);
+    }
+
+    public static function existsInCurrentDepartement(): Exists
+    {
+        $rule = Rule::exists('users', 'id');
+        $user = auth()->user();
+
+        if ($user && $user->restrictsDepartementData()) {
+            $departementId = $user->currentDepartementId();
+            $rule->where(function ($query) use ($departementId) {
+                if ($departementId) {
+                    $query->where('departement_id', $departementId);
+                } else {
+                    $query->whereRaw('0 = 1');
+                }
+            });
+        }
+
+        return $rule;
     }
 
     public function getRoleLabelAttribute(): string
@@ -215,6 +288,7 @@ class User extends Authenticatable
         }
 
         return static::query()
+            ->inCurrentDepartement()
             ->get(['id', 'name', 'email', 'avatar_path'])
             ->filter(fn (self $user) => $handles->contains($user->username))
             ->values();
@@ -238,4 +312,3 @@ class User extends Authenticatable
         });
     }
 }
-
