@@ -32,9 +32,10 @@
         @endif
     </div>
 
-    {{-- Toolbar: search + background --}}
+    {{-- Toolbar: search + profiles + background --}}
     <div class="px-4 sm:px-6 lg:px-8 pt-1 pb-3 flex flex-col gap-2">
-        <div class="relative w-full max-w-sm">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div class="relative w-full max-w-sm shrink-0">
             <svg class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"/></svg>
             <input
                 type="search"
@@ -52,6 +53,48 @@
             >
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2" @click.outside="openAssigneeId = null">
+            <template x-for="person in assignees" :key="person.id">
+                <div class="relative">
+                    <button
+                        type="button"
+                        @click="openAssigneeId = openAssigneeId === person.id ? null : person.id"
+                        class="relative rounded-full focus:outline-none focus:ring-2 focus:ring-escm-primary/40"
+                        :title="person.name"
+                    >
+                        <span class="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-escm-primary text-xs font-bold text-white ring-2 ring-white shadow-sm">
+                            <img x-show="person.avatar_url" :src="person.avatar_url" :alt="person.name" class="h-full w-full object-cover">
+                            <span x-show="!person.avatar_url" x-text="person.initials"></span>
+                        </span>
+                        <span
+                            x-show="person.taches.length"
+                            x-text="person.taches.length > 99 ? '99+' : person.taches.length"
+                            class="absolute -top-1 -right-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold leading-none text-white ring-2 ring-white"
+                        ></span>
+                    </button>
+                    <div
+                        x-show="openAssigneeId === person.id"
+                        x-cloak
+                        x-transition
+                        class="absolute left-0 top-full z-30 mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg"
+                    >
+                        <p class="border-b border-slate-100 px-3 py-2 text-xs font-semibold text-slate-900" x-text="person.name"></p>
+                        <div class="max-h-64 overflow-y-auto py-1">
+                            <template x-for="tache in person.taches" :key="tache.id">
+                                <button
+                                    type="button"
+                                    @click="openAssigneeId = null; openCard(tache.id)"
+                                    class="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                                    x-text="tache.titre"
+                                ></button>
+                            </template>
+                            <p x-show="!person.taches.length" class="px-3 py-2 text-xs text-slate-400">Aucune tâche assignée</p>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
         </div>
         <form action="{{ route('gestion-projet.background') }}" method="POST" enctype="multipart/form-data" class="flex flex-wrap items-center gap-2">
             @csrf
@@ -745,6 +788,8 @@ function projetBoard() {
         loading: false,
         card: null,
         searchQuery: '',
+        assignees: @json($assignees),
+        openAssigneeId: null,
         canDeleteChecklist: @json(auth()->user()?->isSuperAdmin() ?? false),
         showMembers: false,
         showLabels: false,

@@ -45,6 +45,24 @@ class ProjetController extends Controller
         $etiquettes = ProjetEtiquette::orderBy('nom')->get();
         $users = User::query()->inCurrentDepartement()->orderBy('name')->get(['id', 'name', 'email', 'avatar_path']);
         $mentionUsers = $users->map->toMentionArray()->values();
+        $cartes = $listes->flatMap->cartes;
+        $assignees = $users->map(function (User $user) use ($cartes) {
+            $taches = $cartes
+                ->filter(fn ($carte) => $carte->membres->contains('id', $user->id))
+                ->map(fn ($carte) => [
+                    'id' => $carte->id,
+                    'titre' => $carte->titre,
+                ])
+                ->values();
+
+            return [
+                'id' => $user->id,
+                'name' => $user->name,
+                'initials' => $user->initials(),
+                'avatar_url' => $user->avatar_url,
+                'taches' => $taches,
+            ];
+        })->sortByDesc(fn (array $person) => count($person['taches']))->values();
 
         return view('projets.index', [
             'title' => 'Gestion de projet',
@@ -54,6 +72,7 @@ class ProjetController extends Controller
             'etiquettes' => $etiquettes,
             'users' => $users,
             'mentionUsers' => $mentionUsers,
+            'assignees' => $assignees,
         ]);
     }
 
