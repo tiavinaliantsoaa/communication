@@ -9,8 +9,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Exists;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -96,25 +94,6 @@ class User extends Authenticatable
         }
 
         return $query->where($query->getModel()->getTable().'.departement_id', $departementId);
-    }
-
-    public static function existsInCurrentDepartement(): Exists
-    {
-        $rule = Rule::exists('users', 'id');
-        $user = auth()->user();
-
-        if ($user && $user->restrictsDepartementData()) {
-            $departementId = $user->currentDepartementId();
-            $rule->where(function ($query) use ($departementId) {
-                if ($departementId) {
-                    $query->where('departement_id', $departementId);
-                } else {
-                    $query->whereRaw('0 = 1');
-                }
-            });
-        }
-
-        return $rule;
     }
 
     public function getRoleLabelAttribute(): string
