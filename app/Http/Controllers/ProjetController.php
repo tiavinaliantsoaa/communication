@@ -45,11 +45,13 @@ class ProjetController extends Controller
         $etiquettes = ProjetEtiquette::orderBy('nom')->get();
         $users = User::query()->inCurrentDepartement()->orderBy('name')->get(['id', 'name', 'email', 'avatar_path']);
         $mentionUsers = $users->map->toMentionArray()->values();
-        $cartes = $listes->flatMap->cartes;
+        $cartes = $listes->flatMap(function (ProjetListe $liste) {
+            return $liste->cartes->each(fn (ProjetCarte $carte) => $carte->setRelation('liste', $liste));
+        });
         $assignees = $users->map(function (User $user) use ($cartes) {
             $taches = $cartes
-                ->filter(fn ($carte) => $carte->membres->contains('id', $user->id))
-                ->map(fn ($carte) => [
+                ->filter(fn (ProjetCarte $carte) => $carte->membres->contains('id', $user->id) && ! $carte->isDone())
+                ->map(fn (ProjetCarte $carte) => [
                     'id' => $carte->id,
                     'titre' => $carte->titre,
                 ])

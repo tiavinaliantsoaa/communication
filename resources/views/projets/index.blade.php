@@ -89,7 +89,7 @@
                                     x-text="tache.titre"
                                 ></button>
                             </template>
-                            <p x-show="!person.taches.length" class="px-3 py-2 text-xs text-slate-400">Aucune tâche assignée</p>
+                            <p x-show="!person.taches.length" class="px-3 py-2 text-xs text-slate-400">Aucune tâche en cours</p>
                         </div>
                     </div>
                 </div>
