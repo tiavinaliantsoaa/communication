@@ -20,24 +20,25 @@
         @php
             $isActive = fn($patterns) => collect((array)$patterns)->contains(fn($p) => request()->routeIs($p));
             $can = fn(string $perm) => auth()->user()?->canAccess($perm);
+            $show = fn(string $key) => \App\Support\NavbarMenu::visible($key);
         @endphp
 
         <div class="space-y-0.5">
-            @if($can('dashboard.view'))
+            @if($show('dashboard'))
             <a href="{{ route('dashboard') }}"
                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('dashboard') ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 Dashboard
             </a>
             @endif
-            @if($can('statistiques.view'))
+            @if($show('statistiques'))
             <a href="{{ route('statistiques') }}"
                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('statistiques') ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
                 Statistiques
             </a>
             @endif
-            @if($can('activite.view'))
+            @if($show('activite'))
             <a href="{{ route('activite.index') }}"
                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('activite.*') ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -48,11 +49,11 @@
 
         @php
             $budgetItems = array_filter([
-                $can('budget_annuel.view') ? ['route' => 'budget-annuels.index', 'label' => 'Budget annuel', 'icon' => 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z'] : null,
-                $can('budget_mensuel.view') ? ['route' => 'budgets.index', 'label' => 'Budget mensuel', 'icon' => 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z'] : null,
-                $can('depenses.view') ? ['route' => 'depenses.index', 'label' => 'Dépenses', 'icon' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'] : null,
-                $can('fournisseurs.view') ? ['route' => 'fournisseurs.index', 'label' => 'Fournisseurs', 'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'] : null,
-                $can('gestion_projet.view') ? ['route' => 'gestion-projet.index', 'label' => 'Gestion de projet', 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', 'active' => 'gestion-projet.*'] : null,
+                $show('budget_annuel') ? ['route' => 'budget-annuels.index', 'label' => 'Budget annuel', 'icon' => 'M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z'] : null,
+                $show('budget_mensuel') ? ['route' => 'budgets.index', 'label' => 'Budget mensuel', 'icon' => 'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z'] : null,
+                $show('depenses') ? ['route' => 'depenses.index', 'label' => 'Dépenses', 'icon' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'] : null,
+                $show('fournisseurs') ? ['route' => 'fournisseurs.index', 'label' => 'Fournisseurs', 'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'] : null,
+                $show('gestion_projet') ? ['route' => 'gestion-projet.index', 'label' => 'Gestion de projet', 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', 'active' => 'gestion-projet.*'] : null,
             ]);
         @endphp
         @if(count($budgetItems))
@@ -72,9 +73,9 @@
 
         @php
             $campagneItems = array_filter([
-                $can('campagnes.view') ? ['route' => 'campagnes.index', 'label' => 'Campagnes (Boost FB)', 'icon' => 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z'] : null,
-                $can('calendrier_editorial.view') ? ['route' => 'calendrier-editorial', 'label' => 'Calendrier éditorial', 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'] : null,
-                $can('evenements.view') ? ['route' => 'evenements.index', 'label' => 'Événements', 'icon' => 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'] : null,
+                $show('campagnes') ? ['route' => 'campagnes.index', 'label' => 'Campagnes (Boost FB)', 'icon' => 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z'] : null,
+                $show('calendrier_editorial') ? ['route' => 'calendrier-editorial', 'label' => 'Calendrier éditorial', 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'] : null,
+                $show('evenements') ? ['route' => 'evenements.index', 'label' => 'Événements', 'icon' => 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'] : null,
             ]);
         @endphp
         @if(count($campagneItems))
@@ -92,7 +93,7 @@
         </div>
         @endif
 
-        @if($can('suivi_liens.view'))
+        @if($show('suivi_liens'))
         <div>
             <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Suivi de lien</p>
             <div class="space-y-0.5">
@@ -108,11 +109,11 @@
         @php
             $onAbandonedCandidate = isset($candidate) && $candidate instanceof \App\Models\CrmCandidate && $candidate->abandon;
             $crmItems = array_filter([
-                $can('crm.view') ? ['route' => 'crm.dashboard', 'label' => 'Tableau de bord', 'icon' => 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', 'active' => 'crm.dashboard'] : null,
-                $can('crm.view') ? ['route' => 'crm.candidats.index', 'label' => 'Candidats', 'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', 'is_active' => ! $onAbandonedCandidate && $isActive('crm.candidats.*')] : null,
-                $can('crm.view') ? ['route' => 'crm.abandons', 'label' => 'Abandon', 'icon' => 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', 'is_active' => $onAbandonedCandidate || $isActive('crm.abandons')] : null,
-                $can('crm.view') ? ['route' => 'crm.pipeline', 'label' => 'Pipeline', 'icon' => 'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2', 'active' => 'crm.pipeline'] : null,
-                $can('crm.view') ? ['route' => 'crm.export', 'label' => 'Export', 'icon' => 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4', 'active' => ['crm.export', 'crm.export.download']] : null,
+                $show('crm') ? ['route' => 'crm.dashboard', 'label' => 'Tableau de bord', 'icon' => 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', 'active' => 'crm.dashboard'] : null,
+                $show('crm') ? ['route' => 'crm.candidats.index', 'label' => 'Candidats', 'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', 'is_active' => ! $onAbandonedCandidate && $isActive('crm.candidats.*')] : null,
+                $show('crm') ? ['route' => 'crm.abandons', 'label' => 'Abandon', 'icon' => 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636', 'is_active' => $onAbandonedCandidate || $isActive('crm.abandons')] : null,
+                $show('crm') ? ['route' => 'crm.pipeline', 'label' => 'Pipeline', 'icon' => 'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2', 'active' => 'crm.pipeline'] : null,
+                $show('crm') ? ['route' => 'crm.export', 'label' => 'Export', 'icon' => 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4', 'active' => ['crm.export', 'crm.export.download']] : null,
             ]);
         @endphp
         @if(count($crmItems))
@@ -132,8 +133,8 @@
 
         @php
             $stockItems = array_filter([
-                $can('stocks.view') ? ['route' => 'stocks.index', 'label' => 'Stocks', 'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'] : null,
-                $can('stocks_mouvements.view') ? ['route' => 'stocks.mouvements.index', 'label' => 'Entrées / Sorties', 'icon' => 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'] : null,
+                $show('stocks') ? ['route' => 'stocks.index', 'label' => 'Stocks', 'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'] : null,
+                $show('stocks_mouvements') ? ['route' => 'stocks.mouvements.index', 'label' => 'Entrées / Sorties', 'icon' => 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'] : null,
             ]);
         @endphp
         @if(count($stockItems))
@@ -168,6 +169,7 @@
             @endif
             @if(auth()->user()?->isSuperAdmin())
             <a href="{{ route('acces.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-slate-400 hover:text-white hover:bg-slate-700/50">Gestion d’accès</a>
+            <a href="{{ route('navbar.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-slate-400 hover:text-white hover:bg-slate-700/50">Gestion liste navbar</a>
             @endif
             @if($can('parametres.systeme'))
             <a href="{{ route('parametres.systeme') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-slate-400 hover:text-white hover:bg-slate-700/50">Configuration système</a>

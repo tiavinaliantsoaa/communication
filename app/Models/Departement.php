@@ -27,6 +27,11 @@ class Departement extends Model
         return $this->hasMany(User::class);
     }
 
+    public function menus(): HasMany
+    {
+        return $this->hasMany(DepartementMenu::class);
+    }
+
     public function badgeClasses(): string
     {
         return match ($this->slug) {

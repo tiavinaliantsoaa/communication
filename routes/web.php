@@ -18,6 +18,7 @@ use App\Http\Controllers\DepenseController;
 use App\Http\Controllers\EvenementController;
 use App\Http\Controllers\FournisseurController;
 use App\Http\Controllers\LinkRedirectController;
+use App\Http\Controllers\NavbarMenuController;
 use App\Http\Controllers\NoteController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
@@ -39,7 +40,7 @@ Route::get('/l/{slug}', LinkRedirectController::class)
     ->where('slug', '[A-Za-z0-9\-_]+')
     ->name('liens.redirect');
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'departement.menu'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead'])->name('notifications.mark-read');
@@ -233,6 +234,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/parametres/systeme', fn () => view('pages.placeholder', ['title' => 'Configuration système', 'subtitle' => 'Paramètres de l\'application']))
         ->middleware('permission:parametres.systeme')
         ->name('parametres.systeme');
+
+    Route::prefix('navbar')->name('navbar.')->middleware('role:super_admin')->group(function () {
+        Route::get('/', [NavbarMenuController::class, 'index'])->name('index');
+        Route::put('/', [NavbarMenuController::class, 'update'])->name('update');
+    });
 
     Route::prefix('acces')->name('acces.')->middleware('role:super_admin')->group(function () {
         Route::get('/', [AccesController::class, 'index'])->name('index');

@@ -168,7 +168,7 @@ class User extends Authenticatable
      */
     public function homeRouteName(): string
     {
-        if ($this->canAccess('dashboard.view')) {
+        if ($this->canAccess('dashboard.view') && \App\Support\NavbarMenu::enabled($this->currentDepartementId(), 'dashboard')) {
             return 'dashboard';
         }
 
@@ -214,7 +214,13 @@ class User extends Authenticatable
             return true;
         }
 
-        return $this->canAccess($permission);
+        if (! $this->canAccess($permission)) {
+            return false;
+        }
+
+        $menuKey = \App\Support\NavbarMenu::keyForRoute($routeName);
+
+        return $menuKey === null || \App\Support\NavbarMenu::enabled($this->currentDepartementId(), $menuKey);
     }
 
     public function projetCartes(): BelongsToMany

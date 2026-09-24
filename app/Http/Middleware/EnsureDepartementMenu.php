@@ -1,0 +1,25 @@
+<?php
+
+namespace App\Http\Middleware;
+
+use App\Support\NavbarMenu;
+use Closure;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class EnsureDepartementMenu
+{
+    public function handle(Request $request, Closure $next): Response
+    {
+        $user = $request->user();
+        if (! $user) {
+            return $next($request);
+        }
+
+        if (! NavbarMenu::routeAllowed($user->currentDepartementId(), $request->route()?->getName())) {
+            abort(403, 'Cette section n’est pas disponible pour ce département.');
+        }
+
+        return $next($request);
+    }
+}

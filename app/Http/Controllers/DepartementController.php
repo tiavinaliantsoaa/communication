@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Departement;
 use App\Services\ActivityLogger;
+use App\Support\NavbarMenu;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -24,6 +25,7 @@ class DepartementController extends Controller
             'slug' => Departement::makeSlug($nom),
             'is_system' => false,
         ]);
+        NavbarMenu::enableAll($departement);
 
         app(ActivityLogger::class)->log(
             'user',
