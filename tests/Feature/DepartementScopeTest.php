@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CrmCandidate;
 use App\Models\Departement;
 use App\Models\Depense;
 use App\Models\TrackedLink;
@@ -147,5 +148,34 @@ class DepartementScopeTest extends TestCase
 
         $this->get(route('liens.redirect', $link->slug))
             ->assertRedirect('https://www.escm.mg/inscription');
+    }
+
+    public function test_crm_candidates_are_visible_to_every_department(): void
+    {
+        $communication = Departement::query()->where('slug', 'communication')->firstOrFail();
+        $commercial = Departement::query()->where('slug', 'commercial')->firstOrFail();
+        $commUser = User::factory()->create([
+            'role' => 'responsable_communication',
+            'departement_id' => $communication->id,
+            'password' => 'password',
+        ]);
+        $salesUser = User::factory()->create([
+            'role' => 'responsable_communication',
+            'departement_id' => $commercial->id,
+            'password' => 'password',
+        ]);
+
+        $this->actingAs($commUser);
+        $candidate = CrmCandidate::create([
+            'prenom' => 'Tiaray',
+            'nom' => 'Mahandy',
+            'programme' => 'B1',
+            'statut' => 'prospect',
+            'departement_id' => $communication->id,
+        ]);
+
+        $this->actingAs($salesUser);
+        $this->assertNotNull(CrmCandidate::query()->find($candidate->id));
+        $this->assertSame(1, CrmCandidate::query()->count());
     }
 }

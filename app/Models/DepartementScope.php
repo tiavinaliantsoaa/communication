@@ -55,14 +55,6 @@ class DepartementScope implements Scope
             'projet_commentaire_reactions',
             'projet_pieces_jointes',
             'projet_activites',
-            'crm_candidates',
-            'crm_notes',
-            'crm_activities',
-            'crm_intakes',
-            'crm_programmes',
-            'crm_document_types',
-            'crm_candidate_documents',
-            'crm_interactions',
             'activity_logs',
         ];
     }
@@ -95,14 +87,6 @@ class DepartementScope implements Scope
             ProjetCommentaireReaction::class,
             ProjetPieceJointe::class,
             ProjetActivite::class,
-            CrmCandidate::class,
-            CrmNote::class,
-            CrmActivity::class,
-            CrmIntake::class,
-            CrmProgramme::class,
-            CrmDocumentType::class,
-            CrmCandidateDocument::class,
-            CrmInteraction::class,
             ActivityLog::class,
         ];
     }
