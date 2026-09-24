@@ -345,10 +345,12 @@ class GlideImporter
             foreach (CrmCandidateDocument::query()->where('path', '!=', '')->cursor() as $doc) {
                 if (filled($doc->path)) {
                     Storage::disk('public')->delete($doc->path);
+                    Storage::disk('local')->delete($doc->path);
                 }
             }
 
             Storage::disk('public')->deleteDirectory('crm/documents');
+            Storage::disk('local')->deleteDirectory('crm/documents');
 
             CrmCandidate::query()->delete();
 

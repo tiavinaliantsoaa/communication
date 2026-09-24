@@ -1306,13 +1306,15 @@ function projetBoard() {
         },
 
         formatCommentHtml(text) {
-            let escaped = String(text || '')
+            const escaped = String(text || '')
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;');
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
 
-            escaped = escaped.replace(
-                /(https?:\/\/[^\s<]+|www\.[^\s<]+)/gi,
+            const withLinks = escaped.replace(
+                /(?:https?:\/\/|www\.)[^\s<]+/gi,
                 (raw) => {
                     let url = raw;
                     let trailing = '';
@@ -1323,11 +1325,12 @@ function projetBoard() {
                     }
                     if (!url) return raw;
                     const href = /^https?:\/\//i.test(url) ? url : 'https://' + url;
+                    if (!/^https?:\/\//i.test(href)) return raw;
                     return '<a href="' + href + '" target="_blank" rel="noopener noreferrer" class="text-escm-primary underline break-words hover:opacity-80">' + url + '</a>' + trailing;
                 }
             );
 
-            return escaped.replace(
+            return withLinks.replace(
                 /@([a-zA-Z0-9._-]+)/g,
                 '<span class="font-semibold text-escm-primary">@$1</span>'
             );

@@ -15,6 +15,7 @@ use App\Models\ProjetTableau;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\ProjetNotificationService;
+use App\Support\PrivateFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -102,11 +103,14 @@ class ProjetController extends Controller
     {
         $data = $request->validate([
             'ordered_ids' => ['required', 'array'],
-            'ordered_ids.*' => ['integer', 'exists:projet_listes,id'],
+            'ordered_ids.*' => ['integer'],
         ]);
 
+        $ids = array_values(array_unique(array_map('intval', $data['ordered_ids'])));
+        abort_unless(ProjetListe::query()->whereIn('id', $ids)->count() === count($ids), 404);
+
         foreach ($data['ordered_ids'] as $index => $id) {
-            ProjetListe::where('id', $id)->update(['position' => $index]);
+            ProjetListe::query()->whereKey($id)->update(['position' => $index]);
         }
 
         return response()->json(['ok' => true]);
@@ -191,10 +195,10 @@ class ProjetController extends Controller
     {
         $data = $request->validate([
             'titre' => ['required', 'string', 'max:255'],
-            'projet_liste_id' => ['required', 'exists:projet_listes,id'],
+            'projet_liste_id' => ['required', 'integer'],
         ]);
 
-        $liste = ProjetListe::findOrFail($data['projet_liste_id']);
+        $liste = ProjetListe::query()->findOrFail($data['projet_liste_id']);
         $position = (int) ProjetCarte::where('projet_liste_id', $liste->id)->max('position') + 1;
 
         $carte = ProjetCarte::create([
@@ -288,10 +292,14 @@ class ProjetController extends Controller
         $data = $request->validate([
             'titre' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'projet_liste_id' => ['sometimes', 'exists:projet_listes,id'],
+            'projet_liste_id' => ['sometimes', 'integer'],
             'date_debut' => ['nullable', 'date'],
             'date_fin' => ['nullable', 'date'],
         ]);
+
+        if (isset($data['projet_liste_id'])) {
+            ProjetListe::query()->findOrFail($data['projet_liste_id']);
+        }
 
         $oldListeId = $projet->projet_liste_id;
         $projet->update($data);
@@ -343,18 +351,20 @@ class ProjetController extends Controller
     public function move(Request $request)
     {
         $data = $request->validate([
-            'carte_id' => ['required', 'exists:projet_cartes,id'],
-            'projet_liste_id' => ['required', 'exists:projet_listes,id'],
+            'carte_id' => ['required', 'integer'],
+            'projet_liste_id' => ['required', 'integer'],
             'ordered_ids' => ['required', 'array'],
-            'ordered_ids.*' => ['integer', 'exists:projet_cartes,id'],
+            'ordered_ids.*' => ['integer'],
         ]);
 
-        $carte = ProjetCarte::findOrFail($data['carte_id']);
+        $carte = ProjetCarte::query()->findOrFail($data['carte_id']);
         $oldListeId = $carte->projet_liste_id;
-        $liste = ProjetListe::findOrFail($data['projet_liste_id']);
+        $liste = ProjetListe::query()->findOrFail($data['projet_liste_id']);
+        $ids = array_values(array_unique(array_map('intval', $data['ordered_ids'])));
+        abort_unless(ProjetCarte::query()->whereIn('id', $ids)->count() === count($ids), 404);
 
         foreach ($data['ordered_ids'] as $index => $id) {
-            ProjetCarte::where('id', $id)->update([
+            ProjetCarte::query()->whereKey($id)->update([
                 'projet_liste_id' => $liste->id,
                 'position' => $index,
             ]);
@@ -821,7 +831,7 @@ class ProjetController extends Controller
     public function storePieceJointe(Request $request, ProjetCarte $projet)
     {
         $data = $request->validate([
-            'fichier' => ['nullable', 'file', 'max:10240'],
+            'fichier' => ['nullable', 'file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,webp,gif,doc,docx,xls,xlsx,ppt,pptx,txt,csv'],
             'url' => ['nullable', 'url', 'max:500'],
             'nom' => ['nullable', 'string', 'max:255'],
         ]);
@@ -835,7 +845,7 @@ class ProjetController extends Controller
 
         if ($request->hasFile('fichier')) {
             $file = $request->file('fichier');
-            $path = $file->store('projets/'.$projet->id, 'public');
+            $path = $file->store('projets/'.$projet->id, 'local');
             $nom = $nom ?: $file->getClientOriginalName();
         }
 
@@ -867,11 +877,16 @@ class ProjetController extends Controller
         ]);
     }
 
+    public function downloadPieceJointe(ProjetPieceJointe $piece)
+    {
+        abort_unless(filled($piece->path), 404);
+
+        return PrivateFile::download($piece->path, $piece->nom ?: 'piece-jointe');
+    }
+
     public function destroyPieceJointe(ProjetPieceJointe $piece)
     {
-        if ($piece->path) {
-            Storage::disk('public')->delete($piece->path);
-        }
+        PrivateFile::delete($piece->path);
         $piece->delete();
 
         return response()->json(['ok' => true]);

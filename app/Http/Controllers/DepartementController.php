@@ -42,6 +42,7 @@ class DepartementController extends Controller
 
     public function update(Request $request, Departement $departement)
     {
+        $this->assertOwnDepartement($request, $departement);
         $data = $request->validate([
             'nom' => ['required', 'string', 'max:100', Rule::unique('departements', 'nom')->ignore($departement->id)],
         ], [
@@ -66,6 +67,7 @@ class DepartementController extends Controller
 
     public function destroy(Request $request, Departement $departement)
     {
+        $this->assertOwnDepartement($request, $departement);
         if ($departement->is_system) {
             return back()->with('error', 'Les départements Communication, Commercial et Pédagogique ne peuvent pas être supprimés.');
         }
@@ -100,5 +102,15 @@ class DepartementController extends Controller
         session(['departement_actif_id' => (int) $data['departement_id']]);
 
         return back();
+    }
+
+    private function assertOwnDepartement(Request $request, Departement $departement): void
+    {
+        $user = $request->user();
+        if (! $user || $user->isSuperAdmin()) {
+            return;
+        }
+
+        abort_unless((int) $departement->id === (int) $user->currentDepartementId(), 403);
     }
 }

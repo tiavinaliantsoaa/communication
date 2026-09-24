@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
+use App\Support\PrivateFile;
 
 class CrmCandidateDocument extends Model
 {
@@ -42,7 +42,7 @@ class CrmCandidateDocument extends Model
     public function getUrlAttribute(): ?string
     {
         if (filled($this->path)) {
-            return Storage::disk('public')->url($this->path);
+            return route('crm.candidats.documents.download', [$this->crm_candidate_id, $this->id]);
         }
 
         if (filled($this->external_url)) {
@@ -61,7 +61,7 @@ class CrmCandidateDocument extends Model
     {
         static::deleting(function (self $doc) {
             if (filled($doc->path)) {
-                Storage::disk('public')->delete($doc->path);
+                PrivateFile::delete($doc->path);
             }
         });
     }

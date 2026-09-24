@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Facades\Storage;
 
 class ProjetPieceJointe extends Model
 {
@@ -29,7 +28,7 @@ class ProjetPieceJointe extends Model
         }
 
         if ($this->path) {
-            return Storage::disk('public')->url($this->path);
+            return route('gestion-projet.pieces.download', $this);
         }
 
         return null;

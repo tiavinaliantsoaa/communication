@@ -12,9 +12,9 @@ use App\Models\CrmProgramme;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\CrmActivityLogger;
+use App\Support\PrivateFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class CandidateController extends Controller
@@ -266,6 +266,14 @@ class CandidateController extends Controller
             ->with('success', 'Candidat marqué comme abandon.');
     }
 
+    public function downloadDocument(CrmCandidate $candidat, CrmCandidateDocument $document)
+    {
+        abort_unless((int) $document->crm_candidate_id === (int) $candidat->id, 404);
+        abort_unless(filled($document->path), 404);
+
+        return PrivateFile::download($document->path, $document->original_name ?: 'document');
+    }
+
     public function destroyDocument(CrmCandidate $candidat, CrmCandidateDocument $document)
     {
         abort_unless((int) $document->crm_candidate_id === (int) $candidat->id, 404);
@@ -477,11 +485,11 @@ class CandidateController extends Controller
                 continue;
             }
 
-            $path = $file->store('crm/documents/'.$candidate->id, 'public');
+            $path = $file->store('crm/documents/'.$candidate->id, 'local');
 
             $existing = $candidate->documents()->where('crm_document_type_id', $typeId)->first();
             if ($existing) {
-                Storage::disk('public')->delete($existing->path);
+                PrivateFile::delete($existing->path);
                 $existing->update([
                     'path' => $path,
                     'external_url' => null,

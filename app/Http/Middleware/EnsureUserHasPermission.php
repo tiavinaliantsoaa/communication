@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\AccessService;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,6 +22,11 @@ class EnsureUserHasPermission
 
         if ($user->isSuperAdmin()) {
             return $next($request);
+        }
+
+        if (! $user->permissions()->exists()) {
+            AccessService::bootstrap();
+            $user->unsetRelation('permissions');
         }
 
         if ($permissions === [] || $user->canAccessAny($permissions)) {

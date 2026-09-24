@@ -64,10 +64,10 @@ class ProjetApiController extends Controller
     {
         $data = $request->validate([
             'titre' => ['required', 'string', 'max:255'],
-            'projet_liste_id' => ['required', 'exists:projet_listes,id'],
+            'projet_liste_id' => ['required', 'integer'],
         ]);
 
-        $liste = ProjetListe::findOrFail($data['projet_liste_id']);
+        $liste = ProjetListe::query()->findOrFail($data['projet_liste_id']);
         $position = (int) ProjetCarte::where('projet_liste_id', $liste->id)->max('position') + 1;
 
         $carte = ProjetCarte::create([
@@ -92,10 +92,14 @@ class ProjetApiController extends Controller
         $data = $request->validate([
             'titre' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'projet_liste_id' => ['sometimes', 'exists:projet_listes,id'],
+            'projet_liste_id' => ['sometimes', 'integer'],
             'date_debut' => ['nullable', 'date'],
             'date_fin' => ['nullable', 'date'],
         ]);
+
+        if (isset($data['projet_liste_id'])) {
+            ProjetListe::query()->findOrFail($data['projet_liste_id']);
+        }
 
         $oldListeId = $projet->projet_liste_id;
         $projet->update($data);
@@ -116,18 +120,20 @@ class ProjetApiController extends Controller
     public function move(Request $request)
     {
         $data = $request->validate([
-            'carte_id' => ['required', 'exists:projet_cartes,id'],
-            'projet_liste_id' => ['required', 'exists:projet_listes,id'],
+            'carte_id' => ['required', 'integer'],
+            'projet_liste_id' => ['required', 'integer'],
             'ordered_ids' => ['required', 'array'],
-            'ordered_ids.*' => ['integer', 'exists:projet_cartes,id'],
+            'ordered_ids.*' => ['integer'],
         ]);
 
-        $carte = ProjetCarte::findOrFail($data['carte_id']);
+        $carte = ProjetCarte::query()->findOrFail($data['carte_id']);
         $oldListeId = $carte->projet_liste_id;
-        $liste = ProjetListe::findOrFail($data['projet_liste_id']);
+        $liste = ProjetListe::query()->findOrFail($data['projet_liste_id']);
+        $ids = array_values(array_unique(array_map('intval', $data['ordered_ids'])));
+        abort_unless(ProjetCarte::query()->whereIn('id', $ids)->count() === count($ids), 404);
 
         foreach ($data['ordered_ids'] as $index => $id) {
-            ProjetCarte::where('id', $id)->update([
+            ProjetCarte::query()->whereKey($id)->update([
                 'projet_liste_id' => $liste->id,
                 'position' => $index,
             ]);

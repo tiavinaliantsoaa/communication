@@ -28,6 +28,7 @@ use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockMouvementController;
 use App\Http\Controllers\TrackedLinkController;
 use App\Http\Controllers\UserController;
+use App\Support\ResourceRoutes;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -41,7 +42,9 @@ Route::get('/l/{slug}', LinkRedirectController::class)
     ->name('liens.redirect');
 
 Route::middleware(['auth', 'departement.menu'])->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index'])
+        ->middleware('permission:dashboard.view')
+        ->name('dashboard');
     Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead'])->name('notifications.mark-read');
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
@@ -53,21 +56,11 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         ->middleware('permission:activite.view')
         ->name('activite.index');
 
-    Route::middleware('permission:budget_annuel.view')->group(function () {
-        Route::resource('budget-annuels', BudgetAnnuelController::class)->except(['show']);
-    });
-    Route::middleware('permission:budget_mensuel.view')->group(function () {
-        Route::resource('budgets', BudgetController::class)->except(['show']);
-    });
-    Route::middleware('permission:depenses.view')->group(function () {
-        Route::resource('depenses', DepenseController::class)->except(['show']);
-    });
-    Route::middleware('permission:fournisseurs.view')->group(function () {
-        Route::resource('fournisseurs', FournisseurController::class)->except(['show']);
-    });
-    Route::middleware('permission:campagnes.view')->group(function () {
-        Route::resource('campagnes', CampagneController::class)->except(['show']);
-    });
+    ResourceRoutes::register('budget-annuels', BudgetAnnuelController::class, 'budget_annuel');
+    ResourceRoutes::register('budgets', BudgetController::class, 'budget_mensuel');
+    ResourceRoutes::register('depenses', DepenseController::class, 'depenses');
+    ResourceRoutes::register('fournisseurs', FournisseurController::class, 'fournisseurs');
+    ResourceRoutes::register('campagnes', CampagneController::class, 'campagnes');
     Route::middleware('permission:suivi_liens.view')->group(function () {
         Route::get('suivi-liens', [TrackedLinkController::class, 'index'])->name('suivi-liens.index');
         Route::get('suivi-liens/create', [TrackedLinkController::class, 'create'])
@@ -147,6 +140,7 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
             ->middleware('permission:crm.create')
             ->name('candidats.store');
         Route::get('/candidats/{candidat}', [CrmCandidateController::class, 'show'])->name('candidats.show');
+        Route::get('/candidats/{candidat}/documents/{document}/fichier', [CrmCandidateController::class, 'downloadDocument'])->name('candidats.documents.download');
         Route::get('/candidats/{candidat}/edit', [CrmCandidateController::class, 'edit'])
             ->middleware('permission:crm.update')
             ->name('candidats.edit');
@@ -177,57 +171,67 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
     });
 
     Route::prefix('stocks')->name('stocks.')->group(function () {
-        Route::middleware('permission:stocks_mouvements.view')->group(function () {
-            Route::resource('mouvements', StockMouvementController::class)
-                ->parameters(['mouvements' => 'mouvement'])
-                ->except(['show']);
-        });
+        ResourceRoutes::register('mouvements', StockMouvementController::class, 'stocks_mouvements', [
+            'parameters' => ['mouvements' => 'mouvement'],
+        ]);
     });
-    Route::middleware('permission:stocks.view')->group(function () {
-        Route::resource('stocks', StockController::class)->except(['show']);
-    });
+    ResourceRoutes::register('stocks', StockController::class, 'stocks');
 
     Route::middleware('permission:gestion_projet.view')->prefix('gestion-projet')->name('gestion-projet.')->group(function () {
         Route::get('/', [ProjetController::class, 'index'])->name('index');
-        Route::post('/listes', [ProjetController::class, 'storeListe'])->name('listes.store');
-        Route::post('/listes/reorder', [ProjetController::class, 'reorderListes'])->name('listes.reorder');
-        Route::patch('/listes/{liste}', [ProjetController::class, 'updateListe'])->name('listes.update');
-        Route::delete('/listes/{liste}', [ProjetController::class, 'destroyListe'])->name('listes.destroy');
-        Route::post('/background', [ProjetController::class, 'updateBackground'])->name('background');
-        Route::post('/cartes', [ProjetController::class, 'store'])->name('cartes.store');
         Route::get('/cartes/{projet}', [ProjetController::class, 'show'])->name('cartes.show');
-        Route::patch('/cartes/{projet}', [ProjetController::class, 'update'])->name('cartes.update');
-        Route::delete('/cartes/{projet}', [ProjetController::class, 'destroy'])->name('cartes.destroy');
-        Route::post('/move', [ProjetController::class, 'move'])->name('cartes.move');
-        Route::post('/cartes/{projet}/membres', [ProjetController::class, 'syncMembres'])->name('cartes.membres');
-        Route::post('/cartes/{projet}/etiquettes', [ProjetController::class, 'syncEtiquettes'])->name('cartes.etiquettes');
-        Route::post('/etiquettes', [ProjetController::class, 'storeEtiquette'])->name('etiquettes.store');
-        Route::post('/cartes/{projet}/checklists', [ProjetController::class, 'storeChecklist'])->name('cartes.checklists');
-        Route::delete('/checklists/{checklist}', [ProjetController::class, 'destroyChecklist'])->name('checklists.destroy');
-        Route::post('/checklists/{checklist}/items', [ProjetController::class, 'storeChecklistItem'])->name('checklists.items');
-        Route::patch('/checklist-items/{item}/toggle', [ProjetController::class, 'toggleChecklistItem'])->name('checklist-items.toggle');
-        Route::delete('/checklist-items/{item}', [ProjetController::class, 'destroyChecklistItem'])->name('checklist-items.destroy');
-        Route::post('/cartes/{projet}/commentaires', [ProjetController::class, 'storeCommentaire'])->name('cartes.commentaires');
-        Route::patch('/commentaires/{commentaire}', [ProjetController::class, 'updateCommentaire'])->name('commentaires.update');
-        Route::post('/commentaires/{commentaire}/reactions', [ProjetController::class, 'toggleCommentaireReaction'])->name('commentaires.reactions');
-        Route::delete('/commentaire-images/{image}', [ProjetController::class, 'destroyCommentaireImage'])->name('commentaire-images.destroy');
-        Route::post('/cartes/{projet}/pieces-jointes', [ProjetController::class, 'storePieceJointe'])->name('cartes.pieces');
-        Route::delete('/pieces-jointes/{piece}', [ProjetController::class, 'destroyPieceJointe'])->name('pieces.destroy');
+        Route::get('/pieces-jointes/{piece}/fichier', [ProjetController::class, 'downloadPieceJointe'])->name('pieces.download');
+
+        Route::middleware('permission:gestion_projet.create')->group(function () {
+            Route::post('/listes', [ProjetController::class, 'storeListe'])->name('listes.store');
+            Route::post('/cartes', [ProjetController::class, 'store'])->name('cartes.store');
+            Route::post('/etiquettes', [ProjetController::class, 'storeEtiquette'])->name('etiquettes.store');
+            Route::post('/cartes/{projet}/checklists', [ProjetController::class, 'storeChecklist'])->name('cartes.checklists');
+            Route::post('/checklists/{checklist}/items', [ProjetController::class, 'storeChecklistItem'])->name('checklists.items');
+            Route::post('/cartes/{projet}/commentaires', [ProjetController::class, 'storeCommentaire'])->name('cartes.commentaires');
+            Route::post('/cartes/{projet}/pieces-jointes', [ProjetController::class, 'storePieceJointe'])->name('cartes.pieces');
+        });
+
+        Route::middleware('permission:gestion_projet.update')->group(function () {
+            Route::post('/listes/reorder', [ProjetController::class, 'reorderListes'])->name('listes.reorder');
+            Route::patch('/listes/{liste}', [ProjetController::class, 'updateListe'])->name('listes.update');
+            Route::post('/background', [ProjetController::class, 'updateBackground'])->name('background');
+            Route::patch('/cartes/{projet}', [ProjetController::class, 'update'])->name('cartes.update');
+            Route::post('/move', [ProjetController::class, 'move'])->name('cartes.move');
+            Route::post('/cartes/{projet}/membres', [ProjetController::class, 'syncMembres'])->name('cartes.membres');
+            Route::post('/cartes/{projet}/etiquettes', [ProjetController::class, 'syncEtiquettes'])->name('cartes.etiquettes');
+            Route::patch('/checklist-items/{item}/toggle', [ProjetController::class, 'toggleChecklistItem'])->name('checklist-items.toggle');
+            Route::patch('/commentaires/{commentaire}', [ProjetController::class, 'updateCommentaire'])->name('commentaires.update');
+            Route::post('/commentaires/{commentaire}/reactions', [ProjetController::class, 'toggleCommentaireReaction'])->name('commentaires.reactions');
+        });
+
+        Route::middleware('permission:gestion_projet.delete')->group(function () {
+            Route::delete('/listes/{liste}', [ProjetController::class, 'destroyListe'])->name('listes.destroy');
+            Route::delete('/cartes/{projet}', [ProjetController::class, 'destroy'])->name('cartes.destroy');
+            Route::delete('/checklists/{checklist}', [ProjetController::class, 'destroyChecklist'])->name('checklists.destroy');
+            Route::delete('/checklist-items/{item}', [ProjetController::class, 'destroyChecklistItem'])->name('checklist-items.destroy');
+            Route::delete('/commentaire-images/{image}', [ProjetController::class, 'destroyCommentaireImage'])->name('commentaire-images.destroy');
+            Route::delete('/pieces-jointes/{piece}', [ProjetController::class, 'destroyPieceJointe'])->name('pieces.destroy');
+        });
     });
     Route::get('/validation-achats', function () {
         return redirect()->route('gestion-projet.index');
     });
 
-    Route::middleware('permission:evenements.view')->group(function () {
-        Route::resource('evenements', EvenementController::class)->except(['show']);
-    });
+    ResourceRoutes::register('evenements', EvenementController::class, 'evenements');
     Route::middleware('permission:calendrier_editorial.view')->group(function () {
         Route::get('/calendrier-editorial', [CalendrierEditorialController::class, 'index'])->name('calendrier-editorial');
         Route::get('/calendrier-editorial/search', [CalendrierEditorialController::class, 'search'])->name('calendrier-editorial.search');
-        Route::post('/calendrier-editorial', [CalendrierEditorialController::class, 'store'])->name('calendrier-editorial.store');
-        Route::put('/calendrier-editorial/{editorialEvent}', [CalendrierEditorialController::class, 'update'])->name('calendrier-editorial.update');
-        Route::delete('/calendrier-editorial/{editorialEvent}', [CalendrierEditorialController::class, 'destroy'])->name('calendrier-editorial.destroy');
     });
+    Route::post('/calendrier-editorial', [CalendrierEditorialController::class, 'store'])
+        ->middleware('permission:calendrier_editorial.create')
+        ->name('calendrier-editorial.store');
+    Route::put('/calendrier-editorial/{editorialEvent}', [CalendrierEditorialController::class, 'update'])
+        ->middleware('permission:calendrier_editorial.update')
+        ->name('calendrier-editorial.update');
+    Route::delete('/calendrier-editorial/{editorialEvent}', [CalendrierEditorialController::class, 'destroy'])
+        ->middleware('permission:calendrier_editorial.delete')
+        ->name('calendrier-editorial.destroy');
     Route::get('/statistiques', [StatistiqueController::class, 'index'])
         ->middleware('permission:statistiques.view')
         ->name('statistiques');
@@ -253,10 +257,19 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
     Route::post('/departement-actif', [DepartementController::class, 'switch'])->name('departement.switch');
 
     Route::middleware('permission:users.view')->group(function () {
+        Route::resource('users', UserController::class)->only(['index', 'show']);
+    });
+    Route::middleware('permission:users.create')->group(function () {
         Route::post('/departements', [DepartementController::class, 'store'])->name('departements.store');
+        Route::resource('users', UserController::class)->only(['create', 'store']);
+    });
+    Route::middleware('permission:users.update')->group(function () {
         Route::put('/departements/{departement}', [DepartementController::class, 'update'])->name('departements.update');
+        Route::resource('users', UserController::class)->only(['edit', 'update']);
+    });
+    Route::middleware('permission:users.delete')->group(function () {
         Route::delete('/departements/{departement}', [DepartementController::class, 'destroy'])->name('departements.destroy');
-        Route::resource('users', UserController::class);
+        Route::resource('users', UserController::class)->only(['destroy']);
     });
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
