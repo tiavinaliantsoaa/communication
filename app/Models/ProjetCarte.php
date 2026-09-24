@@ -144,13 +144,12 @@ class ProjetCarte extends Model
             return null;
         }
 
-        return ProjetListe::query()
-            ->where('projet_tableau_id', $tableauId)
-            ->where(function ($q) {
-                $q->where('slug', 'termine')
-                    ->orWhereRaw('LOWER(nom) = ?', ['terminé']);
-            })
-            ->first();
+        $tableau = $this->liste?->tableau ?? ProjetTableau::query()->find($tableauId);
+        if (! $tableau) {
+            return null;
+        }
+
+        return ProjetListe::ensureTermine($tableau);
     }
 
     /**

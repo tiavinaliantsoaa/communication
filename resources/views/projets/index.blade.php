@@ -127,7 +127,9 @@
                                 </button>
                                 <div x-show="open" @click.outside="open = false" x-cloak class="absolute right-0 mt-1 w-40 rounded-lg bg-white border border-slate-200 shadow-lg z-20 py-1">
                                     <button type="button" class="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50" @click="renameListe({{ $liste->id }}, @js($liste->nom)); open = false">Renommer</button>
+                                    @unless($liste->isTermine())
                                     <button type="button" class="w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-red-50" @click="deleteListe({{ $liste->id }}); open = false">Supprimer</button>
+                                    @endunless
                                 </div>
                             </div>
                         </div>

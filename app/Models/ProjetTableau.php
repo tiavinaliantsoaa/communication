@@ -28,6 +28,9 @@ class ProjetTableau extends Model
 
     public static function current(): self
     {
-        return static::query()->first() ?? static::create(['nom' => 'Communication']);
+        $tableau = static::query()->first() ?? static::create(['nom' => 'Communication']);
+        ProjetListe::ensureTermine($tableau);
+
+        return $tableau;
     }
 }

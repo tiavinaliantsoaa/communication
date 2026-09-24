@@ -129,6 +129,15 @@ class ProjetController extends Controller
 
     public function destroyListe(Request $request, ProjetListe $liste)
     {
+        if ($liste->isTermine()) {
+            $message = 'La liste Terminé ne peut pas être supprimée.';
+            if ($request->wantsJson()) {
+                return response()->json(['ok' => false, 'message' => $message], 422);
+            }
+
+            return back()->with('error', $message);
+        }
+
         if ($liste->cartes()->exists()) {
             if ($request->wantsJson()) {
                 return response()->json(['ok' => false, 'message' => 'Déplacez ou supprimez les cartes avant de supprimer la liste.'], 422);
