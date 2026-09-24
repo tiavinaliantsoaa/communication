@@ -63,12 +63,21 @@
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1.5">Catégorie</label>
+            <div class="mb-1.5 flex items-center justify-between gap-2">
+                <label class="block text-sm font-medium text-slate-700">Catégorie</label>
+                @if(auth()->user()?->canAccess('depenses.create'))
+                    <button type="button" @click="$dispatch('toggle-categorie')" class="text-xs font-semibold text-escm-primary hover:underline">Créer une catégorie</button>
+                @endif
+            </div>
             <select name="categorie" required class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
+                <option value="" disabled @selected(! old('categorie', session('categorie_creee', $depense?->categorie)))>Choisir…</option>
                 @foreach($categories as $value => $label)
-                    <option value="{{ $value }}" @selected(old('categorie', $depense?->categorie) === $value)>{{ $label }}</option>
+                    <option value="{{ $value }}" @selected(old('categorie', session('categorie_creee', $depense?->categorie)) === $value)>{{ $label }}</option>
                 @endforeach
             </select>
+            @if($categories === [])
+                <p class="mt-1 text-xs text-slate-500">Aucune catégorie pour ce département. Créez-en une.</p>
+            @endif
             @error('categorie')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
         </div>
         <div>

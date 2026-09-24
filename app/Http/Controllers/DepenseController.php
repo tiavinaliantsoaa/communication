@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Campagne;
 use App\Models\Depense;
+use App\Models\DepenseCategorie;
 use App\Models\Fournisseur;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
@@ -25,7 +26,7 @@ class DepenseController extends Controller
             'fournisseurs' => Fournisseur::orderBy('nom')->pluck('nom'),
             'campagnes' => Campagne::orderBy('nom')->pluck('nom'),
             'statuts' => Depense::statutsForUser(auth()->user()),
-            'categories' => Depense::CATEGORIES,
+            'categories' => DepenseCategorie::options(),
             'canApprove' => auth()->user()?->canApproveDepense() ?? false,
         ]);
     }
@@ -56,7 +57,7 @@ class DepenseController extends Controller
             'fournisseurs' => Fournisseur::orderBy('nom')->pluck('nom'),
             'campagnes' => Campagne::orderBy('nom')->pluck('nom'),
             'statuts' => Depense::statutsForUser(auth()->user()),
-            'categories' => Depense::CATEGORIES,
+            'categories' => DepenseCategorie::options(),
             'canApprove' => auth()->user()?->canApproveDepense() ?? false,
         ]);
     }
@@ -98,6 +99,30 @@ class DepenseController extends Controller
         return redirect()->route('depenses.index')->with('success', 'Dépense supprimée avec succès.');
     }
 
+    public function storeCategorie(Request $request)
+    {
+        $data = $request->validate([
+            'categorie_nom' => ['required', 'string', 'max:100'],
+        ], [
+            'categorie_nom.required' => 'Le nom de la catégorie est obligatoire.',
+        ]);
+
+        $nom = trim($data['categorie_nom']);
+        if (DepenseCategorie::query()->whereRaw('LOWER(nom) = ?', [mb_strtolower($nom)])->exists()) {
+            return back()->withErrors(['categorie_nom' => 'Cette catégorie existe déjà pour ce département.'])->withInput();
+        }
+
+        $categorie = DepenseCategorie::create([
+            'nom' => $nom,
+            'slug' => DepenseCategorie::makeSlug($nom),
+            'position' => (int) DepenseCategorie::query()->max('position') + 1,
+        ]);
+
+        return back()
+            ->with('success', 'Catégorie « '.$categorie->nom.' » créée.')
+            ->with('categorie_creee', $categorie->slug);
+    }
+
     private function validateDepense(Request $request, ?Depense $depense = null): array
     {
         $user = auth()->user();
@@ -114,7 +139,7 @@ class DepenseController extends Controller
             'campagne' => ['nullable', 'string', 'max:255'],
             'montant' => ['required', 'numeric', 'min:0'],
             'statut' => ['required', Rule::in($allowedStatuts)],
-            'categorie' => ['required', Rule::in(array_keys(Depense::CATEGORIES))],
+            'categorie' => ['required', Rule::in(array_keys(DepenseCategorie::options()))],
             'date_depense' => ['required', 'date'],
             'mode_paiement' => ['nullable', Rule::in(array_keys(Depense::MODES_PAIEMENT))],
             'reste_a_payer' => ['nullable', 'numeric', 'min:0'],

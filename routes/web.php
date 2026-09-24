@@ -59,6 +59,9 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
     ResourceRoutes::register('budget-annuels', BudgetAnnuelController::class, 'budget_annuel');
     ResourceRoutes::register('budgets', BudgetController::class, 'budget_mensuel');
     ResourceRoutes::register('depenses', DepenseController::class, 'depenses');
+    Route::post('depenses/categories', [DepenseController::class, 'storeCategorie'])
+        ->middleware('permission:depenses.create')
+        ->name('depenses.categories.store');
     ResourceRoutes::register('fournisseurs', FournisseurController::class, 'fournisseurs');
     ResourceRoutes::register('campagnes', CampagneController::class, 'campagnes');
     Route::middleware('permission:suivi_liens.view')->group(function () {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BudgetAnnuel;
 use App\Models\Campagne;
 use App\Models\Depense;
+use App\Models\DepenseCategorie;
 use App\Models\Stock;
 use App\Services\AlerteService;
 use App\Services\BudgetMensuelService;
@@ -130,20 +131,22 @@ class DashboardController extends Controller
 
     private function buildRepartitionChart($depensesMois, float $total): array
     {
-        $categories = [
-            'sponsoring_reseaux' => ['label' => 'Boost Facebook', 'color' => '#3b82f6'],
-            'production_contenu' => ['label' => 'Production contenu', 'color' => '#8b5cf6'],
-            'impression' => ['label' => 'Impression', 'color' => '#f97316'],
-            'goodies_evenements' => ['label' => 'Goodies / Événements', 'color' => '#22c55e'],
-        ];
+        $palette = ['#3b82f6', '#8b5cf6', '#f97316', '#22c55e', '#ec4899', '#14b8a6', '#eab308', '#64748b'];
+        $categories = DepenseCategorie::query()->orderBy('position')->orderBy('nom')->get();
+        if ($categories->isEmpty()) {
+            $categories = collect(Depense::CATEGORIES)->map(fn ($label, $slug) => (object) [
+                'slug' => $slug,
+                'nom' => $label,
+            ])->values();
+        }
 
         $data = [];
-        foreach ($categories as $key => $meta) {
-            $montant = (float) $depensesMois->where('categorie', $key)->sum('montant');
+        foreach ($categories as $index => $categorie) {
+            $montant = (float) $depensesMois->where('categorie', $categorie->slug)->sum('montant');
             $data[] = [
-                'label' => $meta['label'],
+                'label' => $categorie->nom,
                 'montant' => $montant,
-                'color' => $meta['color'],
+                'color' => $palette[$index % count($palette)],
                 'pct' => $total > 0 ? round(($montant / $total) * 100) : 0,
             ];
         }
