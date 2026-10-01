@@ -71,6 +71,19 @@
     <div id="crm-chart-funnel" class="h-72"></div>
 </div>
 
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
+    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 class="text-sm font-semibold text-slate-800">Inscrit par source</h3>
+        <select id="crm-inscrit-source-month" class="w-full sm:w-48 rounded-lg border-slate-300 text-sm text-slate-700 focus:border-escm-primary focus:ring-escm-primary">
+            <option value="all">Tous les mois</option>
+            @foreach($inscritSourceMonths as $month)
+                <option value="{{ $month['key'] }}">{{ $month['label'] }}</option>
+            @endforeach
+        </select>
+    </div>
+    <div id="crm-chart-inscrits-source" class="h-72"></div>
+</div>
+
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <h3 class="text-sm font-semibold text-slate-800 mb-4">Candidatures par conseiller</h3>
@@ -178,6 +191,25 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('crm-source-month')?.addEventListener('change', (event) => {
         const data = sourceSeriesByMonth[event.target.value] || sourceSeriesByMonth.all;
         sourceChart.updateSeries([{ name: 'Candidats', data }]);
+    });
+
+    const inscritSourceChart = new ApexCharts(document.querySelector('#crm-chart-inscrits-source'), {
+        chart: { type: 'bar', height: 288, toolbar: { show: false }, fontFamily: 'inherit' },
+        series: [{ name: 'Inscrits', data: @json($chartInscritsSource['series']) }],
+        plotOptions: { bar: { borderRadius: 6, columnWidth: '45%', distributed: true } },
+        colors: ['#2563eb','#0891b2','#f97316','#15803d','#64748b','#8b5cf6'],
+        xaxis: { categories: @json($chartInscritsSource['labels']), labels: { style: { fontSize: '11px' } } },
+        yaxis: { min: 0, forceNiceScale: true, labels: { style: { fontSize: '11px' } } },
+        legend: { show: false },
+        dataLabels: { enabled: true },
+        grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
+    });
+    inscritSourceChart.render();
+
+    const inscritSeriesByMonth = @json($inscritSeriesByMonth);
+    document.getElementById('crm-inscrit-source-month')?.addEventListener('change', (event) => {
+        const data = inscritSeriesByMonth[event.target.value] || inscritSeriesByMonth.all;
+        inscritSourceChart.updateSeries([{ name: 'Inscrits', data }]);
     });
 
     const horizontalBar = (el, labels, series, color) => {

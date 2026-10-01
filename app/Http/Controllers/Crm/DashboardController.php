@@ -61,6 +61,11 @@ class DashboardController extends Controller
         $sourceMonths = $sourceCounts['months'];
         $sourceSeriesByMonth = $sourceCounts['by_month'];
 
+        $inscritSourceCounts = $this->countsBySource('inscrit');
+        $chartInscritsSource = $this->sourceChart($inscritSourceCounts['all'], $inscritSourceCounts['labels']);
+        $inscritSourceMonths = $inscritSourceCounts['months'];
+        $inscritSeriesByMonth = $inscritSourceCounts['by_month'];
+
         $chartByAdvisor = $this->chartCountsByAdvisor(
             CrmCandidate::query()
                 ->select('advisor_id', DB::raw('COUNT(*) as total'))
@@ -115,6 +120,9 @@ class DashboardController extends Controller
             'chartFunnel',
             'sourceMonths',
             'sourceSeriesByMonth',
+            'chartInscritsSource',
+            'inscritSourceMonths',
+            'inscritSeriesByMonth',
             'chartByAdvisor',
             'chartInscritsByAdvisor',
             'chartByProgramme',
@@ -138,11 +146,15 @@ class DashboardController extends Controller
     /**
      * @return array{labels: list<array{key: string, label: string}>, all: \Illuminate\Support\Collection, months: list<array{key: string, label: string}>, by_month: array<string, list<int>>}
      */
-    private function countsBySource(): array
+    private function countsBySource(?string $statut = null): array
     {
-        $all = CrmCandidate::query()
+        $base = CrmCandidate::query()->where('abandon', false);
+        if ($statut) {
+            $base->where('statut', $statut);
+        }
+
+        $all = (clone $base)
             ->select('source', DB::raw('COUNT(*) as total'))
-            ->where('abandon', false)
             ->groupBy('source')
             ->pluck('total', 'source');
 
@@ -170,9 +182,8 @@ class DashboardController extends Controller
             : "DATE_FORMAT(created_at, '%Y-%m')";
 
         $from = now()->subMonths(11)->startOfMonth();
-        $rows = CrmCandidate::query()
+        $rows = (clone $base)
             ->select(DB::raw("{$ymExpr} as ym"), 'source', DB::raw('COUNT(*) as total'))
-            ->where('abandon', false)
             ->where('created_at', '>=', $from)
             ->groupBy(DB::raw($ymExpr), 'source')
             ->get();
