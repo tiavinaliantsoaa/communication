@@ -56,14 +56,31 @@ class DashboardController extends Controller
             'series' => collect(CrmCandidate::STATUTS)->map(fn ($label, $key) => (int) ($byStatus[$key] ?? 0))->values()->all(),
         ];
 
-        $funnelCounts = collect(CrmCandidate::FUNNEL_STATUTS)->mapWithKeys(function ($key) {
-            return [$key => CrmCandidate::where('abandon', false)->where('statut', $key)->count()];
-        });
+        $bySource = CrmCandidate::query()
+            ->select('source', DB::raw('COUNT(*) as total'))
+            ->where('abandon', false)
+            ->where('statut', 'prospect')
+            ->groupBy('source')
+            ->pluck('total', 'source');
 
         $chartFunnel = [
-            'labels' => collect(CrmCandidate::FUNNEL_STATUTS)->map(fn ($k) => CrmCandidate::STATUTS[$k])->values()->all(),
-            'series' => $funnelCounts->values()->all(),
+            'labels' => [],
+            'series' => [],
         ];
+        foreach (CrmCandidate::SOURCES as $key => $label) {
+            $chartFunnel['labels'][] = $label;
+            $chartFunnel['series'][] = (int) ($bySource[$key] ?? 0);
+            unset($bySource[$key]);
+        }
+        $unspecified = (int) ($bySource->pull(null) ?? 0) + (int) ($bySource->pull('') ?? 0);
+        foreach ($bySource as $key => $total) {
+            $chartFunnel['labels'][] = (string) $key;
+            $chartFunnel['series'][] = (int) $total;
+        }
+        if ($unspecified > 0) {
+            $chartFunnel['labels'][] = 'Non renseignée';
+            $chartFunnel['series'][] = $unspecified;
+        }
 
         $chartByAdvisor = $this->chartCountsByAdvisor(
             CrmCandidate::query()

@@ -1,6 +1,6 @@
 @php
     $title = 'Dépenses';
-    $subtitle = 'Liste des dépenses';
+    $subtitle = 'Dépenses de '.ucfirst(\App\Support\Periode::label());
 @endphp
 
 @extends('layouts.app')

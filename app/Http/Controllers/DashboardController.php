@@ -20,14 +20,7 @@ class DashboardController extends Controller
             return redirect()->to($request->user()->homeUrl());
         }
 
-        $annee = (int) $request->get('annee', now()->year);
-        $mois = (int) $request->get('mois', now()->month);
-        if ($mois < 1 || $mois > 12) {
-            $mois = (int) now()->month;
-        }
-        if ($annee < 2020 || $annee > 2100) {
-            $annee = (int) now()->year;
-        }
+        [$annee, $mois] = \App\Support\Periode::current();
 
         $snap = $budgetMensuel->forMonth($annee, $mois);
 

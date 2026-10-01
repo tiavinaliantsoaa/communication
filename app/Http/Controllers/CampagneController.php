@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Campagne;
 use App\Models\Depense;
 use App\Services\ActivityLogger;
+use App\Support\Periode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -13,9 +14,10 @@ class CampagneController extends Controller
 {
     public function index()
     {
-        $campagnes = Campagne::with('depense')
+        $campagnes = Periode::whereOverlaps(Campagne::with('depense'))
             ->orderByDesc('date_debut')
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         return view('campagnes.index', compact('campagnes'));
     }

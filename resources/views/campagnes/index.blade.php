@@ -1,6 +1,6 @@
 @php
     $title = 'Campagnes';
-    $subtitle = 'Boosts de publications Facebook';
+    $subtitle = 'Boosts Facebook — '.ucfirst(\App\Support\Periode::label());
 @endphp
 
 @extends('layouts.app')

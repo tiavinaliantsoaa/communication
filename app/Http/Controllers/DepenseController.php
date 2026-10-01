@@ -7,6 +7,7 @@ use App\Models\Depense;
 use App\Models\DepenseCategorie;
 use App\Models\Fournisseur;
 use App\Services\ActivityLogger;
+use App\Support\Periode;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -15,7 +16,10 @@ class DepenseController extends Controller
 {
     public function index()
     {
-        $depenses = Depense::orderByDesc('date_depense')->paginate(15);
+        $depenses = Periode::whereMonth(Depense::query(), 'date_depense')
+            ->orderByDesc('date_depense')
+            ->paginate(15)
+            ->withQueryString();
 
         return view('depenses.index', compact('depenses'));
     }

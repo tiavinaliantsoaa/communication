@@ -1,6 +1,6 @@
 @php
-    $pickerAnnee = (int) ($annee ?? request('annee', now()->year));
-    $pickerMois = (int) ($mois ?? request('mois', now()->month));
+    $pickerAnnee = (int) ($annee ?? \App\Support\Periode::current()[0]);
+    $pickerMois = (int) ($mois ?? \App\Support\Periode::current()[1]);
     if ($pickerMois < 1 || $pickerMois > 12) {
         $pickerMois = (int) now()->month;
     }
@@ -56,7 +56,11 @@
                     open: false,
                     annee: {{ $pickerAnnee }},
                     go(m) {
-                        window.location.href = @js(route('dashboard')) + '?annee=' + this.annee + '&mois=' + m;
+                        const url = new URL(window.location.href);
+                        url.searchParams.set('annee', this.annee);
+                        url.searchParams.set('mois', m);
+                        url.hash = '';
+                        window.location.href = url.toString();
                     }
                 }"
                 @keydown.escape.window="open = false"

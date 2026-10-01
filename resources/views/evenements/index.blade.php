@@ -1,6 +1,6 @@
 @php
     $title = 'Événements';
-    $subtitle = 'Salons étudiants, sorties de promotion, portes ouvertes…';
+    $subtitle = 'Événements — '.ucfirst(\App\Support\Periode::label());
 @endphp
 
 @extends('layouts.app')

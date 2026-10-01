@@ -15,8 +15,7 @@ class DashboardApiController extends Controller
 {
     public function __invoke(Request $request, AlerteService $alerteService, BudgetMensuelService $budgetMensuel)
     {
-        $annee = (int) $request->get('annee', now()->year);
-        $mois = (int) $request->get('mois', now()->month);
+        [$annee, $mois] = \App\Support\Periode::current();
 
         $snap = $budgetMensuel->forMonth($annee, $mois);
 

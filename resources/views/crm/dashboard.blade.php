@@ -59,7 +59,7 @@
 </div>
 
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
-    <h3 class="text-sm font-semibold text-slate-800 mb-4">Entonnoir de conversion</h3>
+    <h3 class="text-sm font-semibold text-slate-800 mb-4">Prospect par source</h3>
     <div id="crm-chart-funnel" class="h-72"></div>
 </div>
 
@@ -155,9 +155,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     new ApexCharts(document.querySelector('#crm-chart-funnel'), {
         chart: { type: 'bar', height: 288, toolbar: { show: false }, fontFamily: 'inherit' },
-        series: [{ name: 'Candidats', data: @json($chartFunnel['series']) }],
+        series: [{ name: 'Prospects', data: @json($chartFunnel['series']) }],
         plotOptions: { bar: { borderRadius: 6, columnWidth: '45%', distributed: true } },
-        colors: ['#64748b','#2563eb','#8b5cf6','#15803d'],
+        colors: ['#2563eb','#0891b2','#f97316','#15803d','#64748b','#8b5cf6'],
         xaxis: { categories: @json($chartFunnel['labels']), labels: { style: { fontSize: '11px' } } },
         yaxis: { min: 0, forceNiceScale: true, labels: { style: { fontSize: '11px' } } },
         legend: { show: false },

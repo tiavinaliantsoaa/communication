@@ -80,12 +80,7 @@ class AppServiceProvider extends ServiceProvider
                 return;
             }
 
-            $data = $view->getData();
-            $annee = (int) ($data['annee'] ?? request('annee', now()->year));
-            $mois = (int) ($data['mois'] ?? request('mois', now()->month));
-            if ($mois < 1 || $mois > 12) {
-                $mois = (int) now()->month;
-            }
+            [$annee, $mois] = \App\Support\Periode::current();
 
             $userId = auth()->id();
             $nbUnread = UserNotification::where('user_id', $userId)->unread()->count();
@@ -97,7 +92,7 @@ class AppServiceProvider extends ServiceProvider
                 'latestNotificationId' => $latestId,
                 'annee' => $annee,
                 'mois' => $mois,
-                'moisLabel' => $data['moisLabel'] ?? Carbon::create($annee, $mois, 1)->locale('fr')->isoFormat('MMMM YYYY'),
+                'moisLabel' => Carbon::create($annee, $mois, 1)->locale('fr')->isoFormat('MMMM YYYY'),
             ]);
         });
         View::composer('layouts.partials.sidebar', function () {

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Depense;
 use App\Models\Evenement;
 use App\Services\ActivityLogger;
+use App\Support\Periode;
 use App\Services\BudgetMensuelService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -15,9 +16,10 @@ class EvenementController extends Controller
 {
     public function index()
     {
-        $evenements = Evenement::with('depense')
+        $evenements = Periode::whereOverlaps(Evenement::with('depense'))
             ->orderByDesc('date_debut')
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
         return view('evenements.index', compact('evenements'));
     }
