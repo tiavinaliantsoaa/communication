@@ -59,7 +59,6 @@ class DashboardController extends Controller
         $bySource = CrmCandidate::query()
             ->select('source', DB::raw('COUNT(*) as total'))
             ->where('abandon', false)
-            ->where('statut', 'prospect')
             ->groupBy('source')
             ->pluck('total', 'source');
 
