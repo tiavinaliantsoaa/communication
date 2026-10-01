@@ -56,30 +56,10 @@ class DashboardController extends Controller
             'series' => collect(CrmCandidate::STATUTS)->map(fn ($label, $key) => (int) ($byStatus[$key] ?? 0))->values()->all(),
         ];
 
-        $bySource = CrmCandidate::query()
-            ->select('source', DB::raw('COUNT(*) as total'))
-            ->where('abandon', false)
-            ->groupBy('source')
-            ->pluck('total', 'source');
-
-        $chartFunnel = [
-            'labels' => [],
-            'series' => [],
-        ];
-        foreach (CrmCandidate::SOURCES as $key => $label) {
-            $chartFunnel['labels'][] = $label;
-            $chartFunnel['series'][] = (int) ($bySource[$key] ?? 0);
-            unset($bySource[$key]);
-        }
-        $unspecified = (int) ($bySource->pull(null) ?? 0) + (int) ($bySource->pull('') ?? 0);
-        foreach ($bySource as $key => $total) {
-            $chartFunnel['labels'][] = (string) $key;
-            $chartFunnel['series'][] = (int) $total;
-        }
-        if ($unspecified > 0) {
-            $chartFunnel['labels'][] = 'Non renseignée';
-            $chartFunnel['series'][] = $unspecified;
-        }
+        $sourceCounts = $this->countsBySource();
+        $chartFunnel = $this->sourceChart($sourceCounts['all'], $sourceCounts['labels']);
+        $sourceMonths = $sourceCounts['months'];
+        $sourceSeriesByMonth = $sourceCounts['by_month'];
 
         $chartByAdvisor = $this->chartCountsByAdvisor(
             CrmCandidate::query()
@@ -133,11 +113,94 @@ class DashboardController extends Controller
             'chartMonthly',
             'chartStatus',
             'chartFunnel',
+            'sourceMonths',
+            'sourceSeriesByMonth',
             'chartByAdvisor',
             'chartInscritsByAdvisor',
             'chartByProgramme',
             'recent'
         ));
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int|string, int|string>  $counts
+     * @param  list<array{key: string, label: string}>  $labels
+     * @return array{labels: list<string>, series: list<int>}
+     */
+    private function sourceChart($counts, array $labels): array
+    {
+        return [
+            'labels' => array_column($labels, 'label'),
+            'series' => array_map(fn (array $item) => (int) ($counts[$item['key']] ?? 0), $labels),
+        ];
+    }
+
+    /**
+     * @return array{labels: list<array{key: string, label: string}>, all: \Illuminate\Support\Collection, months: list<array{key: string, label: string}>, by_month: array<string, list<int>>}
+     */
+    private function countsBySource(): array
+    {
+        $all = CrmCandidate::query()
+            ->select('source', DB::raw('COUNT(*) as total'))
+            ->where('abandon', false)
+            ->groupBy('source')
+            ->pluck('total', 'source');
+
+        $labels = [];
+        foreach (CrmCandidate::SOURCES as $key => $label) {
+            $labels[] = ['key' => $key, 'label' => $label];
+        }
+
+        $extras = $all->keys()->filter(fn ($key) => $key !== null && $key !== '' && ! isset(CrmCandidate::SOURCES[$key]));
+        foreach ($extras as $key) {
+            $labels[] = ['key' => (string) $key, 'label' => (string) $key];
+        }
+        $labels[] = ['key' => '__empty', 'label' => 'Non renseignée'];
+
+        $normalized = collect();
+        foreach ($all as $key => $total) {
+            $source = ($key === null || $key === '') ? '__empty' : (string) $key;
+            $normalized[$source] = (int) ($normalized[$source] ?? 0) + (int) $total;
+        }
+        $all = $normalized;
+
+        $driver = DB::getDriverName();
+        $ymExpr = $driver === 'sqlite'
+            ? "strftime('%Y-%m', created_at)"
+            : "DATE_FORMAT(created_at, '%Y-%m')";
+
+        $from = now()->subMonths(11)->startOfMonth();
+        $rows = CrmCandidate::query()
+            ->select(DB::raw("{$ymExpr} as ym"), 'source', DB::raw('COUNT(*) as total'))
+            ->where('abandon', false)
+            ->where('created_at', '>=', $from)
+            ->groupBy(DB::raw($ymExpr), 'source')
+            ->get();
+
+        $months = collect(range(0, 11))->map(fn ($i) => now()->subMonths($i)->startOfMonth());
+        $byMonth = ['all' => $this->sourceChart($all, $labels)['series']];
+        $monthOptions = [];
+
+        foreach ($months as $month) {
+            $key = $month->format('Y-m');
+            $counts = $rows->where('ym', $key)->mapWithKeys(function ($row) {
+                $source = $row->source === null || $row->source === '' ? '__empty' : (string) $row->source;
+
+                return [$source => (int) $row->total];
+            });
+            $byMonth[$key] = $this->sourceChart($counts, $labels)['series'];
+            $monthOptions[] = [
+                'key' => $key,
+                'label' => ucfirst($month->locale('fr')->isoFormat('MMMM YYYY')),
+            ];
+        }
+
+        return [
+            'labels' => $labels,
+            'all' => $all,
+            'months' => $monthOptions,
+            'by_month' => $byMonth,
+        ];
     }
 
     /**

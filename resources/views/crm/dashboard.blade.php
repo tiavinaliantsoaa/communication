@@ -59,7 +59,15 @@
 </div>
 
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
-    <h3 class="text-sm font-semibold text-slate-800 mb-4">Prospect par source</h3>
+    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h3 class="text-sm font-semibold text-slate-800">Prospect par source</h3>
+        <select id="crm-source-month" class="w-full sm:w-48 rounded-lg border-slate-300 text-sm text-slate-700 focus:border-escm-primary focus:ring-escm-primary">
+            <option value="all">Tous les mois</option>
+            @foreach($sourceMonths as $month)
+                <option value="{{ $month['key'] }}">{{ $month['label'] }}</option>
+            @endforeach
+        </select>
+    </div>
     <div id="crm-chart-funnel" class="h-72"></div>
 </div>
 
@@ -153,7 +161,7 @@ document.addEventListener('DOMContentLoaded', function () {
         plotOptions: { pie: { donut: { size: '65%' } } },
     }).render();
 
-    new ApexCharts(document.querySelector('#crm-chart-funnel'), {
+    const sourceChart = new ApexCharts(document.querySelector('#crm-chart-funnel'), {
         chart: { type: 'bar', height: 288, toolbar: { show: false }, fontFamily: 'inherit' },
         series: [{ name: 'Candidats', data: @json($chartFunnel['series']) }],
         plotOptions: { bar: { borderRadius: 6, columnWidth: '45%', distributed: true } },
@@ -163,7 +171,14 @@ document.addEventListener('DOMContentLoaded', function () {
         legend: { show: false },
         dataLabels: { enabled: true },
         grid: { borderColor: '#e2e8f0', strokeDashArray: 4 },
-    }).render();
+    });
+    sourceChart.render();
+
+    const sourceSeriesByMonth = @json($sourceSeriesByMonth);
+    document.getElementById('crm-source-month')?.addEventListener('change', (event) => {
+        const data = sourceSeriesByMonth[event.target.value] || sourceSeriesByMonth.all;
+        sourceChart.updateSeries([{ name: 'Candidats', data }]);
+    });
 
     const horizontalBar = (el, labels, series, color) => {
         if (!el || !series.length) return;
