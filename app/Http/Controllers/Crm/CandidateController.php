@@ -44,6 +44,15 @@ class CandidateController extends Controller
             ->when($request->filled('statut'), fn ($q) => $q->where('statut', $request->statut))
             ->when($programmesFilter !== [], fn ($q) => $q->whereIn('programme', $programmesFilter))
             ->when($request->filled('advisor_id'), fn ($q) => $q->where('advisor_id', $request->advisor_id))
+            ->when($request->filled('source'), function ($q) use ($request) {
+                if ($request->source === '__empty') {
+                    $q->where(function ($inner) {
+                        $inner->whereNull('source')->orWhere('source', '');
+                    });
+                } else {
+                    $q->where('source', $request->source);
+                }
+            })
             ->orderBy('created_at', $sort)
             ->paginate(15)
             ->withQueryString();
@@ -62,12 +71,14 @@ class CandidateController extends Controller
             'advisors' => $advisors,
             'programmes' => $programmes,
             'statuts' => CrmCandidate::STATUTS,
+            'sources' => CrmCandidate::SOURCES,
             'abandonedOnly' => $abandonedOnly,
             'filters' => [
                 'q' => $request->input('q'),
                 'statut' => $request->input('statut'),
                 'programme' => $programmesFilter,
                 'advisor_id' => $request->input('advisor_id'),
+                'source' => $request->input('source'),
                 'sort' => $request->input('sort'),
             ],
         ]);

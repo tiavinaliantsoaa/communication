@@ -13,7 +13,7 @@
 @endif
 
 <form method="GET" action="{{ route($listRoute) }}" class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-6">
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
         <div class="lg:col-span-2">
             <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Recherche</label>
             <input type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Nom, téléphone, e-mail…"
@@ -66,6 +66,16 @@
                 @foreach($advisors as $advisor)
                     <option value="{{ $advisor->id }}" @selected(($filters['advisor_id'] ?? '') == $advisor->id)>{{ $advisor->name }}</option>
                 @endforeach
+            </select>
+        </div>
+        <div>
+            <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">Source</label>
+            <select name="source" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                <option value="">Toutes</option>
+                @foreach($sources as $key => $label)
+                    <option value="{{ $key }}" @selected(($filters['source'] ?? '') === $key)>{{ $label }}</option>
+                @endforeach
+                <option value="__empty" @selected(($filters['source'] ?? '') === '__empty')>Non renseignée</option>
             </select>
         </div>
     </div>
