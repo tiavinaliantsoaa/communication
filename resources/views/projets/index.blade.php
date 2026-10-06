@@ -540,8 +540,16 @@
                                 <div class="space-y-2">
                                     <template x-for="p in card.pieces_jointes" :key="p.id">
                                         <div class="flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2">
-                                            <a :href="p.url" target="_blank" class="text-sm text-escm-primary hover:underline truncate" x-text="p.nom"></a>
-                                            <button type="button" class="text-slate-400 hover:text-red-600 text-sm" @click="removePiece(p)">Suppr.</button>
+                                            <span class="text-sm text-slate-800 truncate" x-text="p.nom"></span>
+                                            <div class="flex items-center gap-1 shrink-0">
+                                                <button type="button" class="p-1.5 rounded text-slate-400 hover:text-escm-primary hover:bg-blue-50" title="Aperçu" @click="openPiecePreview(p)">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                                </button>
+                                                <a :href="p.download_url || p.url" class="p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Télécharger" @click.stop>
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                                </a>
+                                                <button type="button" class="text-slate-400 hover:text-red-600 text-sm px-1" @click="removePiece(p)">Suppr.</button>
+                                            </div>
                                         </div>
                                     </template>
                                     <p x-show="!card.pieces_jointes.length" class="text-sm text-slate-400">Aucun fichier</p>
@@ -739,6 +747,58 @@
         </div>
     </div>
 
+    {{-- Aperçu pièce jointe --}}
+    <template x-teleport="body">
+        <div
+            x-show="piecePreview.open"
+            x-cloak
+            class="fixed inset-0 flex flex-col"
+            style="z-index: 99999;"
+            @keydown.escape.window="if (piecePreview.open) closePiecePreview()"
+        >
+            <div class="absolute inset-0 bg-black/80" @click="closePiecePreview()"></div>
+            <div class="relative z-10 flex flex-col h-full max-h-full pointer-events-none">
+                <div class="pointer-events-auto flex items-center gap-3 px-4 py-3 bg-slate-950 border-b border-white/15 shrink-0 shadow-lg">
+                    <p class="min-w-0 flex-1 text-sm font-semibold text-white truncate" x-text="piecePreview.nom || 'Pièce jointe'"></p>
+                    <a
+                        x-show="piecePreview.download_url"
+                        :href="piecePreview.download_url"
+                        class="inline-flex items-center gap-1.5 shrink-0 rounded-lg bg-sky-500 hover:bg-sky-400 px-3.5 py-2 text-xs font-bold text-white shadow"
+                        @click.stop
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        Télécharger
+                    </a>
+                    <button type="button" @click="closePiecePreview()" class="shrink-0 p-2 rounded-lg text-white hover:bg-white/10" title="Fermer">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+                <div class="pointer-events-auto relative flex-1 min-h-0 flex items-center justify-center p-4 sm:p-6" @click.self="closePiecePreview()">
+                    <template x-if="piecePreview.open && piecePreview.kind === 'image'">
+                        <img
+                            :src="piecePreview.url"
+                            :alt="piecePreview.nom"
+                            class="rounded-lg shadow-2xl object-contain bg-slate-900/40"
+                            style="max-height: 62vh; max-width: min(640px, 88vw);"
+                            @click.stop
+                        >
+                    </template>
+                    <template x-if="piecePreview.open && (piecePreview.kind === 'pdf' || piecePreview.kind === 'link')">
+                        <iframe
+                            :src="piecePreview.url"
+                            class="w-full max-w-4xl rounded-lg bg-white shadow-2xl"
+                            style="height: 70vh;"
+                            @click.stop
+                        ></iframe>
+                    </template>
+                    <p x-show="piecePreview.open && piecePreview.kind === 'file'" class="text-sm text-white/80 text-center max-w-sm">
+                        Aperçu indisponible pour ce type de fichier. Utilisez Télécharger.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </template>
+
     {{-- Lightbox images commentaire --}}
     <div
         x-show="commentLightbox.open"
@@ -811,6 +871,7 @@ function projetBoard() {
         reactionPickerFor: null,
         reactionEmojis: @json(\App\Models\ProjetCommentaireReaction::EMOJIS),
         commentLightbox: { open: false, url: '' },
+        piecePreview: { open: false, nom: '', url: '', download_url: '', kind: 'file' },
         attachUrl: '',
         availableLabels: @json($etiquettes->map->toBoardArray()->values()),
         mentionUsers: @json($mentionUsers ?? []),
@@ -1248,6 +1309,20 @@ function projetBoard() {
 
         closeCommentLightbox() {
             this.commentLightbox = { open: false, url: '' };
+        },
+
+        openPiecePreview(piece) {
+            this.piecePreview = {
+                open: true,
+                nom: piece.nom || 'Pièce jointe',
+                url: piece.preview_url || piece.url || '',
+                download_url: piece.download_url || piece.url || '',
+                kind: piece.kind || 'file',
+            };
+        },
+
+        closePiecePreview() {
+            this.piecePreview = { open: false, nom: '', url: '', download_url: '', kind: 'file' };
         },
 
         onCommentInput(event) {

@@ -184,6 +184,7 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
     Route::middleware('permission:gestion_projet.view')->prefix('gestion-projet')->name('gestion-projet.')->group(function () {
         Route::get('/', [ProjetController::class, 'index'])->name('index');
         Route::get('/cartes/{projet}', [ProjetController::class, 'show'])->name('cartes.show');
+        Route::get('/pieces-jointes/{piece}/apercu', [ProjetController::class, 'previewPieceJointe'])->name('pieces.preview');
         Route::get('/pieces-jointes/{piece}/fichier', [ProjetController::class, 'downloadPieceJointe'])->name('pieces.download');
 
         Route::middleware('permission:gestion_projet.create')->group(function () {

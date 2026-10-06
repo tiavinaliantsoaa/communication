@@ -273,11 +273,7 @@ class ProjetController extends Controller
                 ]),
             ]),
             'commentaires' => $projet->commentaires->map(fn ($c) => $this->serializeCommentaire($c)),
-            'pieces_jointes' => $projet->piecesJointes->map(fn ($p) => [
-                'id' => $p->id,
-                'nom' => $p->nom,
-                'url' => $p->public_url,
-            ]),
+            'pieces_jointes' => $projet->piecesJointes->map->toBoardArray()->values(),
             'activites' => $projet->activites->map(fn ($a) => [
                 'id' => $a->id,
                 'message' => $a->message,
@@ -869,12 +865,15 @@ class ProjetController extends Controller
 
         return response()->json([
             'ok' => true,
-            'piece' => [
-                'id' => $piece->id,
-                'nom' => $piece->nom,
-                'url' => $piece->public_url,
-            ],
+            'piece' => $piece->toBoardArray(),
         ]);
+    }
+
+    public function previewPieceJointe(ProjetPieceJointe $piece)
+    {
+        abort_unless(filled($piece->path), 404);
+
+        return PrivateFile::inline($piece->path, $piece->nom ?: 'piece-jointe');
     }
 
     public function downloadPieceJointe(ProjetPieceJointe $piece)

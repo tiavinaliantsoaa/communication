@@ -33,4 +33,37 @@ class ProjetPieceJointe extends Model
 
         return null;
     }
+
+    public function previewKind(): string
+    {
+        $name = strtolower((string) ($this->nom ?: $this->path ?: $this->url));
+        if (preg_match('/\.(jpe?g|png|gif|webp)(\?.*)?$/', $name)) {
+            return 'image';
+        }
+        if (preg_match('/\.pdf(\?.*)?$/', $name)) {
+            return 'pdf';
+        }
+        if ($this->url && ! $this->path) {
+            return 'link';
+        }
+
+        return 'file';
+    }
+
+    public function toBoardArray(): array
+    {
+        $kind = $this->previewKind();
+        $preview = $this->path
+            ? route('gestion-projet.pieces.preview', $this)
+            : $this->url;
+
+        return [
+            'id' => $this->id,
+            'nom' => $this->nom,
+            'url' => $this->public_url,
+            'preview_url' => $preview,
+            'download_url' => $this->path ? route('gestion-projet.pieces.download', $this) : $this->url,
+            'kind' => $kind,
+        ];
+    }
 }
