@@ -16,6 +16,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartementController;
 use App\Http\Controllers\DepenseController;
 use App\Http\Controllers\EvenementController;
+use App\Http\Controllers\EnseignantController;
 use App\Http\Controllers\FournisseurController;
 use App\Http\Controllers\LinkRedirectController;
 use App\Http\Controllers\NavbarMenuController;
@@ -238,6 +239,22 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
     Route::get('/statistiques', [StatistiqueController::class, 'index'])
         ->middleware('permission:statistiques.view')
         ->name('statistiques');
+
+    Route::middleware('permission:enseignants.create')->group(function () {
+        Route::get('enseignants/create', [EnseignantController::class, 'create'])->name('enseignants.create');
+        Route::post('enseignants', [EnseignantController::class, 'store'])->name('enseignants.store');
+    });
+    Route::middleware('permission:enseignants.view')->group(function () {
+        Route::get('enseignants', [EnseignantController::class, 'index'])->name('enseignants.index');
+        Route::get('enseignants/{enseignant}', [EnseignantController::class, 'show'])->name('enseignants.show');
+    });
+    Route::middleware('permission:enseignants.update')->group(function () {
+        Route::get('enseignants/{enseignant}/edit', [EnseignantController::class, 'edit'])->name('enseignants.edit');
+        Route::put('enseignants/{enseignant}', [EnseignantController::class, 'update'])->name('enseignants.update');
+    });
+    Route::delete('enseignants/{enseignant}', [EnseignantController::class, 'destroy'])
+        ->middleware('permission:enseignants.delete')
+        ->name('enseignants.destroy');
     Route::get('/parametres/systeme', fn () => view('pages.placeholder', ['title' => 'Configuration système', 'subtitle' => 'Paramètres de l\'application']))
         ->middleware('permission:parametres.systeme')
         ->name('parametres.systeme');

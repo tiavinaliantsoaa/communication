@@ -151,6 +151,19 @@
             </div>
         </div>
         @endif
+
+        @if($show('enseignants'))
+        <div>
+            <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">CV enseignant</p>
+            <div class="space-y-0.5">
+                <a href="{{ route('enseignants.index') }}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $isActive('enseignants.*') ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+                    Enseignants
+                </a>
+            </div>
+        </div>
+        @endif
     </nav>
 
     {{-- Paramètres footer --}}

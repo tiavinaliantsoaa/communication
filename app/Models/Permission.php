@@ -115,6 +115,12 @@ class Permission extends Model
                 'stocks_mouvements.update' => 'Modifier',
                 'stocks_mouvements.delete' => 'Supprimer',
             ],
+            'CV enseignant' => [
+                'enseignants.view' => 'Voir',
+                'enseignants.create' => 'Créer',
+                'enseignants.update' => 'Modifier',
+                'enseignants.delete' => 'Supprimer',
+            ],
             'Utilisateurs' => [
                 'users.view' => 'Voir',
                 'users.create' => 'Créer',

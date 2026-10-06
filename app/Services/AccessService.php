@@ -27,6 +27,7 @@ class AccessService
             'calendrier_editorial.view', 'calendrier_editorial.create', 'calendrier_editorial.update',
             'evenements.view', 'evenements.create', 'evenements.update',
             'stocks.view', 'stocks_mouvements.view',
+            'enseignants.view', 'enseignants.create', 'enseignants.update', 'enseignants.delete',
         ];
 
         $budget = [
@@ -51,6 +52,7 @@ class AccessService
             'stocks.view', 'stocks_mouvements.view',
             'suivi_liens.view',
             'crm.view',
+            'enseignants.view',
         ];
 
         return [

@@ -34,6 +34,7 @@ class NavbarMenu
             ['key' => 'crm', 'label' => 'CRM', 'group' => 'CRM', 'permission' => 'crm.view', 'routes' => ['crm.*']],
             ['key' => 'stocks', 'label' => 'Stocks', 'group' => 'Stock Marketing', 'permission' => 'stocks.view', 'routes' => ['stocks.index', 'stocks.create', 'stocks.store', 'stocks.edit', 'stocks.update', 'stocks.destroy']],
             ['key' => 'stocks_mouvements', 'label' => 'Entrées / Sorties', 'group' => 'Stock Marketing', 'permission' => 'stocks_mouvements.view', 'routes' => ['stocks.mouvements.*']],
+            ['key' => 'enseignants', 'label' => 'CV enseignant', 'group' => 'CV enseignant', 'permission' => 'enseignants.view', 'routes' => ['enseignants.*']],
         ];
     }
 

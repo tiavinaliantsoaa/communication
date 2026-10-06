@@ -47,6 +47,7 @@ class Role extends Model
             'crm.export' => ['label' => 'CRM — Export', 'permission' => 'crm.view'],
             'stocks.index' => ['label' => 'Stocks', 'permission' => 'stocks.view'],
             'stocks.mouvements.index' => ['label' => 'Entrées / Sorties', 'permission' => 'stocks_mouvements.view'],
+            'enseignants.index' => ['label' => 'CV enseignant', 'permission' => 'enseignants.view'],
             'users.index' => ['label' => 'Utilisateurs', 'permission' => 'users.view'],
             'profile.edit' => ['label' => 'Profil', 'permission' => ''],
         ];
