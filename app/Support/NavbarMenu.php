@@ -20,7 +20,7 @@ class NavbarMenu
     {
         return [
             ['key' => 'dashboard', 'label' => 'Dashboard', 'group' => 'Général', 'permission' => 'dashboard.view', 'routes' => ['dashboard']],
-            ['key' => 'statistiques', 'label' => 'Statistiques', 'group' => 'Général', 'permission' => 'statistiques.view', 'routes' => ['statistiques']],
+            ['key' => 'discussions', 'label' => 'Discussion', 'group' => 'Général', 'permission' => 'discussions.view', 'routes' => ['discussions.*']],
             ['key' => 'activite', 'label' => 'Activité', 'group' => 'Général', 'permission' => 'activite.view', 'routes' => ['activite.*']],
             ['key' => 'budget_annuel', 'label' => 'Budget annuel', 'group' => 'Budget & Dépenses', 'permission' => 'budget_annuel.view', 'routes' => ['budget-annuels.*']],
             ['key' => 'budget_mensuel', 'label' => 'Budget mensuel', 'group' => 'Budget & Dépenses', 'permission' => 'budget_mensuel.view', 'routes' => ['budgets.*']],

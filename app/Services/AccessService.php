@@ -19,6 +19,7 @@ class AccessService
 
         $comm = [
             'dashboard.view',
+            'discussions.view',
             'statistiques.view',
             'gestion_projet.view', 'gestion_projet.create', 'gestion_projet.update',
             'campagnes.view', 'campagnes.create', 'campagnes.update',
@@ -32,6 +33,7 @@ class AccessService
 
         $budget = [
             'dashboard.view',
+            'discussions.view',
             'statistiques.view',
             'budget_annuel.view', 'budget_annuel.create', 'budget_annuel.update',
             'budget_mensuel.view', 'budget_mensuel.create', 'budget_mensuel.update',
@@ -46,6 +48,7 @@ class AccessService
 
         $stagiaire = [
             'dashboard.view',
+            'discussions.view',
             'gestion_projet.view', 'gestion_projet.create', 'gestion_projet.update',
             'calendrier_editorial.view', 'calendrier_editorial.create',
             'evenements.view',

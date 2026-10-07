@@ -29,6 +29,7 @@ class Role extends Model
     {
         return [
             'dashboard' => ['label' => 'Dashboard général', 'permission' => 'dashboard.view'],
+            'discussions.index' => ['label' => 'Discussion', 'permission' => 'discussions.view'],
             'statistiques' => ['label' => 'Statistiques', 'permission' => 'statistiques.view'],
             'activite.index' => ['label' => 'Activité', 'permission' => 'activite.view'],
             'budget-annuels.index' => ['label' => 'Budget annuel', 'permission' => 'budget_annuel.view'],

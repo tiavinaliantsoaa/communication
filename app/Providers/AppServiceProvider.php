@@ -110,6 +110,15 @@ class AppServiceProvider extends ServiceProvider
                         $user->load('permissions');
                     }
                 }
+
+                $unread = 0;
+                if (
+                    \Illuminate\Support\Facades\Schema::hasTable('discussion_groups')
+                    && \App\Support\NavbarMenu::visible('discussions')
+                ) {
+                    $unread = app(\App\Services\DiscussionService::class)->unreadTotal($user);
+                }
+                View::share('discussionUnread', $unread);
             } catch (\Throwable $e) {
                 // ignore during early migrate
             }

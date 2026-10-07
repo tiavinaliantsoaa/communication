@@ -236,6 +236,13 @@ class User extends Authenticatable
         return $initials !== '' ? $initials : '?';
     }
 
+    public function chatColor(): string
+    {
+        $colors = ['#e542a3', '#1fa855', '#53bdeb', '#7f66ff', '#ff8a3d', '#00a884', '#ff2e74', '#0063cb'];
+
+        return $colors[abs(crc32((string) $this->id)) % count($colors)];
+    }
+
     /**
      * Handle used for @mentions (part before @ in email, lowercased).
      */

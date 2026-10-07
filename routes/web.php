@@ -13,6 +13,7 @@ use App\Http\Controllers\Crm\ImportController as CrmImportController;
 use App\Http\Controllers\Crm\PipelineController as CrmPipelineController;
 use App\Http\Controllers\Crm\SettingsController as CrmSettingsController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DiscussionController;
 use App\Http\Controllers\DepartementController;
 use App\Http\Controllers\DepenseController;
 use App\Http\Controllers\EvenementController;
@@ -47,6 +48,16 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         ->middleware('permission:dashboard.view')
         ->name('dashboard');
     Route::get('/notifications/poll', [NotificationController::class, 'poll'])->name('notifications.poll');
+    Route::middleware('permission:discussions.view')->group(function () {
+        Route::get('/discussions/poll', [DiscussionController::class, 'poll'])->name('discussions.poll');
+        Route::get('/discussions/fichiers/{file}', [DiscussionController::class, 'showFile'])->name('discussions.files.show');
+        Route::get('/discussions', [DiscussionController::class, 'index'])->name('discussions.index');
+        Route::post('/discussions', [DiscussionController::class, 'store'])->name('discussions.store');
+        Route::get('/discussions/{group}/messages', [DiscussionController::class, 'messages'])->name('discussions.messages');
+        Route::post('/discussions/{group}/messages', [DiscussionController::class, 'storeMessage'])->name('discussions.messages.store');
+        Route::post('/discussions/{group}/membres', [DiscussionController::class, 'storeMembers'])->name('discussions.members.store');
+        Route::delete('/discussions/{group}/membres/{user}', [DiscussionController::class, 'destroyMember'])->name('discussions.members.destroy');
+    });
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead'])->name('notifications.mark-read');
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
     Route::delete('/notifications', [NotificationController::class, 'destroyAll'])->name('notifications.destroy-all');

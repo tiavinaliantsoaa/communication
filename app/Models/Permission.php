@@ -35,6 +35,9 @@ class Permission extends Model
             'Dashboard' => [
                 'dashboard.view' => 'Voir le dashboard',
             ],
+            'Discussion' => [
+                'discussions.view' => 'Voir les discussions',
+            ],
             'Statistiques' => [
                 'statistiques.view' => 'Voir les statistiques',
             ],
