@@ -277,12 +277,12 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
 
     Route::post('/departement-actif', [DepartementController::class, 'switch'])->name('departement.switch');
 
-    Route::middleware('permission:users.view')->group(function () {
-        Route::resource('users', UserController::class)->only(['index', 'show']);
-    });
     Route::middleware('permission:users.create')->group(function () {
         Route::post('/departements', [DepartementController::class, 'store'])->name('departements.store');
         Route::resource('users', UserController::class)->only(['create', 'store']);
+    });
+    Route::middleware('permission:users.view')->group(function () {
+        Route::resource('users', UserController::class)->only(['index', 'show']);
     });
     Route::middleware('permission:users.update')->group(function () {
         Route::put('/departements/{departement}', [DepartementController::class, 'update'])->name('departements.update');
