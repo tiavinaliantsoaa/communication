@@ -4,10 +4,12 @@ namespace App\Services;
 
 use App\Models\DiscussionGroup;
 use App\Models\DiscussionMessage;
+use App\Models\DiscussionMessageFile;
 use App\Models\User;
 use App\Support\PrivateFile;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -221,6 +223,35 @@ class DiscussionService
             'members' => $removingSelf ? [] : $this->memberPayload($group->unsetRelation('members'), $user),
             'messages' => $this->latestPresented($group, $user, 5),
         ];
+    }
+
+    /**
+     * @return array{ok: bool}
+     */
+    public function deleteGroup(User $user, DiscussionGroup $group): array
+    {
+        if ((int) $group->created_by !== (int) $user->id) {
+            abort(403, 'Seul l’administrateur du groupe peut le supprimer.');
+        }
+
+        $groupId = (int) $group->id;
+
+        DB::transaction(function () use ($group) {
+            $fileIds = DiscussionMessageFile::query()
+                ->whereIn('discussion_message_id', $group->messages()->select('id'))
+                ->pluck('id');
+
+            DiscussionMessageFile::query()
+                ->whereIn('id', $fileIds)
+                ->get()
+                ->each(fn (DiscussionMessageFile $file) => $file->delete());
+
+            $group->delete();
+        });
+
+        Storage::disk('local')->deleteDirectory('discussions/'.$groupId);
+
+        return ['ok' => true];
     }
 
     /**

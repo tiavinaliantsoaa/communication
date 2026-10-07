@@ -144,6 +144,11 @@ class DiscussionController extends Controller
         return response()->json($this->discussions->removeMember($request->user(), $group, $user));
     }
 
+    public function destroy(Request $request, DiscussionGroup $group)
+    {
+        return response()->json($this->discussions->deleteGroup($request->user(), $group));
+    }
+
     public function showFile(DiscussionMessageFile $file)
     {
         if ($file->isImage()) {

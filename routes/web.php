@@ -57,6 +57,7 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         Route::post('/discussions/{group}/messages', [DiscussionController::class, 'storeMessage'])->name('discussions.messages.store');
         Route::post('/discussions/{group}/membres', [DiscussionController::class, 'storeMembers'])->name('discussions.members.store');
         Route::delete('/discussions/{group}/membres/{user}', [DiscussionController::class, 'destroyMember'])->name('discussions.members.destroy');
+        Route::delete('/discussions/{group}', [DiscussionController::class, 'destroy'])->name('discussions.destroy');
     });
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead'])->name('notifications.mark-read');
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy'])->name('notifications.destroy');

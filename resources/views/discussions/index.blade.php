@@ -224,6 +224,12 @@
             </div>
             <p class="form-error" x-show="formError" x-text="formError"></p>
             <button type="button" class="primary" @click="addMembers" :disabled="addSelected.length === 0">Ajouter</button>
+            <button
+                type="button"
+                class="danger"
+                x-show="members.some(member => member.self && member.admin)"
+                @click="deleteGroup"
+            >Supprimer le groupe</button>
         </aside>
     </div>
 </div>
@@ -312,8 +318,11 @@
     .check { width: 1.15rem; height: 1.15rem; accent-color: #00a884; }
     .chips { display: flex; flex-wrap: wrap; gap: .35rem; padding: 0 .85rem .4rem; }
     .chip { border: 0; background: #e7fce3; color: #027d5d; border-radius: 999px; padding: .25rem .6rem; display: inline-flex; gap: .3rem; cursor: pointer; }
-    .primary { margin: .4rem 1rem 1rem; border: 0; border-radius: 999px; background: #00a884; color: #fff; font-weight: 700; padding: .7rem 1rem; cursor: pointer; }
+    .primary, .danger { margin: .4rem 1rem 1rem; border: 0; border-radius: 999px; font-weight: 700; padding: .7rem 1rem; cursor: pointer; }
+    .primary { background: #00a884; color: #fff; }
     .primary:disabled { opacity: .45; cursor: default; }
+    .danger { background: #fff; color: #c4352d; border: 1px solid #f0b4af; margin-top: 0; }
+    .danger:hover { background: #fff5f5; }
     .text-btn { border: 0; background: transparent; color: #c4352d; font-size: .75rem; font-weight: 700; cursor: pointer; }
     .disc-empty { padding: 1rem; color: #667781; font-size: .85rem; text-align: center; }
     .is-flash .bubble { animation: disc-flash 1.1s ease; }

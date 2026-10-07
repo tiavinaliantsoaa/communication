@@ -407,6 +407,39 @@ document.addEventListener('alpine:init', () => {
                 this.formError = 'Action impossible.';
             }
         },
+
+        async deleteGroup() {
+            if (!this.active || !this.members.some((member) => member.self && member.admin)) return;
+            if (!window.confirm('Supprimer ce groupe et tous ses messages ? Cette action est définitive.')) return;
+            this.formError = '';
+            try {
+                const res = await fetch(this.urls.base + '/' + this.active.id, {
+                    method: 'DELETE',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': this.csrf,
+                    },
+                    credentials: 'same-origin',
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    this.formError = firstError(data);
+                    return;
+                }
+                const deletedId = this.active.id;
+                this.groups = this.groups.filter((group) => group.id !== deletedId);
+                this.active = null;
+                this.messages = [];
+                this.members = [];
+                this.directory = [];
+                this.showInfo = false;
+                this.panel = 'list';
+                this.poll();
+            } catch (_) {
+                this.formError = 'Suppression impossible.';
+            }
+        },
     }));
 });
 

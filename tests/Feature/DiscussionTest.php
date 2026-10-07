@@ -153,6 +153,41 @@ class DiscussionTest extends TestCase
             ->assertJsonFragment(['body' => $author->name.' a ajouté '.$later->name]);
     }
 
+    public function test_only_the_group_admin_can_delete_the_group_and_its_files(): void
+    {
+        Storage::fake('local');
+        $author = $this->member('communication');
+        $guest = $this->member('communication', 'Invite');
+        $groupId = $this->groupId($author, $guest);
+
+        $this->actingAs($author)
+            ->postJson(route('discussions.messages.store', $groupId), [
+                'body' => 'Avec fichier',
+                'fichiers' => [UploadedFile::fake()->create('note.pdf', 20, 'application/pdf')],
+            ])
+            ->assertOk();
+
+        $this->assertTrue(
+            collect(Storage::disk('local')->allFiles('discussions/'.$groupId))->isNotEmpty()
+        );
+
+        $this->actingAs($guest)
+            ->deleteJson(route('discussions.destroy', $groupId))
+            ->assertForbidden();
+
+        $this->actingAs($author)
+            ->deleteJson(route('discussions.destroy', $groupId))
+            ->assertOk();
+
+        $this->assertDatabaseMissing('discussion_groups', ['id' => $groupId]);
+        $this->assertDatabaseMissing('discussion_messages', ['discussion_group_id' => $groupId]);
+        $this->assertSame([], Storage::disk('local')->allFiles('discussions/'.$groupId));
+
+        $this->actingAs($author)
+            ->getJson(route('discussions.messages', $groupId))
+            ->assertNotFound();
+    }
+
     private function member(string $slug, string $name = 'Auteur'): User
     {
         $user = User::factory()->create([
