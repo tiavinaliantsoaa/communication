@@ -100,6 +100,13 @@ class Permission extends Model
                 'calendrier_editorial.delete' => 'Supprimer',
                 'calendrier_editorial.validate' => 'Valider',
             ],
+            'Calendrier SAAN' => [
+                'calendrier_saan.view' => 'Voir',
+                'calendrier_saan.create' => 'Créer',
+                'calendrier_saan.update' => 'Modifier',
+                'calendrier_saan.delete' => 'Supprimer',
+                'calendrier_saan.validate' => 'Valider',
+            ],
             'Événements' => [
                 'evenements.view' => 'Voir',
                 'evenements.create' => 'Créer',

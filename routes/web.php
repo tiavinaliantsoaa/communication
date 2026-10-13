@@ -249,6 +249,20 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
     Route::delete('/calendrier-editorial/{editorialEvent}', [CalendrierEditorialController::class, 'destroy'])
         ->middleware('permission:calendrier_editorial.delete')
         ->name('calendrier-editorial.destroy');
+
+    Route::middleware('permission:calendrier_saan.view')->group(function () {
+        Route::get('/calendrier-saan', [CalendrierEditorialController::class, 'index'])->name('calendrier-saan');
+        Route::get('/calendrier-saan/search', [CalendrierEditorialController::class, 'search'])->name('calendrier-saan.search');
+    });
+    Route::post('/calendrier-saan', [CalendrierEditorialController::class, 'store'])
+        ->middleware('permission:calendrier_saan.create')
+        ->name('calendrier-saan.store');
+    Route::put('/calendrier-saan/{editorialEvent}', [CalendrierEditorialController::class, 'update'])
+        ->middleware('permission:calendrier_saan.update')
+        ->name('calendrier-saan.update');
+    Route::delete('/calendrier-saan/{editorialEvent}', [CalendrierEditorialController::class, 'destroy'])
+        ->middleware('permission:calendrier_saan.delete')
+        ->name('calendrier-saan.destroy');
     Route::get('/statistiques', [StatistiqueController::class, 'index'])
         ->middleware('permission:statistiques.view')
         ->name('statistiques');

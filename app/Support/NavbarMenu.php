@@ -29,6 +29,7 @@ class NavbarMenu
             ['key' => 'gestion_projet', 'label' => 'Gestion de projet', 'group' => 'Budget & Dépenses', 'permission' => 'gestion_projet.view', 'routes' => ['gestion-projet.*']],
             ['key' => 'campagnes', 'label' => 'Campagnes (Boost FB)', 'group' => 'Campagnes', 'permission' => 'campagnes.view', 'routes' => ['campagnes.*']],
             ['key' => 'calendrier_editorial', 'label' => 'Calendrier éditorial', 'group' => 'Campagnes', 'permission' => 'calendrier_editorial.view', 'routes' => ['calendrier-editorial', 'calendrier-editorial.*']],
+            ['key' => 'calendrier_saan', 'label' => 'Calendrier SAAN', 'group' => 'Campagnes', 'permission' => 'calendrier_saan.view', 'routes' => ['calendrier-saan', 'calendrier-saan.*']],
             ['key' => 'evenements', 'label' => 'Événements', 'group' => 'Campagnes', 'permission' => 'evenements.view', 'routes' => ['evenements.*']],
             ['key' => 'suivi_liens', 'label' => 'Suivi de lien', 'group' => 'Suivi de lien', 'permission' => 'suivi_liens.view', 'routes' => ['suivi-liens.*']],
             ['key' => 'crm', 'label' => 'CRM', 'group' => 'CRM', 'permission' => 'crm.view', 'routes' => ['crm.*']],

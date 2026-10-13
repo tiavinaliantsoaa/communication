@@ -39,6 +39,7 @@ class Role extends Model
             'gestion-projet.index' => ['label' => 'Gestion de projet', 'permission' => 'gestion_projet.view'],
             'campagnes.index' => ['label' => 'Campagnes (Boost FB)', 'permission' => 'campagnes.view'],
             'calendrier-editorial' => ['label' => 'Calendrier éditorial', 'permission' => 'calendrier_editorial.view'],
+            'calendrier-saan' => ['label' => 'Calendrier SAAN', 'permission' => 'calendrier_saan.view'],
             'evenements.index' => ['label' => 'Événements', 'permission' => 'evenements.view'],
             'suivi-liens.index' => ['label' => 'Suivi de lien', 'permission' => 'suivi_liens.view'],
             'crm.dashboard' => ['label' => 'CRM — Tableau de bord', 'permission' => 'crm.view'],

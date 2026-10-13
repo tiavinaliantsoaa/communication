@@ -11,7 +11,29 @@ class EditorialEvent extends Model
 {
     public const MAX_VISUELS = 10;
 
+    public const SERVICE_EDITORIAL = 'editorial';
+
+    public const SERVICE_SAAN = 'saan';
+
+    public const SERVICES = [
+        self::SERVICE_EDITORIAL => [
+            'label' => 'Calendrier éditorial',
+            'subtitle' => 'Planification des contenus et actions de communication',
+            'route_prefix' => 'calendrier-editorial',
+            'permission_prefix' => 'calendrier_editorial',
+            'module' => 'editorial',
+        ],
+        self::SERVICE_SAAN => [
+            'label' => 'Calendrier SAAN',
+            'subtitle' => 'Planification des contenus et actions SAAN',
+            'route_prefix' => 'calendrier-saan',
+            'permission_prefix' => 'calendrier_saan',
+            'module' => 'calendrier_saan',
+        ],
+    ];
+
     protected $fillable = [
+        'service',
         'titre',
         'categorie',
         'type_contenu',
@@ -51,6 +73,25 @@ class EditorialEvent extends Model
     public function visuels(): HasMany
     {
         return $this->hasMany(EditorialEventVisuel::class)->orderBy('position')->orderBy('id');
+    }
+
+    public function scopeForService($query, string $service)
+    {
+        return $query->where('service', $service);
+    }
+
+    public static function serviceMeta(string $service): array
+    {
+        return self::SERVICES[$service] ?? self::SERVICES[self::SERVICE_EDITORIAL];
+    }
+
+    public static function serviceFromRouteName(?string $routeName): string
+    {
+        if ($routeName && str_starts_with($routeName, 'calendrier-saan')) {
+            return self::SERVICE_SAAN;
+        }
+
+        return self::SERVICE_EDITORIAL;
     }
 
     protected function categorie(): Attribute

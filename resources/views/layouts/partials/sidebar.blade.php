@@ -78,7 +78,8 @@
         @php
             $campagneItems = array_filter([
                 $show('campagnes') ? ['route' => 'campagnes.index', 'label' => 'Campagnes (Boost FB)', 'icon' => 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z'] : null,
-                $show('calendrier_editorial') ? ['route' => 'calendrier-editorial', 'label' => 'Calendrier éditorial', 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'] : null,
+                $show('calendrier_editorial') ? ['route' => ['calendrier-editorial', 'calendrier-editorial.*'], 'href' => 'calendrier-editorial', 'label' => 'Calendrier éditorial', 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'] : null,
+                $show('calendrier_saan') ? ['route' => ['calendrier-saan', 'calendrier-saan.*'], 'href' => 'calendrier-saan', 'label' => 'Calendrier SAAN', 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'] : null,
                 $show('evenements') ? ['route' => 'evenements.index', 'label' => 'Événements', 'icon' => 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'] : null,
             ]);
         @endphp
@@ -87,7 +88,7 @@
             <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Campagnes</p>
             <div class="space-y-0.5">
                 @foreach($campagneItems as $item)
-                    <a href="{{ route($item['route']) }}"
+                    <a href="{{ route($item['href'] ?? $item['route']) }}"
                        class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $isActive($item['route']) ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
                         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $item['icon'] }}"/></svg>
                         {{ $item['label'] }}

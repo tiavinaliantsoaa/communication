@@ -1,6 +1,10 @@
 @php
     $title = $title ?? 'Calendrier éditorial';
     $subtitle = $subtitle ?? '';
+    $calendarLabel = $calendarLabel ?? $title;
+    $baseUrl = $baseUrl ?? route('calendrier-editorial');
+    $searchUrl = $searchUrl ?? route('calendrier-editorial.search');
+    $storeUrl = $storeUrl ?? route('calendrier-editorial.store');
 @endphp
 
 @extends('layouts.app')
@@ -20,9 +24,9 @@
         'typesContenu' => $typesContenu,
         'canValidate' => $canValidate,
         'maxVisuels' => $maxVisuels ?? 10,
-        'baseUrl' => route('calendrier-editorial'),
-        'searchUrl' => route('calendrier-editorial.search'),
-        'storeUrl' => route('calendrier-editorial.store'),
+        'baseUrl' => $baseUrl,
+        'searchUrl' => $searchUrl,
+        'storeUrl' => $storeUrl,
         'today' => now()->toDateString(),
         'openCreate' => $errors->any() && old('form_mode') !== 'edit',
         'openEdit' => $errors->any() && old('form_mode') === 'edit',
@@ -417,7 +421,7 @@
             <div class="flex items-start justify-between gap-3 mb-4">
                 <div>
                     <h3 class="text-base font-bold text-slate-900">Ajouter un contenu</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Planifier un élément dans le calendrier éditorial</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Planifier un élément dans le {{ strtolower($calendarLabel) }}</p>
                 </div>
                 <button type="button" @click="showCreate = false" class="p-1 rounded hover:bg-slate-100 text-slate-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
@@ -567,7 +571,7 @@
             <div class="flex items-start justify-between gap-3 mb-4">
                 <div>
                     <h3 class="text-base font-bold text-slate-900">Modifier le contenu</h3>
-                    <p class="text-xs text-slate-500 mt-0.5">Mettre à jour l'élément du calendrier éditorial</p>
+                    <p class="text-xs text-slate-500 mt-0.5">Mettre à jour l'élément du {{ strtolower($calendarLabel) }}</p>
                 </div>
                 <button type="button" @click="showEdit = false" class="p-1 rounded hover:bg-slate-100 text-slate-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>

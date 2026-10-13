@@ -16,6 +16,8 @@ class CalendrierEditorialController extends Controller
 {
     public function index(Request $request)
     {
+        $service = $this->resolveService($request);
+        $meta = EditorialEvent::serviceMeta($service);
         $view = $request->get('view', '2weeks');
         $date = $request->filled('date')
             ? Carbon::parse($request->get('date'))->startOfDay()
@@ -24,26 +26,28 @@ class CalendrierEditorialController extends Controller
         [$rangeStart, $rangeEnd] = $this->resolveRange($date, $view);
 
         $events = EditorialEvent::query()
+            ->forService($service)
             ->with('visuels')
             ->whereDate('date_debut', '<=', $rangeEnd)
             ->whereRaw('COALESCE(date_fin, date_debut) >= ?', [$rangeStart->toDateString()])
             ->orderBy('date_debut')
             ->get()
-            ->map(fn (EditorialEvent $event) => $this->mapEvent($event));
+            ->map(fn (EditorialEvent $event) => $this->mapEvent($event, $meta));
 
-        $categories = collect(EditorialEvent::CATEGORIES)->map(fn ($meta, $key) => [
+        $categories = collect(EditorialEvent::CATEGORIES)->map(fn ($catMeta, $key) => [
             'key' => $key,
-            'label' => $meta['label'],
-            'color_name' => $meta['color_name'],
-            'color' => $meta['color'],
+            'label' => $catMeta['label'],
+            'color_name' => $catMeta['color_name'],
+            'color' => $catMeta['color'],
         ])->values();
 
-        $title = 'Calendrier éditorial';
-        $subtitle = 'Planification des contenus et actions de communication';
+        $prefix = $meta['route_prefix'];
 
         return view('calendrier-editorial.index', [
-            'title' => $title,
-            'subtitle' => $subtitle,
+            'title' => $meta['label'],
+            'subtitle' => $meta['subtitle'],
+            'calendarLabel' => $meta['label'],
+            'service' => $service,
             'view' => $view,
             'currentDate' => $date->toDateString(),
             'rangeStart' => $rangeStart->toDateString(),
@@ -59,19 +63,24 @@ class CalendrierEditorialController extends Controller
                 'annule' => 'Annulé',
             ],
             'typesContenu' => EditorialEvent::TYPES_CONTENU,
-            'canValidate' => auth()->user()?->canValidateEditorial() ?? false,
+            'canValidate' => auth()->user()?->canValidateCalendar($service) ?? false,
             'maxVisuels' => EditorialEvent::MAX_VISUELS,
+            'baseUrl' => route($prefix),
+            'searchUrl' => route($prefix.'.search'),
+            'storeUrl' => route($prefix.'.store'),
         ]);
     }
 
     public function search(Request $request)
     {
+        $service = $this->resolveService($request);
         $q = trim((string) $request->get('q', ''));
         if ($q === '') {
             return response()->json(['matches' => []]);
         }
 
         $matches = EditorialEvent::query()
+            ->forService($service)
             ->where('titre', 'like', '%'.$q.'%')
             ->orderBy('date_debut')
             ->limit(100)
@@ -90,7 +99,9 @@ class CalendrierEditorialController extends Controller
 
     public function store(Request $request)
     {
-        $validated = $this->validateEvent($request);
+        $service = $this->resolveService($request);
+        $meta = EditorialEvent::serviceMeta($service);
+        $validated = $this->validateEvent($request, $service);
         $files = $this->validatedVisuelFiles($request);
         $categories = array_values($validated['categorie'] ?? []);
 
@@ -102,7 +113,7 @@ class CalendrierEditorialController extends Controller
 
         $created = [];
 
-        DB::transaction(function () use ($validated, $files, $categories, &$created) {
+        DB::transaction(function () use ($validated, $files, $categories, $service, &$created) {
             $storedVisuels = [];
             foreach ($files as $index => $file) {
                 $storedVisuels[] = [
@@ -114,6 +125,7 @@ class CalendrierEditorialController extends Controller
 
             foreach ($categories as $index => $category) {
                 $payload = $validated;
+                $payload['service'] = $service;
                 $payload['categorie'] = [$category];
 
                 $isFacebookFi = $category === 'facebook'
@@ -152,15 +164,16 @@ class CalendrierEditorialController extends Controller
 
         $first = $created[0];
         $count = count($created);
+        $prefix = $meta['route_prefix'];
 
         app(ActivityLogger::class)->log(
-            'editorial',
-            auth()->user()->name.' a ajouté « '.$first->titre.' » au calendrier éditorial'
+            $meta['module'],
+            auth()->user()->name.' a ajouté « '.$first->titre.' » au '.$meta['label']
                 .($count > 1 ? ' ('.$count.' catégories)' : ''),
             auth()->user(),
             'create',
-            'Calendrier éditorial',
-            route('calendrier-editorial', ['date' => $first->date_debut->toDateString()]),
+            $meta['label'],
+            route($prefix, ['date' => $first->date_debut->toDateString()]),
             $first
         );
 
@@ -168,13 +181,16 @@ class CalendrierEditorialController extends Controller
             ? $count.' contenus ajoutés (une entrée par catégorie).'
             : 'Contenu ajouté au calendrier.';
 
-        return $this->redirectToCalendar($request)
+        return $this->redirectToCalendar($request, $service)
             ->with('success', $message);
     }
 
     public function update(Request $request, EditorialEvent $editorialEvent)
     {
-        $validated = $this->validateEvent($request);
+        $service = $this->resolveService($request);
+        $this->assertEventService($editorialEvent, $service);
+        $meta = EditorialEvent::serviceMeta($service);
+        $validated = $this->validateEvent($request, $service);
         $files = $this->validatedVisuelFiles($request);
         $removeIds = array_values(array_filter(array_map('intval', (array) $request->input('remove_visuel_ids', []))));
 
@@ -193,7 +209,7 @@ class CalendrierEditorialController extends Controller
             $remaining = $editorialEvent->visuels->count();
             if ($remaining + count($files) > EditorialEvent::MAX_VISUELS) {
                 throw ValidationException::withMessages([
-                    'visuels' => 'Maximum '.EditorialEvent::MAX_VISUELS.' images au total ('. $remaining.' déjà présentes).',
+                    'visuels' => 'Maximum '.EditorialEvent::MAX_VISUELS.' images au total ('.$remaining.' déjà présentes).',
                 ]);
             }
 
@@ -202,40 +218,59 @@ class CalendrierEditorialController extends Controller
             $this->syncLegacyVisuelColumns($editorialEvent->fresh('visuels'));
         });
 
+        $prefix = $meta['route_prefix'];
+
         app(ActivityLogger::class)->log(
-            'editorial',
-            auth()->user()->name.' a modifié « '.$editorialEvent->titre.' » dans le calendrier éditorial',
+            $meta['module'],
+            auth()->user()->name.' a modifié « '.$editorialEvent->titre.' » dans le '.$meta['label'],
             auth()->user(),
             'update',
-            'Calendrier éditorial',
-            route('calendrier-editorial', ['date' => $editorialEvent->date_debut->toDateString()]),
+            $meta['label'],
+            route($prefix, ['date' => $editorialEvent->date_debut->toDateString()]),
             $editorialEvent
         );
 
-        return $this->redirectToCalendar($request)
+        return $this->redirectToCalendar($request, $service)
             ->with('success', 'Contenu mis à jour.');
     }
 
     public function destroy(Request $request, EditorialEvent $editorialEvent)
     {
+        $service = $this->resolveService($request);
+        $this->assertEventService($editorialEvent, $service);
+        $meta = EditorialEvent::serviceMeta($service);
         $titre = $editorialEvent->titre;
         $date = optional($editorialEvent->date_debut)->toDateString();
         $editorialEvent->delete();
 
+        $prefix = $meta['route_prefix'];
+
         app(ActivityLogger::class)->log(
-            'editorial',
-            auth()->user()->name.' a supprimé « '.$titre.' » du calendrier éditorial',
+            $meta['module'],
+            auth()->user()->name.' a supprimé « '.$titre.' » du '.$meta['label'],
             auth()->user(),
             'delete',
-            'Calendrier éditorial',
-            route('calendrier-editorial', ['date' => $date ?? now()->toDateString()])
+            $meta['label'],
+            route($prefix, ['date' => $date ?? now()->toDateString()])
         );
 
-        return $this->redirectToCalendar($request)
+        return $this->redirectToCalendar($request, $service)
             ->with('success', 'Contenu supprimé du calendrier.');
     }
 
-    private function validateEvent(Request $request): array
+    private function resolveService(Request $request): string
+    {
+        return EditorialEvent::serviceFromRouteName($request->route()?->getName());
+    }
+
+    private function assertEventService(EditorialEvent $event, string $service): void
+    {
+        if (($event->service ?: EditorialEvent::SERVICE_EDITORIAL) !== $service) {
+            abort(404);
+        }
+    }
+
+    private function validateEvent(Request $request, string $service): array
     {
         $categories = array_values(array_unique(array_filter((array) $request->input('categorie', []))));
         $request->merge(['categorie' => $categories]);
@@ -279,7 +314,7 @@ class CalendrierEditorialController extends Controller
 
         $validated['categorie'] = array_values(array_unique($validated['categorie']));
         $validated['booster'] = $isFacebookFi && $request->boolean('booster');
-        $validated['valide'] = auth()->user()?->canValidateEditorial()
+        $validated['valide'] = auth()->user()?->canValidateCalendar($service)
             ? $request->boolean('valide')
             : false;
 
@@ -339,21 +374,23 @@ class CalendrierEditorialController extends Controller
         ])->saveQuietly();
     }
 
-    private function redirectToCalendar(Request $request)
+    private function redirectToCalendar(Request $request, string $service)
     {
         $date = $request->input('return_date', $request->input('date_debut', now()->toDateString()));
         $view = $request->input('return_view', '2weeks');
+        $prefix = EditorialEvent::serviceMeta($service)['route_prefix'];
 
-        return redirect()->route('calendrier-editorial', [
+        return redirect()->route($prefix, [
             'date' => $date,
             'view' => $view,
         ]);
     }
 
-    private function mapEvent(EditorialEvent $event): array
+    private function mapEvent(EditorialEvent $event, array $meta): array
     {
-        $meta = $event->categorie_meta;
+        $catMeta = $event->categorie_meta;
         $visuels = $event->visuels->map->toArrayPayload()->values()->all();
+        $prefix = $meta['route_prefix'];
 
         return [
             'id' => $event->id,
@@ -361,8 +398,8 @@ class CalendrierEditorialController extends Controller
             'categorie' => $event->categorie,
             'categories' => $event->categories_meta,
             'label' => $event->categories_label,
-            'color' => $meta['color'],
-            'text' => $meta['text'],
+            'color' => $catMeta['color'],
+            'text' => $catMeta['text'],
             'type_contenu' => $event->type_contenu,
             'booster' => (bool) $event->booster,
             'date_debut' => $event->date_debut->toDateString(),
@@ -374,8 +411,8 @@ class CalendrierEditorialController extends Controller
             'visuels' => $visuels,
             'visuel_url' => $visuels[0]['url'] ?? $event->visuel_url,
             'visuel_nom' => $visuels[0]['nom'] ?? $event->visuel_nom,
-            'update_url' => route('calendrier-editorial.update', $event),
-            'delete_url' => route('calendrier-editorial.destroy', $event),
+            'update_url' => route($prefix.'.update', $event),
+            'delete_url' => route($prefix.'.destroy', $event),
         ];
     }
 

@@ -122,7 +122,14 @@ class User extends Authenticatable
 
     public function canValidateEditorial(): bool
     {
-        return $this->isSuperAdmin() || $this->canAccess('calendrier_editorial.validate');
+        return $this->canValidateCalendar(\App\Models\EditorialEvent::SERVICE_EDITORIAL);
+    }
+
+    public function canValidateCalendar(string $service = \App\Models\EditorialEvent::SERVICE_EDITORIAL): bool
+    {
+        $permission = \App\Models\EditorialEvent::serviceMeta($service)['permission_prefix'].'.validate';
+
+        return $this->isSuperAdmin() || $this->canAccess($permission);
     }
 
     public function canApproveDepense(): bool
