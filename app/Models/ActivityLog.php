@@ -10,8 +10,9 @@ class ActivityLog extends Model
 {
     public const MODULES = [
         'projet' => 'Gestion de projet',
-        'editorial' => 'Calendrier éditorial',
+        'editorial' => 'Calendrier ESCM',
         'calendrier_saan' => 'Calendrier SAAN',
+        'calendrier_krismasy' => 'Calendrier Krismasy',
         'evenement' => 'Événements',
         'depense' => 'Dépenses',
         'campagne' => 'Campagnes',
@@ -58,6 +59,7 @@ class ActivityLog extends Model
             'projet' => 'bg-sky-100 text-sky-800',
             'editorial' => 'bg-violet-100 text-violet-800',
             'calendrier_saan' => 'bg-fuchsia-100 text-fuchsia-800',
+            'calendrier_krismasy' => 'bg-rose-100 text-rose-800',
             'evenement' => 'bg-amber-100 text-amber-800',
             'depense' => 'bg-emerald-100 text-emerald-800',
             'campagne' => 'bg-blue-100 text-blue-800',

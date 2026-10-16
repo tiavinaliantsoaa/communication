@@ -93,7 +93,7 @@ class Permission extends Model
                 'crm.update' => 'Modifier',
                 'crm.delete' => 'Supprimer',
             ],
-            'Calendrier éditorial' => [
+            'Calendrier ESCM' => [
                 'calendrier_editorial.view' => 'Voir',
                 'calendrier_editorial.create' => 'Créer',
                 'calendrier_editorial.update' => 'Modifier',
@@ -106,6 +106,13 @@ class Permission extends Model
                 'calendrier_saan.update' => 'Modifier',
                 'calendrier_saan.delete' => 'Supprimer',
                 'calendrier_saan.validate' => 'Valider',
+            ],
+            'Calendrier Krismasy' => [
+                'calendrier_krismasy.view' => 'Voir',
+                'calendrier_krismasy.create' => 'Créer',
+                'calendrier_krismasy.update' => 'Modifier',
+                'calendrier_krismasy.delete' => 'Supprimer',
+                'calendrier_krismasy.validate' => 'Valider',
             ],
             'Événements' => [
                 'evenements.view' => 'Voir',

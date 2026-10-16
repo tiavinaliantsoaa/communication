@@ -263,6 +263,20 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
     Route::delete('/calendrier-saan/{editorialEvent}', [CalendrierEditorialController::class, 'destroy'])
         ->middleware('permission:calendrier_saan.delete')
         ->name('calendrier-saan.destroy');
+
+    Route::middleware('permission:calendrier_krismasy.view')->group(function () {
+        Route::get('/calendrier-krismasy', [CalendrierEditorialController::class, 'index'])->name('calendrier-krismasy');
+        Route::get('/calendrier-krismasy/search', [CalendrierEditorialController::class, 'search'])->name('calendrier-krismasy.search');
+    });
+    Route::post('/calendrier-krismasy', [CalendrierEditorialController::class, 'store'])
+        ->middleware('permission:calendrier_krismasy.create')
+        ->name('calendrier-krismasy.store');
+    Route::put('/calendrier-krismasy/{editorialEvent}', [CalendrierEditorialController::class, 'update'])
+        ->middleware('permission:calendrier_krismasy.update')
+        ->name('calendrier-krismasy.update');
+    Route::delete('/calendrier-krismasy/{editorialEvent}', [CalendrierEditorialController::class, 'destroy'])
+        ->middleware('permission:calendrier_krismasy.delete')
+        ->name('calendrier-krismasy.destroy');
     Route::get('/statistiques', [StatistiqueController::class, 'index'])
         ->middleware('permission:statistiques.view')
         ->name('statistiques');

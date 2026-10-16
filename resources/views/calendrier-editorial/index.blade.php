@@ -1,5 +1,5 @@
 @php
-    $title = $title ?? 'Calendrier éditorial';
+    $title = $title ?? 'Calendrier ESCM';
     $subtitle = $subtitle ?? '';
     $calendarLabel = $calendarLabel ?? $title;
     $baseUrl = $baseUrl ?? route('calendrier-editorial');

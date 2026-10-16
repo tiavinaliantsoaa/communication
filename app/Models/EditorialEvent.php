@@ -15,10 +15,12 @@ class EditorialEvent extends Model
 
     public const SERVICE_SAAN = 'saan';
 
+    public const SERVICE_KRISMASY = 'krismasy';
+
     public const SERVICES = [
         self::SERVICE_EDITORIAL => [
-            'label' => 'Calendrier éditorial',
-            'subtitle' => 'Planification des contenus et actions de communication',
+            'label' => 'Calendrier ESCM',
+            'subtitle' => 'Planification des contenus et actions de communication ESCM',
             'route_prefix' => 'calendrier-editorial',
             'permission_prefix' => 'calendrier_editorial',
             'module' => 'editorial',
@@ -29,6 +31,13 @@ class EditorialEvent extends Model
             'route_prefix' => 'calendrier-saan',
             'permission_prefix' => 'calendrier_saan',
             'module' => 'calendrier_saan',
+        ],
+        self::SERVICE_KRISMASY => [
+            'label' => 'Calendrier Krismasy',
+            'subtitle' => 'Planification des contenus et actions Krismasy',
+            'route_prefix' => 'calendrier-krismasy',
+            'permission_prefix' => 'calendrier_krismasy',
+            'module' => 'calendrier_krismasy',
         ],
     ];
 
@@ -87,8 +96,15 @@ class EditorialEvent extends Model
 
     public static function serviceFromRouteName(?string $routeName): string
     {
-        if ($routeName && str_starts_with($routeName, 'calendrier-saan')) {
-            return self::SERVICE_SAAN;
+        if (! $routeName) {
+            return self::SERVICE_EDITORIAL;
+        }
+
+        foreach (self::SERVICES as $service => $meta) {
+            $prefix = $meta['route_prefix'];
+            if ($routeName === $prefix || str_starts_with($routeName, $prefix.'.')) {
+                return $service;
+            }
         }
 
         return self::SERVICE_EDITORIAL;
