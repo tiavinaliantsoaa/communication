@@ -476,13 +476,15 @@
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Catégories <span class="text-red-500">*</span></label>
-                    <p class="text-xs text-slate-500 mb-2">Vous pouvez en sélectionner plusieurs.</p>
+                    <p class="text-xs text-slate-500 mb-2">Plusieurs catégories = plusieurs contenus séparés (même titre, texte et dates, une catégorie chacun).</p>
+                    <template x-for="key in form.categorie" :key="'create-cat-'+key">
+                        <input type="hidden" name="categorie[]" :value="key">
+                    </template>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                         @foreach($categories as $cat)
                             <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-2 text-sm text-slate-700 cursor-pointer hover:bg-slate-50">
                                 <input
                                     type="checkbox"
-                                    name="categorie[]"
                                     value="{{ $cat['key'] }}"
                                     :checked="form.categorie.includes('{{ $cat['key'] }}')"
                                     @change="toggleFormCategory('{{ $cat['key'] }}')"
@@ -493,6 +495,12 @@
                             </label>
                         @endforeach
                     </div>
+                    <p
+                        x-show="form.categorie.length > 1"
+                        x-cloak
+                        class="mt-2 text-xs font-medium text-escm-primary"
+                        x-text="form.categorie.length + ' contenus seront créés dans le calendrier (un par catégorie).'"
+                    ></p>
                 </div>
 
                 <div x-show="form.categorie.length" x-cloak>
@@ -633,18 +641,19 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Catégories <span class="text-red-500">*</span></label>
-                    <p class="text-xs text-slate-500 mb-2">Vous pouvez en sélectionner plusieurs.</p>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Catégorie <span class="text-red-500">*</span></label>
+                    <p class="text-xs text-slate-500 mb-2">Un contenu = une catégorie. Pour publier sur plusieurs canaux, créez plusieurs contenus.</p>
+                    <input type="hidden" name="categorie[]" :value="editForm.categorie[0] || ''">
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                         @foreach($categories as $cat)
                             <label class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-2.5 py-2 text-sm text-slate-700 cursor-pointer hover:bg-slate-50">
                                 <input
-                                    type="checkbox"
-                                    name="categorie[]"
+                                    type="radio"
+                                    name="edit_categorie_ui"
                                     value="{{ $cat['key'] }}"
-                                    :checked="editForm.categorie.includes('{{ $cat['key'] }}')"
-                                    @change="toggleEditCategory('{{ $cat['key'] }}')"
-                                    class="rounded border-slate-300 text-escm-primary focus:ring-escm-primary"
+                                    :checked="editForm.categorie[0] === '{{ $cat['key'] }}'"
+                                    @change="editForm.categorie = ['{{ $cat['key'] }}']; onEditCategoryOrTypeChange()"
+                                    class="border-slate-300 text-escm-primary focus:ring-escm-primary"
                                 >
                                 <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ $cat['color'] }}"></span>
                                 <span>{{ $cat['label'] }}</span>
@@ -1391,7 +1400,7 @@ function editorialCalendar(config) {
                 : (ev.categorie ? [ev.categorie] : ['facebook']);
             this.editForm = {
                 titre: ev.titre || '',
-                categorie: [...cats],
+                categorie: [cats[0] || 'facebook'],
                 type_contenu: ev.type_contenu || 'FI',
                 booster: !!ev.booster,
                 urgent: !!ev.urgent,

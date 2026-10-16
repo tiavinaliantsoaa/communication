@@ -231,6 +231,12 @@ class CrmCandidate extends Model
         return (bool) ($user ?? auth()->user())?->isSuperAdmin();
     }
 
+    /** Une fois créée, la source n’est modifiable que par un Super Admin. */
+    public function canEditSource(?User $user = null): bool
+    {
+        return (bool) ($user ?? auth()->user())?->isSuperAdmin();
+    }
+
     public function touchInteraction(): void
     {
         $this->forceFill(['last_interaction_at' => now()])->saveQuietly();

@@ -439,6 +439,13 @@ class CandidateController extends Controller
         $validated['paiement_acompte'] = $request->boolean('paiement_acompte');
         $validated['paiement_totalite'] = $request->boolean('paiement_totalite');
 
+        // Source verrouillée après création, sauf pour les Super Admin
+        if ($candidate && ! $candidate->canEditSource()) {
+            $validated['source'] = $candidate->source;
+            $validated['facebook_profil_url'] = $candidate->facebook_profil_url;
+            $validated['escm_tour_ville'] = $candidate->escm_tour_ville;
+        }
+
         if (($validated['source'] ?? null) !== 'facebook') {
             $validated['facebook_profil_url'] = null;
         }

@@ -213,6 +213,17 @@ class CalendrierEditorialController extends Controller
                 ]);
             }
 
+            // Un contenu édité = une seule catégorie
+            $categories = array_values($validated['categorie'] ?? []);
+            $validated['categorie'] = [$categories[0] ?? 'facebook'];
+
+            $isFacebookFi = ($validated['categorie'][0] ?? '') === 'facebook'
+                && ($validated['type_contenu'] ?? '') === 'FI';
+            if (! $isFacebookFi) {
+                $validated['booster'] = false;
+                $validated['date_fin'] = $validated['date_fin'] ?? null;
+            }
+
             $editorialEvent->update($validated);
             $this->storeVisuelFiles($editorialEvent, $files, $remaining);
             $this->syncLegacyVisuelColumns($editorialEvent->fresh('visuels'));

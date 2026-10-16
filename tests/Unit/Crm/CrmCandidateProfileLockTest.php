@@ -34,4 +34,20 @@ class CrmCandidateProfileLockTest extends TestCase
         $this->assertFalse($candidate->isProfileLocked());
         $this->assertTrue($candidate->canEditProfile($advisor));
     }
+
+    public function test_source_is_locked_for_non_super_admin(): void
+    {
+        $candidate = new CrmCandidate(['source' => 'facebook']);
+        $advisor = new User(['role' => 'responsable_communication']);
+
+        $this->assertFalse($candidate->canEditSource($advisor));
+    }
+
+    public function test_super_admin_can_edit_source(): void
+    {
+        $candidate = new CrmCandidate(['source' => 'salon']);
+        $superAdmin = new User(['role' => 'super_admin']);
+
+        $this->assertTrue($candidate->canEditSource($superAdmin));
+    }
 }

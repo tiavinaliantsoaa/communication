@@ -2,6 +2,7 @@
     /** @var \App\Models\CrmCandidate|null $candidate */
     $isEdit = isset($candidate);
     $currentSource = old('source', $candidate->source ?? '');
+    $canEditSource = ! $isEdit || ($candidate?->canEditSource() ?? false);
     $statutLabels = \App\Models\CrmCandidate::STATUTS;
 @endphp
 
@@ -136,25 +137,41 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Source</label>
-                <select name="source" x-model="source" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
-                    <option value="">—</option>
-                    @foreach($sources as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
+                @if($canEditSource)
+                    <select name="source" x-model="source" class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                        <option value="">—</option>
+                        @foreach($sources as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                @else
+                    <input type="hidden" name="source" value="{{ $currentSource }}">
+                    <div class="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
+                        {{ $candidate->source_label }}
+                    </div>
+                    <p class="mt-1 text-xs text-slate-500">La source ne peut plus être modifiée (réservé au Super Admin).</p>
+                @endif
             </div>
             <div class="sm:col-span-2" x-show="source === 'facebook'" x-cloak x-transition>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Lien du profil <span class="text-slate-400 font-normal">(optionnel)</span></label>
                 <input type="text" name="facebook_profil_url" value="{{ old('facebook_profil_url', $candidate->facebook_profil_url ?? '') }}" maxlength="500"
-                       class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary"
+                       @disabled(! $canEditSource)
+                       class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary @if(! $canEditSource) bg-slate-50 text-slate-600 @endif"
                        placeholder="https://facebook.com/…">
+                @if(! $canEditSource)
+                    <input type="hidden" name="facebook_profil_url" value="{{ $candidate->facebook_profil_url ?? '' }}">
+                @endif
                 @error('facebook_profil_url')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div class="sm:col-span-2" x-show="source === 'escm_tour'" x-cloak x-transition>
                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Ville</label>
                 <input type="text" name="escm_tour_ville" value="{{ old('escm_tour_ville', $candidate->escm_tour_ville ?? '') }}" maxlength="120"
-                       class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary"
+                       @disabled(! $canEditSource)
+                       class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary @if(! $canEditSource) bg-slate-50 text-slate-600 @endif"
                        placeholder="Ville où s’est déroulé l’ESCM Tour">
+                @if(! $canEditSource)
+                    <input type="hidden" name="escm_tour_ville" value="{{ $candidate->escm_tour_ville ?? '' }}">
+                @endif
                 @error('escm_tour_ville')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
             <div class="sm:col-span-2">
