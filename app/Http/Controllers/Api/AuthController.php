@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -63,7 +64,20 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        app(ActivityLogger::class)->log(
+            'auth',
+            $user->name.' s’est déconnecté (API)'
+                .($request->ip() ? ' (IP '.$request->ip().')' : ''),
+            $user,
+            'logout',
+            'Déconnexion',
+            null,
+            $user
+        );
+
+        $user->currentAccessToken()->delete();
 
         return response()->json(['ok' => true]);
     }

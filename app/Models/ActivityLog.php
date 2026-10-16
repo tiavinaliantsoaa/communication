@@ -24,6 +24,7 @@ class ActivityLog extends Model
         'mouvement' => 'Entrées / Sorties',
         'fournisseur' => 'Fournisseurs',
         'user' => 'Utilisateurs',
+        'auth' => 'Connexion',
         'autre' => 'Autre',
     ];
 
@@ -69,6 +70,7 @@ class ActivityLog extends Model
             'stock', 'mouvement' => 'bg-orange-100 text-orange-800',
             'fournisseur' => 'bg-teal-100 text-teal-800',
             'user' => 'bg-rose-100 text-rose-800',
+            'auth' => 'bg-slate-800 text-white',
             default => 'bg-slate-100 text-slate-700',
         };
     }
