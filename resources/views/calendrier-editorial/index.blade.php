@@ -36,6 +36,7 @@
             'categorie' => array_values((array) old('categorie', ['facebook'])),
             'type_contenu' => old('type_contenu', 'FI'),
             'booster' => (bool) old('booster', false),
+            'urgent' => (bool) old('urgent', false),
             'date_debut' => old('date_debut', $currentDate),
             'date_fin' => old('date_fin', ''),
             'statut' => old('statut', 'planifie'),
@@ -111,6 +112,10 @@
     <div class="bg-white border-b border-slate-200 px-3 sm:px-4 py-2 overflow-x-auto">
         <div class="flex items-center gap-x-4 gap-y-1.5 flex-wrap">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400 shrink-0">Légende</span>
+            <div class="inline-flex items-center gap-1.5 shrink-0">
+                <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0 editorial-event-flash"></span>
+                <span class="text-[11px] text-slate-700 whitespace-nowrap">Urgent / J−1</span>
+            </div>
             @foreach($categories as $cat)
                 <div class="inline-flex items-center gap-1.5 shrink-0">
                     <span class="inline-block w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ $cat['color'] }}"></span>
@@ -240,13 +245,15 @@
                                             <button
                                                 type="button"
                                                 @click.stop="texteCopied = false; selectedEvent = ev"
-                                                class="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium truncate leading-tight shadow-sm hover:opacity-90 transition-opacity"
-                                                :style="`background:${ev.color};color:${ev.text}`"
-                                                :title="ev.titre + (ev.type_contenu ? ' [' + ev.type_contenu + ']' : '') + (ev.booster ? ' · Booster' : '')"
+                                                class="w-full text-left px-1.5 py-0.5 rounded text-[10px] font-medium truncate leading-tight shadow-sm hover:opacity-90"
+                                                :class="isFlashing(ev) ? 'editorial-event-flash' : 'transition-opacity'"
+                                                :style="isFlashing(ev) ? '' : `background:${ev.color};color:${ev.text}`"
+                                                :title="ev.titre + (ev.type_contenu ? ' [' + ev.type_contenu + ']' : '') + (ev.booster ? ' · Booster' : '') + (ev.urgent ? ' · Urgent' : '') + (isJMoinsUn(ev) ? ' · J−1' : '')"
                                             >
                                                 <span x-show="ev.type_contenu" class="opacity-90" x-text="'[' + ev.type_contenu + '] '"></span>
                                                 <span x-text="ev.titre"></span>
                                                 <span x-show="ev.booster" class="opacity-90"> · Boost</span>
+                                                <span x-show="ev.urgent || isJMoinsUn(ev)" class="opacity-90"> · !</span>
                                             </button>
                                         </template>
                                         <template x-if="day.moreCount > 0">
@@ -270,7 +277,11 @@
                         <template x-for="ev in visibleEvents" :key="'list-'+ev.id">
                             <div class="flex items-start gap-3 px-4 py-3 hover:bg-slate-50">
                                 <button type="button" @click="texteCopied = false; selectedEvent = ev" class="flex items-start gap-3 min-w-0 flex-1 text-left">
-                                    <span class="mt-1 w-3 h-3 rounded-sm shrink-0" :style="`background:${ev.color}`"></span>
+                                    <span
+                                        class="mt-1 w-3 h-3 rounded-sm shrink-0"
+                                        :class="isFlashing(ev) && 'editorial-event-flash'"
+                                        :style="isFlashing(ev) ? '' : `background:${ev.color}`"
+                                    ></span>
                                     <div class="min-w-0 flex-1">
                                         <div class="text-sm font-semibold text-slate-800 truncate" x-text="ev.titre"></div>
                                         <div class="text-xs text-slate-500 mt-0.5">
@@ -286,11 +297,18 @@
                                             <template x-if="ev.booster">
                                                 <span> · Booster</span>
                                             </template>
+                                            <template x-if="ev.urgent">
+                                                <span class="text-red-600 font-semibold"> · Urgent</span>
+                                            </template>
+                                            <template x-if="isJMoinsUn(ev)">
+                                                <span class="text-red-600 font-semibold"> · J−1</span>
+                                            </template>
                                         </div>
                                     </div>
                                     <div class="flex flex-col items-end gap-1 shrink-0">
                                         <span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600" x-text="statutLabel(ev.statut)"></span>
                                         <span x-show="ev.valide" class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Validé</span>
+                                        <span x-show="isFlashing(ev)" class="text-[10px] font-semibold px-2 py-0.5 rounded-full editorial-event-flash">Urgent</span>
                                     </div>
                                 </button>
                                 <form :action="ev.delete_url" method="POST" @submit="return confirm('Supprimer ce contenu du calendrier ?')" class="shrink-0">
@@ -323,7 +341,11 @@
                 <div class="flex flex-col min-h-0 max-h-[min(90vh,900px)]">
                     <div class="flex items-start justify-between gap-3 px-5 pt-5 pb-3 shrink-0">
                         <div class="flex items-center gap-2 min-w-0">
-                            <span class="w-3.5 h-3.5 rounded-sm shrink-0" :style="`background:${selectedEvent.color}`"></span>
+                            <span
+                                class="w-3.5 h-3.5 rounded-sm shrink-0"
+                                :class="isFlashing(selectedEvent) && 'editorial-event-flash'"
+                                :style="isFlashing(selectedEvent) ? '' : `background:${selectedEvent.color}`"
+                            ></span>
                             <h3 class="text-base font-bold text-slate-900 truncate" x-text="selectedEvent.titre"></h3>
                         </div>
                         <button type="button" @click="selectedEvent = null" class="p-1 rounded hover:bg-slate-100 text-slate-400">
@@ -346,6 +368,8 @@
                         </div>
                         <div class="flex gap-2" x-show="selectedEvent.type_contenu"><dt class="text-slate-500 w-28 shrink-0">Type</dt><dd class="text-slate-800 font-semibold" x-text="selectedEvent.type_contenu"></dd></div>
                         <div class="flex gap-2" x-show="selectedEvent.booster"><dt class="text-slate-500 w-28 shrink-0">Booster</dt><dd class="text-slate-800">Oui</dd></div>
+                        <div class="flex gap-2" x-show="selectedEvent.urgent"><dt class="text-slate-500 w-28 shrink-0">Urgent</dt><dd class="text-red-600 font-semibold">Oui</dd></div>
+                        <div class="flex gap-2" x-show="isJMoinsUn(selectedEvent)"><dt class="text-slate-500 w-28 shrink-0">Alerte</dt><dd class="text-red-600 font-semibold">J−1</dd></div>
                         <div class="flex gap-2"><dt class="text-slate-500 w-28 shrink-0">Début</dt><dd class="text-slate-800" x-text="formatDate(selectedEvent.date_debut)"></dd></div>
                         <div class="flex gap-2" x-show="selectedEvent.date_fin !== selectedEvent.date_debut || selectedEvent.booster"><dt class="text-slate-500 w-28 shrink-0">Fin</dt><dd class="text-slate-800" x-text="formatDate(selectedEvent.date_fin)"></dd></div>
                         <div class="flex gap-2"><dt class="text-slate-500 w-28 shrink-0">Statut</dt><dd class="text-slate-800" x-text="statutLabel(selectedEvent.statut)"></dd></div>
@@ -491,6 +515,12 @@
                         Booster
                     </label>
                 </div>
+
+                <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-800 cursor-pointer rounded-lg border border-red-100 bg-red-50/60 p-3">
+                    <input type="checkbox" name="urgent" value="1" x-model="form.urgent" class="rounded border-slate-300 text-red-600 focus:ring-red-500">
+                    Urgent
+                    <span class="text-xs font-normal text-slate-500">— clignote en rouge jusqu’à la date du contenu</span>
+                </label>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -643,6 +673,12 @@
                         Booster
                     </label>
                 </div>
+
+                <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-800 cursor-pointer rounded-lg border border-red-100 bg-red-50/60 p-3">
+                    <input type="checkbox" name="urgent" value="1" x-model="editForm.urgent" class="rounded border-slate-300 text-red-600 focus:ring-red-500">
+                    Urgent
+                    <span class="text-xs font-normal text-slate-500">— clignote en rouge jusqu’à la date du contenu</span>
+                </label>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -825,6 +861,15 @@
     .mini-search-hit {
         animation: mini-search-hit-blink 0.9s ease-in-out infinite;
     }
+    @keyframes editorial-urgent-blink {
+        0%, 100% { background-color: #dc2626; color: #fff; opacity: 1; }
+        50% { background-color: #f87171; color: #fff; opacity: 0.75; }
+    }
+    .editorial-event-flash {
+        animation: editorial-urgent-blink 0.85s ease-in-out infinite !important;
+        background-color: #dc2626 !important;
+        color: #fff !important;
+    }
 </style>
 @endsection
 
@@ -892,6 +937,7 @@ function editorialCalendar(config) {
             categorie: Array.isArray(config.old.categorie) ? config.old.categorie : ['facebook'],
             type_contenu: config.old.type_contenu || 'FI',
             booster: !!config.old.booster,
+            urgent: !!config.old.urgent,
             date_debut: config.old.date_debut || config.currentDate,
             date_fin: config.old.date_fin || '',
             statut: config.old.statut || 'planifie',
@@ -904,6 +950,7 @@ function editorialCalendar(config) {
             categorie: ['facebook'],
             type_contenu: 'FI',
             booster: false,
+            urgent: false,
             date_debut: config.currentDate,
             date_fin: '',
             statut: 'planifie',
@@ -1047,6 +1094,7 @@ function editorialCalendar(config) {
                     categorie: oldCats,
                     type_contenu: config.old.type_contenu || 'FI',
                     booster: !!config.old.booster,
+                    urgent: !!config.old.urgent,
                     date_debut: config.old.date_debut || this.currentDate,
                     date_fin: config.old.date_fin || '',
                     statut: config.old.statut || 'planifie',
@@ -1270,6 +1318,25 @@ function editorialCalendar(config) {
             return this.statuts[key] || key;
         },
 
+        tomorrowDate() {
+            return fmt(addDays(parseDate(this.today), 1));
+        },
+
+        isJMoinsUn(ev) {
+            if (!ev || !ev.date_debut) return false;
+            return ev.date_debut === this.tomorrowDate();
+        },
+
+        isFlashing(ev) {
+            if (!ev || !ev.date_debut) return false;
+            // Date déjà dépassée : plus de clignotement
+            if (ev.date_debut < this.today) return false;
+            // Urgent tant que la date n'est pas dépassée
+            if (ev.urgent) return true;
+            // Tout contenu à J−1 clignote en rouge
+            return this.isJMoinsUn(ev);
+        },
+
         openCreateModal(dateStr = null) {
             this.selectedEvent = null;
             this.form = {
@@ -1277,6 +1344,7 @@ function editorialCalendar(config) {
                 categorie: ['facebook'],
                 type_contenu: 'FI',
                 booster: false,
+                urgent: false,
                 date_debut: dateStr || this.currentDate,
                 date_fin: '',
                 statut: 'planifie',
@@ -1326,6 +1394,7 @@ function editorialCalendar(config) {
                 categorie: [...cats],
                 type_contenu: ev.type_contenu || 'FI',
                 booster: !!ev.booster,
+                urgent: !!ev.urgent,
                 date_debut: ev.date_debut || this.currentDate,
                 date_fin: (ev.date_fin && ev.date_fin !== ev.date_debut) ? ev.date_fin : '',
                 statut: ev.statut || 'planifie',

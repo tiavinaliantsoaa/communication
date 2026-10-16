@@ -51,6 +51,7 @@ class EditorialEvent extends Model
         'date_fin',
         'statut',
         'valide',
+        'urgent',
         'texte_publication',
         'texte_publication_linkedin',
         'visuel_path',
@@ -62,6 +63,7 @@ class EditorialEvent extends Model
         'date_fin' => 'date',
         'booster' => 'boolean',
         'valide' => 'boolean',
+        'urgent' => 'boolean',
     ];
 
     public const CATEGORIES = [

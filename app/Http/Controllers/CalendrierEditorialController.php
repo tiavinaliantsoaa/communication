@@ -284,6 +284,7 @@ class CalendrierEditorialController extends Controller
             'categorie.*' => ['required', Rule::in(array_keys(EditorialEvent::CATEGORIES))],
             'type_contenu' => ['required', Rule::in(array_keys(EditorialEvent::TYPES_CONTENU))],
             'booster' => ['nullable', 'boolean'],
+            'urgent' => ['nullable', 'boolean'],
             'date_debut' => ['required', 'date'],
             'date_fin' => ['nullable', 'date', 'after_or_equal:date_debut'],
             'statut' => ['required', Rule::in(['planifie', 'en_cours', 'publie', 'annule'])],
@@ -314,6 +315,7 @@ class CalendrierEditorialController extends Controller
 
         $validated['categorie'] = array_values(array_unique($validated['categorie']));
         $validated['booster'] = $isFacebookFi && $request->boolean('booster');
+        $validated['urgent'] = $request->boolean('urgent');
         $validated['valide'] = auth()->user()?->canValidateCalendar($service)
             ? $request->boolean('valide')
             : false;
@@ -402,6 +404,7 @@ class CalendrierEditorialController extends Controller
             'text' => $catMeta['text'],
             'type_contenu' => $event->type_contenu,
             'booster' => (bool) $event->booster,
+            'urgent' => (bool) $event->urgent,
             'date_debut' => $event->date_debut->toDateString(),
             'date_fin' => ($event->date_fin ?? $event->date_debut)->toDateString(),
             'statut' => $event->statut,
