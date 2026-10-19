@@ -190,7 +190,7 @@ class CalendrierEditorialController extends Controller
         $service = $this->resolveService($request);
         $this->assertEventService($editorialEvent, $service);
         $meta = EditorialEvent::serviceMeta($service);
-        $validated = $this->validateEvent($request, $service);
+        $validated = $this->validateEvent($request, $service, $editorialEvent);
         $files = $this->validatedVisuelFiles($request);
         $removeIds = array_values(array_filter(array_map('intval', (array) $request->input('remove_visuel_ids', []))));
 
@@ -281,7 +281,7 @@ class CalendrierEditorialController extends Controller
         }
     }
 
-    private function validateEvent(Request $request, string $service): array
+    private function validateEvent(Request $request, string $service, ?EditorialEvent $existing = null): array
     {
         $categories = array_values(array_unique(array_filter((array) $request->input('categorie', []))));
         $request->merge(['categorie' => $categories]);
@@ -327,9 +327,11 @@ class CalendrierEditorialController extends Controller
         $validated['categorie'] = array_values(array_unique($validated['categorie']));
         $validated['booster'] = $isFacebookFi && $request->boolean('booster');
         $validated['urgent'] = $request->boolean('urgent');
+        // The Validé checkbox is omitted for users who cannot validate. Keep the
+        // stored flag on edit so a routine correction does not clear an approval.
         $validated['valide'] = auth()->user()?->canValidateCalendar($service)
             ? $request->boolean('valide')
-            : false;
+            : (bool) ($existing?->valide ?? false);
 
         if (! $isFacebookFi) {
             $validated['booster'] = false;
