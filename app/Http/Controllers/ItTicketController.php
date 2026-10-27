@@ -38,7 +38,9 @@ class ItTicketController extends Controller
 
     public function create()
     {
-        return view('it-tickets.create');
+        return view('it-tickets.create', [
+            'impacts' => ItTicket::IMPACTS,
+        ]);
     }
 
     public function store(Request $request)
@@ -46,9 +48,14 @@ class ItTicketController extends Controller
         $validated = $request->validate([
             'titre' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:5000'],
+            'resultat_attendu' => ['required', 'string', 'max:5000'],
+            'impact' => ['required', Rule::in(array_keys(ItTicket::IMPACTS))],
         ], [
             'titre.required' => 'Le titre est obligatoire.',
             'description.required' => 'Décrivez votre requête.',
+            'resultat_attendu.required' => 'Indiquez le résultat attendu.',
+            'impact.required' => 'Sélectionnez l’impact du problème.',
+            'impact.in' => 'Impact invalide.',
         ]);
 
         $user = auth()->user();

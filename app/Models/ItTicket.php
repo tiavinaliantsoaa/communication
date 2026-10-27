@@ -14,11 +14,19 @@ class ItTicket extends Model
         'annule' => 'Annulé',
     ];
 
+    public const IMPACTS = [
+        'haut' => 'Haut',
+        'moyen' => 'Moyen',
+        'passable' => 'Passable',
+    ];
+
     protected $fillable = [
         'user_id',
         'departement_id',
         'titre',
         'description',
+        'resultat_attendu',
+        'impact',
         'statut',
         'admin_notes',
         'updated_by',
@@ -47,6 +55,21 @@ class ItTicket extends Model
     public function getStatutLabelAttribute(): string
     {
         return self::STATUTS[$this->statut] ?? $this->statut;
+    }
+
+    public function getImpactLabelAttribute(): string
+    {
+        return self::IMPACTS[$this->impact] ?? ($this->impact ?: '—');
+    }
+
+    public function getImpactColorAttribute(): string
+    {
+        return match ($this->impact) {
+            'haut' => 'bg-red-50 text-red-700 ring-red-600/20',
+            'moyen' => 'bg-amber-50 text-amber-700 ring-amber-600/20',
+            'passable' => 'bg-slate-50 text-slate-600 ring-slate-500/20',
+            default => 'bg-slate-50 text-slate-700 ring-slate-600/20',
+        };
     }
 
     public function getStatutColorAttribute(): string

@@ -16,6 +16,8 @@ return new class extends Migration
                 $table->foreignId('departement_id')->nullable()->constrained('departements')->nullOnDelete();
                 $table->string('titre');
                 $table->text('description');
+                $table->text('resultat_attendu')->nullable();
+                $table->string('impact', 32)->nullable();
                 $table->string('statut', 32)->default('en_attente');
                 $table->text('admin_notes')->nullable();
                 $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();

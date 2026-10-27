@@ -33,6 +33,7 @@
                     @if($canManage || auth()->user()?->isAdmin())
                     <th class="px-3 py-3">Demandeur</th>
                     @endif
+                    <th class="px-3 py-3">Impact</th>
                     <th class="px-3 py-3">Statut</th>
                     <th class="px-3 py-3">Créé le</th>
                     <th class="px-5 py-3 text-right">Actions</th>
@@ -49,6 +50,15 @@
                     <td class="px-3 py-3 text-slate-600">{{ $ticket->user?->name ?? '—' }}</td>
                     @endif
                     <td class="px-3 py-3">
+                        @if($ticket->impact)
+                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $ticket->impact_color }}">
+                            {{ $ticket->impact_label }}
+                        </span>
+                        @else
+                        <span class="text-slate-400">—</span>
+                        @endif
+                    </td>
+                    <td class="px-3 py-3">
                         <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $ticket->statut_color }}">
                             {{ $ticket->statut_label }}
                         </span>
@@ -63,7 +73,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="px-5 py-10 text-center text-slate-500">
+                    <td colspan="7" class="px-5 py-10 text-center text-slate-500">
                         Aucune requête pour le moment.
                         @if(auth()->user()?->canAccess('it_ticketing.create'))
                             <a href="{{ route('it-tickets.create') }}" class="text-escm-primary font-medium hover:underline">Créer une requête</a>

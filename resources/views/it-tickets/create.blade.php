@@ -27,6 +27,26 @@
                 @error('description')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
             </div>
 
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Résultat attendu <span class="text-red-500">*</span></label>
+                <textarea name="resultat_attendu" rows="4" required maxlength="5000"
+                          class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary"
+                          placeholder="Décrivez le résultat souhaité une fois le problème résolu…">{{ old('resultat_attendu') }}</textarea>
+                @error('resultat_attendu')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">Impact du problème <span class="text-red-500">*</span></label>
+                <select name="impact" required
+                        class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                    <option value="">— Sélectionner —</option>
+                    @foreach($impacts as $key => $label)
+                        <option value="{{ $key }}" @selected(old('impact') === $key)>{{ $label }}</option>
+                    @endforeach
+                </select>
+                @error('impact')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+            </div>
+
             <p class="text-xs text-slate-500">La requête démarre en statut <strong>En attente</strong>. Vous pourrez suivre son avancement (En cours → Corrigé / Annulé).</p>
 
             <div class="flex items-center gap-3 pt-2">

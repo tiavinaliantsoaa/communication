@@ -34,10 +34,29 @@
 
             <div class="prose prose-sm max-w-none text-slate-700 whitespace-pre-wrap">{{ $ticket->description }}</div>
 
+            @if($ticket->resultat_attendu)
+            <div class="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Résultat attendu</p>
+                <p class="text-sm text-slate-700 whitespace-pre-wrap">{{ $ticket->resultat_attendu }}</p>
+            </div>
+            @endif
+
             <dl class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm border-t border-slate-100 pt-4">
                 <div>
                     <dt class="text-slate-500">Demandeur</dt>
                     <dd class="font-medium text-slate-900">{{ $ticket->user?->name ?? '—' }}</dd>
+                </div>
+                <div>
+                    <dt class="text-slate-500">Impact du problème</dt>
+                    <dd>
+                        @if($ticket->impact)
+                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset {{ $ticket->impact_color }}">
+                            {{ $ticket->impact_label }}
+                        </span>
+                        @else
+                        <span class="font-medium text-slate-900">—</span>
+                        @endif
+                    </dd>
                 </div>
                 <div>
                     <dt class="text-slate-500">Créé le</dt>
