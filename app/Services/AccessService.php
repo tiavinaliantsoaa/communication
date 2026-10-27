@@ -30,6 +30,7 @@ class AccessService
             'calendrier_krismasy.view', 'calendrier_krismasy.create', 'calendrier_krismasy.update',
             'evenements.view', 'evenements.create', 'evenements.update',
             'stocks.view', 'stocks_mouvements.view',
+            'it_ticketing.view', 'it_ticketing.create',
             'enseignants.view', 'enseignants.create', 'enseignants.update', 'enseignants.delete',
         ];
 
@@ -57,6 +58,7 @@ class AccessService
             'calendrier_krismasy.view', 'calendrier_krismasy.create',
             'evenements.view',
             'stocks.view', 'stocks_mouvements.view',
+            'it_ticketing.view', 'it_ticketing.create',
             'suivi_liens.view',
             'crm.view',
             'enseignants.view',

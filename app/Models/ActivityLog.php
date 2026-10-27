@@ -25,6 +25,7 @@ class ActivityLog extends Model
         'fournisseur' => 'Fournisseurs',
         'user' => 'Utilisateurs',
         'auth' => 'Connexion',
+        'it_ticketing' => 'IT Ticketing',
         'autre' => 'Autre',
     ];
 
@@ -71,6 +72,7 @@ class ActivityLog extends Model
             'fournisseur' => 'bg-teal-100 text-teal-800',
             'user' => 'bg-rose-100 text-rose-800',
             'auth' => 'bg-slate-800 text-white',
+            'it_ticketing' => 'bg-sky-100 text-sky-800',
             default => 'bg-slate-100 text-slate-700',
         };
     }

@@ -132,6 +132,13 @@ class Permission extends Model
                 'stocks_mouvements.update' => 'Modifier',
                 'stocks_mouvements.delete' => 'Supprimer',
             ],
+            'IT Ticketing' => [
+                'it_ticketing.view' => 'Voir / suivre',
+                'it_ticketing.create' => 'Créer une requête',
+                'it_ticketing.update' => 'Modifier',
+                'it_ticketing.delete' => 'Supprimer',
+                'it_ticketing.manage' => 'Évaluer les tickets (statuts)',
+            ],
             'CV enseignant' => [
                 'enseignants.view' => 'Voir',
                 'enseignants.create' => 'Créer',

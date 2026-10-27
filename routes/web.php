@@ -26,6 +26,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjetController;
 use App\Http\Controllers\StatistiqueController;
+use App\Http\Controllers\ItTicketController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockMouvementController;
 use App\Http\Controllers\TrackedLinkController;
@@ -192,6 +193,25 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         ]);
     });
     ResourceRoutes::register('stocks', StockController::class, 'stocks');
+
+    Route::prefix('it-tickets')->name('it-tickets.')->group(function () {
+        Route::get('/', [ItTicketController::class, 'index'])
+            ->middleware('permission:it_ticketing.view')
+            ->name('index');
+        Route::get('/create', [ItTicketController::class, 'create'])
+            ->middleware('permission:it_ticketing.create')
+            ->name('create');
+        Route::post('/', [ItTicketController::class, 'store'])
+            ->middleware('permission:it_ticketing.create')
+            ->name('store');
+        Route::get('/{ticket}', [ItTicketController::class, 'show'])
+            ->middleware('permission:it_ticketing.view')
+            ->name('show');
+        Route::patch('/{ticket}/statut', [ItTicketController::class, 'updateStatus'])
+            ->name('status');
+        Route::delete('/{ticket}', [ItTicketController::class, 'destroy'])
+            ->name('destroy');
+    });
 
     Route::middleware('permission:gestion_projet.view')->prefix('gestion-projet')->name('gestion-projet.')->group(function () {
         Route::get('/', [ProjetController::class, 'index'])->name('index');

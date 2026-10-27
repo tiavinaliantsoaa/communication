@@ -158,6 +158,19 @@
         </div>
         @endif
 
+        @if($show('it_ticketing'))
+        <div>
+            <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">IT Ticketing</p>
+            <div class="space-y-0.5">
+                <a href="{{ route('it-tickets.index') }}"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $isActive('it-tickets.*') ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    IT Ticketing
+                </a>
+            </div>
+        </div>
+        @endif
+
         @if($show('enseignants'))
         <div>
             <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">CV enseignant</p>
