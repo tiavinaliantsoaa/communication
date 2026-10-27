@@ -118,6 +118,30 @@ class CrmCandidate extends Model
         return $this->hasMany(CrmActivity::class)->latest('created_at');
     }
 
+    /**
+     * Digits only, then Madagascar national number without leading 0 / 261.
+     * Ex. +261 34 19 700 12 / 0341970012 → 341970012
+     */
+    public static function phoneCore(?string $value): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $value) ?: '';
+        if ($digits === '') {
+            return '';
+        }
+
+        if (str_starts_with($digits, '00')) {
+            $digits = substr($digits, 2);
+        }
+        if (str_starts_with($digits, '261') && strlen($digits) > 3) {
+            $digits = substr($digits, 3);
+        }
+        if (str_starts_with($digits, '0') && strlen($digits) > 1) {
+            $digits = substr($digits, 1);
+        }
+
+        return $digits;
+    }
+
     public function scopeSearchNameOrPhone(Builder $query, ?string $term): Builder
     {
         $term = trim((string) $term);
@@ -127,6 +151,7 @@ class CrmCandidate extends Model
 
         $like = '%'.$term.'%';
         $digits = preg_replace('/\D+/', '', $term) ?: '';
+        $phoneCore = self::phoneCore($term);
         $driver = $query->getConnection()->getDriverName();
         $fullName = $driver === 'sqlite'
             ? "(prenom || ' ' || nom)"
@@ -134,17 +159,42 @@ class CrmCandidate extends Model
         $fullNameRev = $driver === 'sqlite'
             ? "(nom || ' ' || prenom)"
             : "CONCAT(nom, ' ', prenom)";
-        $phoneDigits = "REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(telephone, ''), ' ', ''), '-', ''), '.', ''), '+', '')";
+        $phoneDigits = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(telephone, ''), ' ', ''), '-', ''), '.', ''), '+', ''), '/', '')";
 
-        return $query->where(function (Builder $inner) use ($like, $digits, $fullName, $fullNameRev, $phoneDigits) {
+        // National number without leading 0 / country code 261 (MySQL + SQLite)
+        if ($driver === 'sqlite') {
+            $phoneCoreExpr = "CASE
+                WHEN REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(telephone, ''), ' ', ''), '-', ''), '.', ''), '+', ''), '/', '') LIKE '00261%'
+                    THEN SUBSTR(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(telephone, ''), ' ', ''), '-', ''), '.', ''), '+', ''), '/', ''), 6)
+                WHEN REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(telephone, ''), ' ', ''), '-', ''), '.', ''), '+', ''), '/', '') LIKE '261%'
+                    THEN SUBSTR(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(telephone, ''), ' ', ''), '-', ''), '.', ''), '+', ''), '/', ''), 4)
+                WHEN REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(telephone, ''), ' ', ''), '-', ''), '.', ''), '+', ''), '/', '') LIKE '0%'
+                    THEN SUBSTR(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(telephone, ''), ' ', ''), '-', ''), '.', ''), '+', ''), '/', ''), 2)
+                ELSE REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(telephone, ''), ' ', ''), '-', ''), '.', ''), '+', ''), '/', '')
+            END";
+        } else {
+            $phoneCoreExpr = "CASE
+                WHEN {$phoneDigits} LIKE '00261%' THEN SUBSTRING({$phoneDigits}, 6)
+                WHEN {$phoneDigits} LIKE '261%' THEN SUBSTRING({$phoneDigits}, 4)
+                WHEN {$phoneDigits} LIKE '0%' THEN SUBSTRING({$phoneDigits}, 2)
+                ELSE {$phoneDigits}
+            END";
+        }
+
+        return $query->where(function (Builder $inner) use ($like, $digits, $phoneCore, $fullName, $fullNameRev, $phoneDigits, $phoneCoreExpr) {
             $inner->where('prenom', 'like', $like)
                 ->orWhere('nom', 'like', $like)
                 ->orWhereRaw("{$fullName} LIKE ?", [$like])
                 ->orWhereRaw("{$fullNameRev} LIKE ?", [$like])
-                ->orWhere('telephone', 'like', $like);
+                ->orWhere('telephone', 'like', $like)
+                ->orWhere('email', 'like', $like);
 
             if ($digits !== '') {
                 $inner->orWhereRaw("{$phoneDigits} LIKE ?", ['%'.$digits.'%']);
+            }
+
+            if ($phoneCore !== '' && strlen($phoneCore) >= 6) {
+                $inner->orWhereRaw("{$phoneCoreExpr} LIKE ?", ['%'.$phoneCore.'%']);
             }
         });
     }

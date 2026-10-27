@@ -44,4 +44,47 @@ class CrmCandidateSearchTest extends TestCase
         $byPhone = CrmCandidate::query()->searchNameOrPhone('0341234567')->pluck('id');
         $this->assertEquals([$jean->id], $byPhone->all());
     }
+
+    public function test_it_matches_local_and_international_madagascar_phone_formats(): void
+    {
+        $advisor = User::factory()->create([
+            'role' => 'super_admin',
+            'password' => 'password',
+        ]);
+
+        $local = CrmCandidate::create([
+            'prenom' => 'Local',
+            'nom' => 'Format',
+            'telephone' => '0341970012',
+            'statut' => 'prospect',
+            'advisor_id' => $advisor->id,
+            'abandon' => false,
+        ]);
+        $intl = CrmCandidate::create([
+            'prenom' => 'Intl',
+            'nom' => 'Format',
+            'telephone' => '+261341970099',
+            'statut' => 'prospect',
+            'advisor_id' => $advisor->id,
+            'abandon' => false,
+        ]);
+
+        $this->assertSame('341970012', CrmCandidate::phoneCore('+261341970012'));
+        $this->assertSame('341970012', CrmCandidate::phoneCore('0341970012'));
+        $this->assertSame('341970012', CrmCandidate::phoneCore('+261 34 19 700 12'));
+
+        // Stored local, search international
+        $foundLocal = CrmCandidate::query()->searchNameOrPhone('+261341970012')->pluck('id');
+        $this->assertTrue($foundLocal->contains($local->id));
+        $this->assertFalse($foundLocal->contains($intl->id));
+
+        // Stored international, search local
+        $foundIntl = CrmCandidate::query()->searchNameOrPhone('0341970099')->pluck('id');
+        $this->assertTrue($foundIntl->contains($intl->id));
+        $this->assertFalse($foundIntl->contains($local->id));
+
+        // Partial national number
+        $partial = CrmCandidate::query()->searchNameOrPhone('341970012')->pluck('id');
+        $this->assertTrue($partial->contains($local->id));
+    }
 }

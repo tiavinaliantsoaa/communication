@@ -28,19 +28,7 @@ class CandidateController extends Controller
         $candidates = CrmCandidate::query()
             ->with('advisor')
             ->where('abandon', $abandonedOnly)
-            ->when($request->filled('q'), function ($q) use ($request) {
-                $term = '%'.$request->q.'%';
-                $concat = DB::getDriverName() === 'sqlite'
-                    ? "(prenom || ' ' || nom)"
-                    : "CONCAT(prenom, ' ', nom)";
-                $q->where(function ($inner) use ($term, $concat) {
-                    $inner->where('prenom', 'like', $term)
-                        ->orWhere('nom', 'like', $term)
-                        ->orWhere('telephone', 'like', $term)
-                        ->orWhere('email', 'like', $term)
-                        ->orWhereRaw("{$concat} LIKE ?", [$term]);
-                });
-            })
+            ->when($request->filled('q'), fn ($q) => $q->searchNameOrPhone($request->q))
             ->when($request->filled('statut'), fn ($q) => $q->where('statut', $request->statut))
             ->when($programmesFilter !== [], fn ($q) => $q->whereIn('programme', $programmesFilter))
             ->when($request->filled('advisor_id'), fn ($q) => $q->where('advisor_id', $request->advisor_id))

@@ -94,15 +94,29 @@ function crmPipeline(columns) {
             return String(value ?? '').replace(/\D+/g, '');
         },
 
+        phoneCore(value) {
+            let digits = this.digits(value);
+            if (digits.startsWith('00')) digits = digits.slice(2);
+            if (digits.startsWith('261') && digits.length > 3) digits = digits.slice(3);
+            if (digits.startsWith('0') && digits.length > 1) digits = digits.slice(1);
+            return digits;
+        },
+
         matches(candidate) {
             const term = this.search.trim();
             if (term === '') return true;
 
-            const haystack = this.normalize(candidate.nom);
+            const haystack = this.normalize(`${candidate.prenom || ''} ${candidate.nom || ''}`);
             if (haystack.includes(this.normalize(term))) return true;
+            if (this.normalize(candidate.email).includes(this.normalize(term))) return true;
 
             const termDigits = this.digits(term);
-            if (termDigits !== '' && this.digits(candidate.telephone).includes(termDigits)) return true;
+            const phoneDigits = this.digits(candidate.telephone);
+            if (termDigits !== '' && phoneDigits.includes(termDigits)) return true;
+
+            const termCore = this.phoneCore(term);
+            const phoneCore = this.phoneCore(candidate.telephone);
+            if (termCore.length >= 6 && phoneCore.includes(termCore)) return true;
 
             return false;
         },
