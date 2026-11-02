@@ -58,6 +58,7 @@ class DepartementScope implements Scope
             'projet_pieces_jointes',
             'projet_activites',
             'activity_logs',
+            'it_tickets',
         ];
     }
 
@@ -92,6 +93,7 @@ class DepartementScope implements Scope
             ProjetPieceJointe::class,
             ProjetActivite::class,
             ActivityLog::class,
+            ItTicket::class,
         ];
     }
 }

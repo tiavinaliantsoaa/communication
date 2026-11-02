@@ -97,8 +97,21 @@ class ItTicket extends Model
             return false;
         }
 
-        return $user->isSuperAdmin()
-            || $user->isAdmin()
-            || (int) $this->user_id === (int) $user->id;
+        if ((int) $this->user_id === (int) $user->id) {
+            return true;
+        }
+
+        if ($user->isSuperAdmin() && ! $user->restrictsDepartementData()) {
+            return true;
+        }
+
+        if (! $user->isAdmin()) {
+            return false;
+        }
+
+        $departementId = $user->currentDepartementId();
+
+        return $departementId !== null
+            && (int) $this->departement_id === (int) $departementId;
     }
 }
