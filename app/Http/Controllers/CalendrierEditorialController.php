@@ -193,8 +193,17 @@ class CalendrierEditorialController extends Controller
         $validated = $this->validateEvent($request, $service, $editorialEvent);
         $files = $this->validatedVisuelFiles($request);
         $removeIds = array_values(array_filter(array_map('intval', (array) $request->input('remove_visuel_ids', []))));
+        $categories = array_values($validated['categorie'] ?? []);
 
-        DB::transaction(function () use ($editorialEvent, $validated, $files, $removeIds) {
+        if ($categories === []) {
+            throw ValidationException::withMessages([
+                'categorie' => 'Sélectionnez au moins une catégorie.',
+            ]);
+        }
+
+        $createdCount = 0;
+
+        DB::transaction(function () use ($editorialEvent, $validated, $files, $removeIds, $categories, $service, &$createdCount) {
             $editorialEvent->load('visuels');
 
             if ($removeIds) {
@@ -213,26 +222,70 @@ class CalendrierEditorialController extends Controller
                 ]);
             }
 
-            $categories = array_values($validated['categorie'] ?? []);
-            $validated['categorie'] = $categories !== [] ? $categories : ['facebook'];
+            // Contenu actuel = 1ʳᵉ catégorie ; les autres créent des doublons (comme à la création)
+            $primaryCategory = $categories[0];
+            $extraCategories = array_slice($categories, 1);
 
-            $isFacebookFi = in_array('facebook', $validated['categorie'], true)
-                && ($validated['type_contenu'] ?? '') === 'FI';
+            $payload = $validated;
+            $payload['categorie'] = [$primaryCategory];
+            $isFacebookFi = $primaryCategory === 'facebook'
+                && ($payload['type_contenu'] ?? '') === 'FI';
             if (! $isFacebookFi) {
-                $validated['booster'] = false;
-                $validated['date_fin'] = $validated['date_fin'] ?? null;
+                $payload['booster'] = false;
+                $payload['date_fin'] = $payload['date_fin'] ?? null;
             }
 
-            $editorialEvent->update($validated);
+            $editorialEvent->update($payload);
             $this->storeVisuelFiles($editorialEvent, $files, $remaining);
             $this->syncLegacyVisuelColumns($editorialEvent->fresh('visuels'));
+
+            if ($extraCategories === []) {
+                return;
+            }
+
+            $sourceVisuels = $editorialEvent->fresh('visuels')->visuels;
+            foreach ($extraCategories as $category) {
+                $duplicatePayload = $validated;
+                $duplicatePayload['service'] = $service;
+                $duplicatePayload['categorie'] = [$category];
+
+                $dupIsFacebookFi = $category === 'facebook'
+                    && ($duplicatePayload['type_contenu'] ?? '') === 'FI';
+                if (! $dupIsFacebookFi) {
+                    $duplicatePayload['booster'] = false;
+                    $duplicatePayload['date_fin'] = $duplicatePayload['date_fin'] ?? null;
+                }
+
+                $duplicate = EditorialEvent::create($duplicatePayload);
+
+                foreach ($sourceVisuels as $visuel) {
+                    $path = $visuel->path;
+                    if ($path && Storage::disk('public')->exists($path)) {
+                        $ext = pathinfo($path, PATHINFO_EXTENSION);
+                        $copyPath = 'editorial-visuels/'.uniqid('v_', true).($ext ? '.'.$ext : '');
+                        Storage::disk('public')->copy($path, $copyPath);
+                        $path = $copyPath;
+                    }
+
+                    $duplicate->visuels()->create([
+                        'path' => $path,
+                        'nom' => $visuel->nom,
+                        'position' => $visuel->position,
+                    ]);
+                }
+
+                $this->syncLegacyVisuelColumns($duplicate->fresh('visuels'));
+                $createdCount++;
+            }
         });
 
         $prefix = $meta['route_prefix'];
+        $editorialEvent->refresh();
 
         app(ActivityLogger::class)->log(
             $meta['module'],
-            auth()->user()->name.' a modifié « '.$editorialEvent->titre.' » dans le '.$meta['label'],
+            auth()->user()->name.' a modifié « '.$editorialEvent->titre.' » dans le '.$meta['label']
+                .($createdCount > 0 ? ' (+'.$createdCount.' doublon'.($createdCount > 1 ? 's' : '').')' : ''),
             auth()->user(),
             'update',
             $meta['label'],
@@ -240,8 +293,12 @@ class CalendrierEditorialController extends Controller
             $editorialEvent
         );
 
+        $message = $createdCount > 0
+            ? 'Contenu mis à jour et '.$createdCount.' doublon'.($createdCount > 1 ? 's créés' : ' créé').' (une entrée par catégorie).'
+            : 'Contenu mis à jour.';
+
         return $this->redirectToCalendar($request, $service)
-            ->with('success', 'Contenu mis à jour.');
+            ->with('success', $message);
     }
 
     public function destroy(Request $request, EditorialEvent $editorialEvent)

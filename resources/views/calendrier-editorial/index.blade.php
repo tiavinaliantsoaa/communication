@@ -642,7 +642,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Catégories <span class="text-red-500">*</span></label>
-                    <p class="text-xs text-slate-500 mb-2">Sélectionnez un ou plusieurs réseaux / plateformes pour ce contenu.</p>
+                    <p class="text-xs text-slate-500 mb-2">Plusieurs catégories = le contenu actuel est mis à jour pour la 1ʳᵉ, puis un doublon est créé pour chaque catégorie supplémentaire.</p>
                     <template x-for="key in editForm.categorie" :key="'edit-cat-'+key">
                         <input type="hidden" name="categorie[]" :value="key">
                     </template>
@@ -661,6 +661,12 @@
                             </label>
                         @endforeach
                     </div>
+                    <p
+                        x-show="editForm.categorie.length > 1"
+                        x-cloak
+                        class="mt-2 text-xs font-medium text-escm-primary"
+                        x-text="(editForm.categorie.length - 1) + ' doublon' + (editForm.categorie.length > 2 ? 's seront créés' : ' sera créé') + ' (une entrée par catégorie).'"
+                    ></p>
                 </div>
 
                 <div x-show="editForm.categorie.length" x-cloak>

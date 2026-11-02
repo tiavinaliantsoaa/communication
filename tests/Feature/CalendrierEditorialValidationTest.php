@@ -70,6 +70,35 @@ class CalendrierEditorialValidationTest extends TestCase
         $this->assertFalse($event->refresh()->valide);
     }
 
+    public function test_updating_with_multiple_categories_duplicates_the_event(): void
+    {
+        $editor = $this->editor(['calendrier_editorial.update']);
+        $event = $this->validatedEvent($editor, false);
+
+        $this->actingAs($editor)
+            ->put(route('calendrier-editorial.update', $event), $this->payload([
+                'titre' => 'Post multi',
+                'categorie' => ['facebook', 'linkedin', 'befiana_sms'],
+            ]))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $event->refresh();
+        $this->assertSame('Post multi', $event->titre);
+        $this->assertSame(['facebook'], $event->categorie);
+
+        $duplicates = EditorialEvent::query()
+            ->where('titre', 'Post multi')
+            ->where('id', '!=', $event->id)
+            ->get();
+
+        $this->assertCount(2, $duplicates);
+        $this->assertEqualsCanonicalizing(
+            [['linkedin'], ['befiana_sms']],
+            $duplicates->pluck('categorie')->all()
+        );
+    }
+
     /**
      * @param  list<string>  $keys
      */
