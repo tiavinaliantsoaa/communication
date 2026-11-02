@@ -27,6 +27,9 @@ class CrmCandidate extends Model
         'site_web' => 'Site Web',
         'salon' => 'Salon',
         'escm_tour' => 'ESCM Tour',
+        'appels' => 'Appels',
+        'visite_accueil' => 'Visite accueil',
+        'parrainage' => 'Parrainage',
     ];
 
     public const GENRES = [
