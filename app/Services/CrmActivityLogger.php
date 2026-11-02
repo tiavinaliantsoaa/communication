@@ -90,6 +90,30 @@ class CrmActivityLogger
         );
     }
 
+    public function taskAdded(CrmCandidate $candidate, string $description, ?User $user = null): CrmActivity
+    {
+        return $this->log(
+            $candidate,
+            CrmActivity::TYPE_TASK,
+            'Tâche programmée',
+            $description,
+            null,
+            $user
+        );
+    }
+
+    public function taskCompleted(CrmCandidate $candidate, string $description, ?User $user = null): CrmActivity
+    {
+        return $this->log(
+            $candidate,
+            CrmActivity::TYPE_TASK_DONE,
+            'Tâche terminée',
+            $description,
+            null,
+            $user
+        );
+    }
+
     public function abandoned(CrmCandidate $candidate, string $reason, ?User $user = null): CrmActivity
     {
         return $this->log(

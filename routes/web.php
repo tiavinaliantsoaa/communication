@@ -150,6 +150,7 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
 
         Route::get('/candidats', [CrmCandidateController::class, 'index'])->name('candidats.index');
         Route::get('/abandons', [CrmCandidateController::class, 'index'])->name('abandons');
+        Route::get('/tasks/due', [CrmCandidateController::class, 'dueTasks'])->name('tasks.due');
         Route::get('/candidats/create', [CrmCandidateController::class, 'create'])
             ->middleware('permission:crm.create')
             ->name('candidats.create');
@@ -179,6 +180,15 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         Route::delete('/candidats/{candidat}/interactions/{interaction}', [CrmCandidateController::class, 'destroyInteraction'])
             ->middleware('permission:crm.update')
             ->name('candidats.interactions.destroy');
+        Route::post('/candidats/{candidat}/tasks', [CrmCandidateController::class, 'storeTask'])
+            ->middleware('permission:crm.update')
+            ->name('candidats.tasks.store');
+        Route::patch('/candidats/{candidat}/tasks/{task}/complete', [CrmCandidateController::class, 'completeTask'])
+            ->middleware('permission:crm.update')
+            ->name('candidats.tasks.complete');
+        Route::delete('/candidats/{candidat}/tasks/{task}', [CrmCandidateController::class, 'destroyTask'])
+            ->middleware('permission:crm.update')
+            ->name('candidats.tasks.destroy');
         Route::delete('/candidats/{candidat}/documents/{document}', [CrmCandidateController::class, 'destroyDocument'])
             ->middleware('permission:crm.update')
             ->name('candidats.documents.destroy');

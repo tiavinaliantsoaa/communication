@@ -82,6 +82,7 @@
             'documents' => 'Documents',
             'notes' => 'Notes',
             'interactions' => 'Interactions',
+            'tasks' => 'Tâches',
             'history' => 'Historique',
         ] as $key => $label)
             <a href="{{ route('crm.candidats.show', ['candidat' => $candidate, 'tab' => $key]) }}"
@@ -363,6 +364,109 @@
 </div>
 @endif
 
+@if($tab === 'tasks')
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-1">
+        @if(auth()->user()->canAccess('crm.update'))
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 sticky top-4" x-data="{ type: @js(old('type', 'appel')) }">
+            <h3 class="text-sm font-semibold text-slate-800 mb-3">Programmer une tâche</h3>
+            <form action="{{ route('crm.candidats.tasks.store', $candidate) }}" method="POST" class="space-y-4">
+                @csrf
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Commercial assigné <span class="text-red-500">*</span></label>
+                    <select name="assigned_to" required
+                            class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                        <option value="">— Choisir —</option>
+                        @foreach($advisors as $advisor)
+                            <option value="{{ $advisor->id }}" @selected((string) old('assigned_to', $candidate->advisor_id) === (string) $advisor->id)>
+                                {{ $advisor->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('assigned_to')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Date & heure d’échéance <span class="text-red-500">*</span></label>
+                    <input type="datetime-local" name="due_at" required
+                           value="{{ old('due_at') }}"
+                           class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                    @error('due_at')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Type de tâche <span class="text-red-500">*</span></label>
+                    <select name="type" x-model="type" required
+                            class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                        @foreach($taskTypes as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <input type="text" name="type_autre" x-show="type === 'autre'" x-cloak maxlength="100"
+                           value="{{ old('type_autre') }}"
+                           placeholder="Précisez le type…"
+                           class="mt-2 w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary">
+                    @error('type')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1.5">Commentaire <span class="text-slate-400 font-normal">(optionnel)</span></label>
+                    <textarea name="commentaire" rows="3" maxlength="5000"
+                              class="w-full rounded-lg border-slate-300 text-sm focus:border-escm-primary focus:ring-escm-primary"
+                              placeholder="Détails de la tâche…">{{ old('commentaire') }}</textarea>
+                    @error('commentaire')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <button type="submit" class="w-full bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2.5 rounded-lg">Programmer</button>
+            </form>
+        </div>
+        @endif
+    </div>
+    <div class="lg:col-span-2 space-y-3">
+        @forelse($candidate->tasks as $task)
+        <div @class([
+            'bg-white rounded-xl border shadow-sm p-4',
+            'border-red-200' => $task->isDue(),
+            'border-slate-200' => ! $task->isDue(),
+        ])>
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                        <p class="text-sm font-semibold text-slate-900">{{ $task->type_label }}</p>
+                        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset {{ $task->statut_color }}">
+                            {{ $task->isDue() ? 'Échue' : $task->statut_label }}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500">
+                        Commercial : <span class="font-medium text-slate-700">{{ $task->assignee?->name ?? '—' }}</span>
+                        · Échéance : <span @class(['font-medium', 'text-red-600' => $task->isDue(), 'text-slate-700' => ! $task->isDue()])>{{ $task->due_at?->format('d/m/Y H:i') }}</span>
+                    </p>
+                    @if($task->commentaire)
+                        <p class="mt-2 text-sm text-slate-700 whitespace-pre-wrap">{{ $task->commentaire }}</p>
+                    @endif
+                    <p class="mt-2 text-[11px] text-slate-400">Créée par {{ $task->creator?->name ?? '—' }} · {{ $task->created_at?->format('d/m/Y H:i') }}</p>
+                </div>
+                @if(auth()->user()->canAccess('crm.update'))
+                <div class="flex flex-col items-end gap-1 shrink-0">
+                    @if($task->isOpen())
+                    <form method="POST" action="{{ route('crm.candidats.tasks.complete', [$candidate, $task]) }}">
+                        @csrf @method('PATCH')
+                        <button type="submit" class="text-xs font-medium text-escm-primary hover:underline">Terminer</button>
+                    </form>
+                    @endif
+                    <form method="POST" action="{{ route('crm.candidats.tasks.destroy', [$candidate, $task]) }}" onsubmit="return confirm('Supprimer cette tâche ?')">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="text-xs text-slate-400 hover:text-red-600">Suppr.</button>
+                    </form>
+                </div>
+                @endif
+            </div>
+        </div>
+        @empty
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-10 text-center text-slate-500 text-sm">
+            Aucune tâche programmée pour ce candidat.
+        </div>
+        @endforelse
+    </div>
+</div>
+@endif
+
 @if($tab === 'history')
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-slate-100">
@@ -378,6 +482,8 @@
                         'status_changed' => 'bg-violet-50 text-violet-600',
                         'note_added' => 'bg-amber-50 text-amber-600',
                         'interaction_added' => 'bg-emerald-50 text-emerald-600',
+                        'task_added' => 'bg-sky-50 text-sky-600',
+                        'task_completed' => 'bg-green-50 text-green-600',
                         'abandoned' => 'bg-red-50 text-red-600',
                         default => 'bg-slate-100 text-slate-600',
                     };

@@ -113,6 +113,12 @@ class CrmCandidate extends Model
         return $this->hasMany(CrmInteraction::class)->latest();
     }
 
+    public function tasks(): HasMany
+    {
+        return $this->hasMany(CrmTask::class)->orderByRaw("CASE WHEN statut = 'ouverte' THEN 0 ELSE 1 END")
+            ->orderBy('due_at');
+    }
+
     public function activities(): HasMany
     {
         return $this->hasMany(CrmActivity::class)->latest('created_at');

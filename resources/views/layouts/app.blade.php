@@ -53,6 +53,9 @@
             </main>
         </div>
     </div>
+
+    @include('layouts.partials.crm-task-bubble')
+
     @stack('scripts')
 </body>
 </html>

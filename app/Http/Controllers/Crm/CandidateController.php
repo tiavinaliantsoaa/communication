@@ -9,7 +9,9 @@ use App\Models\CrmDocumentType;
 use App\Models\CrmIntake;
 use App\Models\CrmInteraction;
 use App\Models\CrmProgramme;
+use App\Models\CrmTask;
 use App\Models\User;
+use App\Models\UserNotification;
 use App\Services\ActivityLogger;
 use App\Services\CrmActivityLogger;
 use App\Support\PrivateFile;
@@ -121,13 +123,15 @@ class CandidateController extends Controller
             'activities.user',
             'documents.type',
             'interactions.user',
+            'tasks.assignee',
+            'tasks.creator',
         ]);
 
         $documentTypes = CrmDocumentType::active()->ordered()->get();
         $docsByType = $candidat->documents->groupBy('crm_document_type_id');
 
         $tab = request('tab', 'overview');
-        if (! in_array($tab, ['overview', 'notes', 'history', 'documents', 'interactions'], true)) {
+        if (! in_array($tab, ['overview', 'notes', 'history', 'documents', 'interactions', 'tasks'], true)) {
             $tab = 'overview';
         }
 
@@ -138,6 +142,8 @@ class CandidateController extends Controller
             'documentTypes' => $documentTypes,
             'docsByType' => $docsByType,
             'interactionTypes' => CrmInteraction::TYPES,
+            'taskTypes' => CrmTask::TYPES,
+            'advisors' => User::query()->orderBy('name')->get(['id', 'name']),
         ]);
     }
 
@@ -351,6 +357,121 @@ class CandidateController extends Controller
         $interaction->delete();
 
         return back()->with('success', 'Interaction supprimée.');
+    }
+
+    public function storeTask(Request $request, CrmCandidate $candidat, CrmActivityLogger $crmLog)
+    {
+        $validated = $request->validate([
+            'assigned_to' => ['required', 'exists:users,id'],
+            'due_at' => ['required', 'date'],
+            'type' => ['required', 'string', 'max:100'],
+            'commentaire' => ['nullable', 'string', 'max:5000'],
+        ], [
+            'assigned_to.required' => 'Choisissez le commercial assigné.',
+            'due_at.required' => 'Indiquez la date et l’heure d’échéance.',
+            'type.required' => 'Indiquez le type de tâche.',
+        ]);
+
+        $type = $validated['type'];
+        if ($type === 'autre' && $request->filled('type_autre')) {
+            $type = trim((string) $request->input('type_autre'));
+        }
+
+        $task = $candidat->tasks()->create([
+            'assigned_to' => (int) $validated['assigned_to'],
+            'created_by' => auth()->id(),
+            'type' => $type,
+            'commentaire' => $validated['commentaire'] ?? null,
+            'due_at' => $validated['due_at'],
+            'statut' => CrmTask::STATUT_OUVERTE,
+        ]);
+
+        $candidat->touchInteraction();
+        $assignee = $task->assignee?->name ?? 'commercial';
+        $crmLog->taskAdded(
+            $candidat,
+            $task->type_label.' · '.$assignee.' · '.$task->due_at->format('d/m/Y H:i')
+        );
+
+        if ((int) $task->assigned_to !== (int) auth()->id()) {
+            UserNotification::create([
+                'user_id' => $task->assigned_to,
+                'actor_id' => auth()->id(),
+                'type' => 'crm_task',
+                'titre' => 'Nouvelle tâche CRM',
+                'description' => $task->type_label.' pour '.$candidat->full_name.' — échéance '.$task->due_at->format('d/m/Y H:i'),
+                'url' => route('crm.candidats.show', ['candidat' => $candidat, 'tab' => 'tasks']),
+            ]);
+        }
+
+        return redirect()->route('crm.candidats.show', ['candidat' => $candidat, 'tab' => 'tasks'])
+            ->with('success', 'Tâche programmée.');
+    }
+
+    public function completeTask(CrmCandidate $candidat, CrmTask $task, CrmActivityLogger $crmLog)
+    {
+        abort_unless((int) $task->crm_candidate_id === (int) $candidat->id, 404);
+        abort_unless(auth()->user()?->canAccess('crm.update'), 403);
+
+        if ($task->isOpen()) {
+            $task->markCompleted();
+            $crmLog->taskCompleted($candidat, $task->type_label);
+            $candidat->touchInteraction();
+        }
+
+        return redirect()->route('crm.candidats.show', ['candidat' => $candidat, 'tab' => 'tasks'])
+            ->with('success', 'Tâche marquée comme terminée.');
+    }
+
+    public function destroyTask(CrmCandidate $candidat, CrmTask $task)
+    {
+        abort_unless((int) $task->crm_candidate_id === (int) $candidat->id, 404);
+        abort_unless(auth()->user()?->canAccess('crm.update'), 403);
+
+        $task->delete();
+
+        return redirect()->route('crm.candidats.show', ['candidat' => $candidat, 'tab' => 'tasks'])
+            ->with('success', 'Tâche supprimée.');
+    }
+
+    /**
+     * Due / overdue open tasks for the floating notification bubble.
+     */
+    public function dueTasks(Request $request)
+    {
+        $user = auth()->user();
+        abort_unless($user?->canAccess('crm.view'), 403);
+
+        $tasks = CrmTask::query()
+            ->with(['candidate:id,prenom,nom', 'assignee:id,name'])
+            ->due()
+            ->assignedTo((int) $user->id)
+            ->orderBy('due_at')
+            ->limit(30)
+            ->get();
+
+        $newlyDue = $tasks->filter(fn (CrmTask $task) => $task->due_notified_at === null);
+        foreach ($newlyDue as $task) {
+            UserNotification::create([
+                'user_id' => $user->id,
+                'actor_id' => null,
+                'type' => 'crm_task_due',
+                'titre' => 'Tâche CRM échue',
+                'description' => $task->type_label.' — '.$task->candidate?->full_name
+                    .' (échéance '.$task->due_at->format('d/m/Y H:i').')',
+                'url' => route('crm.candidats.show', [
+                    'candidat' => $task->crm_candidate_id,
+                    'tab' => 'tasks',
+                ]),
+            ]);
+            $task->update(['due_notified_at' => now()]);
+        }
+
+        return response()->json([
+            'count' => $tasks->count(),
+            'tasks' => $tasks->map->toBubbleArray()->values(),
+            'new_due' => $newlyDue->count(),
+        ]);
     }
 
     /**
