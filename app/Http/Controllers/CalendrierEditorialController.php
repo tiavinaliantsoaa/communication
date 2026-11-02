@@ -213,11 +213,10 @@ class CalendrierEditorialController extends Controller
                 ]);
             }
 
-            // Un contenu édité = une seule catégorie
             $categories = array_values($validated['categorie'] ?? []);
-            $validated['categorie'] = [$categories[0] ?? 'facebook'];
+            $validated['categorie'] = $categories !== [] ? $categories : ['facebook'];
 
-            $isFacebookFi = ($validated['categorie'][0] ?? '') === 'facebook'
+            $isFacebookFi = in_array('facebook', $validated['categorie'], true)
                 && ($validated['type_contenu'] ?? '') === 'FI';
             if (! $isFacebookFi) {
                 $validated['booster'] = false;
