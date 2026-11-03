@@ -16,6 +16,7 @@
                     <th class="px-5 py-3">Année</th>
                     <th class="px-3 py-3">Mois</th>
                     <th class="px-3 py-3 text-right">Montant</th>
+                    <th class="px-3 py-3">Répartition</th>
                     <th class="px-5 py-3 text-right">Actions</th>
                 </tr>
             </thead>
@@ -25,6 +26,15 @@
                     <td class="px-5 py-3 font-medium text-slate-900">{{ $budget->annee }}</td>
                     <td class="px-3 py-3 text-slate-600 capitalize">{{ \Carbon\Carbon::create($budget->annee, $budget->mois, 1)->locale('fr')->isoFormat('MMMM') }}</td>
                     <td class="px-3 py-3 text-right font-medium text-slate-900">{{ format_ar($budget->montant) }}</td>
+                    <td class="px-3 py-3">
+                        @if(($budget->lignes_count ?? 0) > 0)
+                            <span class="inline-flex items-center rounded-full bg-escm-primary/10 text-escm-primary px-2 py-0.5 text-xs font-medium">
+                                {{ $budget->lignes_count }} catégorie{{ $budget->lignes_count > 1 ? 's' : '' }}
+                            </span>
+                        @else
+                            <span class="text-xs text-slate-400">Non détaillé</span>
+                        @endif
+                    </td>
                     <td class="px-5 py-3">
                         <x-row-actions
                             :edit-route="route('budgets.edit', $budget)"
@@ -34,7 +44,7 @@
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="4" class="px-5 py-8 text-center text-slate-500">Aucun budget enregistré.</td></tr>
+                <tr><td colspan="5" class="px-5 py-8 text-center text-slate-500">Aucun budget enregistré.</td></tr>
                 @endforelse
             </tbody>
         </table>

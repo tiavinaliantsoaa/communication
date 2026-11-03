@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Budget;
 use App\Models\BudgetAnnuel;
 use App\Models\Departement;
+use App\Models\Depense;
+use App\Models\DepenseCategorie;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -24,6 +26,29 @@ class BudgetAnnuelController extends Controller
         });
 
         return view('budget-annuels.index', compact('budgets'));
+    }
+
+    public function show(BudgetAnnuel $budgetAnnuel)
+    {
+        $budgetsMensuels = Budget::query()
+            ->with(['lignes.categorie'])
+            ->where('annee', $budgetAnnuel->annee)
+            ->orderBy('mois')
+            ->get();
+
+        $categories = DepenseCategorie::query()
+            ->orderBy('position')
+            ->orderBy('nom')
+            ->get();
+
+        return view('budget-annuels.show', [
+            'budgetAnnuel' => $budgetAnnuel,
+            'budgetsMensuels' => $budgetsMensuels,
+            'categories' => $categories,
+            'alloue' => $budgetAnnuel->montantAlloue(),
+            'restant' => $budgetAnnuel->montantRestant(),
+            'pct' => $budgetAnnuel->pourcentageAlloue(),
+        ]);
     }
 
     public function create()
@@ -59,7 +84,8 @@ class BudgetAnnuelController extends Controller
             $budget
         );
 
-        return redirect()->route('budget-annuels.index')->with('success', 'Budget annuel créé avec succès.');
+        return redirect()->route('budget-annuels.show', $budget)
+            ->with('success', 'Budget annuel créé. Vous pouvez maintenant gérer les catégories.');
     }
 
     public function edit(BudgetAnnuel $budgetAnnuel)
@@ -95,7 +121,7 @@ class BudgetAnnuelController extends Controller
             $budgetAnnuel
         );
 
-        return redirect()->route('budget-annuels.index')->with('success', 'Budget annuel mis à jour avec succès.');
+        return redirect()->route('budget-annuels.show', $budgetAnnuel)->with('success', 'Budget annuel mis à jour avec succès.');
     }
 
     public function destroy(BudgetAnnuel $budgetAnnuel)
@@ -114,5 +140,45 @@ class BudgetAnnuelController extends Controller
         );
 
         return redirect()->route('budget-annuels.index')->with('success', 'Budget annuel supprimé avec succès.');
+    }
+
+    public function storeCategorie(Request $request)
+    {
+        $data = $request->validate([
+            'categorie_nom' => ['required', 'string', 'max:100'],
+            'budget_annuel_id' => ['nullable', 'integer', 'exists:budget_annuels,id'],
+        ], [
+            'categorie_nom.required' => 'Le nom de la catégorie est obligatoire.',
+        ]);
+
+        $nom = trim($data['categorie_nom']);
+        if (DepenseCategorie::query()->whereRaw('LOWER(nom) = ?', [mb_strtolower($nom)])->exists()) {
+            return back()->withErrors(['categorie_nom' => 'Cette catégorie existe déjà pour ce département.'])->withInput();
+        }
+
+        $categorie = DepenseCategorie::create([
+            'nom' => $nom,
+            'slug' => DepenseCategorie::makeSlug($nom),
+            'position' => (int) DepenseCategorie::query()->max('position') + 1,
+        ]);
+
+        return back()
+            ->with('success', 'Catégorie « '.$categorie->nom.' » créée.')
+            ->with('categorie_creee', $categorie->slug);
+    }
+
+    public function destroyCategorie(DepenseCategorie $categorie)
+    {
+        $usedInDepenses = Depense::query()->where('categorie', $categorie->slug)->exists();
+        $usedInBudgets = $categorie->budgetLignes()->exists();
+
+        if ($usedInDepenses || $usedInBudgets) {
+            return back()->with('error', 'Impossible de supprimer « '.$categorie->nom.' » : elle est utilisée dans des dépenses ou des budgets.');
+        }
+
+        $nom = $categorie->nom;
+        $categorie->delete();
+
+        return back()->with('success', 'Catégorie « '.$nom.' » supprimée.');
     }
 }

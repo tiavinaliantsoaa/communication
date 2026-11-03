@@ -6,7 +6,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-lg">
+<div class="max-w-2xl">
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <form action="{{ route('budgets.update', $budget) }}" method="POST" class="space-y-5">
             @csrf @method('PUT')

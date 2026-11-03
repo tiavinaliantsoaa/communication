@@ -103,30 +103,6 @@ class DepenseController extends Controller
         return redirect()->route('depenses.index')->with('success', 'Dépense supprimée avec succès.');
     }
 
-    public function storeCategorie(Request $request)
-    {
-        $data = $request->validate([
-            'categorie_nom' => ['required', 'string', 'max:100'],
-        ], [
-            'categorie_nom.required' => 'Le nom de la catégorie est obligatoire.',
-        ]);
-
-        $nom = trim($data['categorie_nom']);
-        if (DepenseCategorie::query()->whereRaw('LOWER(nom) = ?', [mb_strtolower($nom)])->exists()) {
-            return back()->withErrors(['categorie_nom' => 'Cette catégorie existe déjà pour ce département.'])->withInput();
-        }
-
-        $categorie = DepenseCategorie::create([
-            'nom' => $nom,
-            'slug' => DepenseCategorie::makeSlug($nom),
-            'position' => (int) DepenseCategorie::query()->max('position') + 1,
-        ]);
-
-        return back()
-            ->with('success', 'Catégorie « '.$categorie->nom.' » créée.')
-            ->with('categorie_creee', $categorie->slug);
-    }
-
     private function validateDepense(Request $request, ?Depense $depense = null): array
     {
         $user = auth()->user();

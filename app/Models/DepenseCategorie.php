@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class DepenseCategorie extends Model
@@ -22,6 +23,11 @@ class DepenseCategorie extends Model
     public function departement(): BelongsTo
     {
         return $this->belongsTo(Departement::class);
+    }
+
+    public function budgetLignes(): HasMany
+    {
+        return $this->hasMany(BudgetLigne::class, 'depense_categorie_id');
     }
 
     public static function options(): array

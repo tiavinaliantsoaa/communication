@@ -1,12 +1,12 @@
 @php
     $title = 'Nouveau budget';
-    $subtitle = 'Définir un budget mensuel';
+    $subtitle = 'Définir un budget mensuel détaillé';
 @endphp
 
 @extends('layouts.app')
 
 @section('content')
-<div class="max-w-lg">
+<div class="max-w-2xl">
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <form action="{{ route('budgets.store') }}" method="POST" class="space-y-5">
             @csrf

@@ -2,8 +2,10 @@
 
 namespace Tests\Feature;
 
+use App\Models\BudgetAnnuel;
 use App\Models\Departement;
 use App\Models\DepenseCategorie;
+use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
@@ -18,6 +20,7 @@ class DepenseCategorieTest extends TestCase
         parent::setUp();
         URL::forceRootUrl('http://localhost');
         config(['app.url' => 'http://localhost']);
+        Permission::syncCatalog();
     }
 
     public function test_a_department_only_sees_its_own_expense_categories(): void
@@ -35,10 +38,15 @@ class DepenseCategorieTest extends TestCase
             'password' => 'password',
         ]);
 
+        $budget = BudgetAnnuel::create([
+            'annee' => 2026,
+            'montant' => 1000000,
+        ]);
+
         $this->actingAs($commUser)
-            ->from(route('depenses.create'))
-            ->post(route('depenses.categories.store'), ['categorie_nom' => 'Transport'])
-            ->assertRedirect(route('depenses.create'))
+            ->from(route('budget-annuels.show', $budget))
+            ->post(route('budget-annuels.categories.store'), ['categorie_nom' => 'Transport'])
+            ->assertRedirect(route('budget-annuels.show', $budget))
             ->assertSessionHas('categorie_creee');
 
         $this->actingAs($commUser);

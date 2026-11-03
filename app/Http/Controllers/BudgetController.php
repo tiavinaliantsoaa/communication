@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Budget;
 use App\Models\BudgetAnnuel;
+use App\Models\DepenseCategorie;
 use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -13,29 +15,33 @@ class BudgetController extends Controller
 {
     public function index()
     {
-        $budgets = Budget::orderByDesc('annee')->orderByDesc('mois')->paginate(12);
+        $budgets = Budget::query()
+            ->withCount('lignes')
+            ->orderByDesc('annee')
+            ->orderByDesc('mois')
+            ->paginate(12);
 
         return view('budgets.index', compact('budgets'));
     }
 
     public function create()
     {
-        return view('budgets.create');
+        return view('budgets.create', $this->formData());
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'montant' => ['required', 'numeric', 'min:0'],
-            'annee' => ['required', 'integer', 'min:2020', 'max:2100'],
-            'mois' => ['required', 'integer', 'min:1', 'max:12', $this->uniqueMonthRule($request)],
-        ], [
-            'mois.unique' => 'Un budget existe déjà pour ce mois et cette année.',
-        ]);
+        $validated = $this->validateBudget($request);
+        $lignes = $this->validatedLignes($request, (float) $validated['montant']);
 
         $this->assertWithinAnnualBudget($validated['annee'], (float) $validated['montant']);
 
-        $budget = Budget::create($validated);
+        $budget = DB::transaction(function () use ($validated, $lignes) {
+            $budget = Budget::create($validated);
+            $budget->syncLignes($lignes);
+
+            return $budget;
+        });
 
         app(ActivityLogger::class)->log(
             'budget',
@@ -52,22 +58,22 @@ class BudgetController extends Controller
 
     public function edit(Budget $budget)
     {
-        return view('budgets.edit', compact('budget'));
+        $budget->load('lignes.categorie');
+
+        return view('budgets.edit', array_merge($this->formData($budget), compact('budget')));
     }
 
     public function update(Request $request, Budget $budget)
     {
-        $validated = $request->validate([
-            'montant' => ['required', 'numeric', 'min:0'],
-            'annee' => ['required', 'integer', 'min:2020', 'max:2100'],
-            'mois' => ['required', 'integer', 'min:1', 'max:12', $this->uniqueMonthRule($request, $budget->id)],
-        ], [
-            'mois.unique' => 'Un budget existe déjà pour ce mois et cette année.',
-        ]);
+        $validated = $this->validateBudget($request, $budget);
+        $lignes = $this->validatedLignes($request, (float) $validated['montant']);
 
         $this->assertWithinAnnualBudget($validated['annee'], (float) $validated['montant'], $budget->id);
 
-        $budget->update($validated);
+        DB::transaction(function () use ($budget, $validated, $lignes) {
+            $budget->update($validated);
+            $budget->syncLignes($lignes);
+        });
 
         app(ActivityLogger::class)->log(
             'budget',
@@ -98,6 +104,93 @@ class BudgetController extends Controller
         );
 
         return redirect()->route('budgets.index')->with('success', 'Budget supprimé avec succès.');
+    }
+
+    private function formData(?Budget $budget = null): array
+    {
+        $categories = DepenseCategorie::query()
+            ->orderBy('position')
+            ->orderBy('nom')
+            ->get(['id', 'nom', 'slug']);
+
+        $oldLignes = old('lignes');
+        if (is_array($oldLignes)) {
+            $lignes = collect($oldLignes)
+                ->filter(fn ($row) => filled($row['depense_categorie_id'] ?? null) || filled($row['montant'] ?? null))
+                ->values()
+                ->map(fn ($row) => [
+                    'depense_categorie_id' => (string) ($row['depense_categorie_id'] ?? ''),
+                    'montant' => (string) ($row['montant'] ?? ''),
+                ])
+                ->all();
+        } elseif ($budget) {
+            $lignes = $budget->lignes->map(fn ($ligne) => [
+                'depense_categorie_id' => (string) $ligne->depense_categorie_id,
+                'montant' => (string) $ligne->montant,
+            ])->all();
+        } else {
+            $lignes = [];
+        }
+
+        if ($lignes === []) {
+            $lignes = [['depense_categorie_id' => '', 'montant' => '']];
+        }
+
+        return compact('categories', 'lignes');
+    }
+
+    private function validateBudget(Request $request, ?Budget $budget = null): array
+    {
+        return $request->validate([
+            'montant' => ['required', 'numeric', 'min:0'],
+            'annee' => ['required', 'integer', 'min:2020', 'max:2100'],
+            'mois' => ['required', 'integer', 'min:1', 'max:12', $this->uniqueMonthRule($request, $budget?->id)],
+        ], [
+            'mois.unique' => 'Un budget existe déjà pour ce mois et cette année.',
+        ]);
+    }
+
+    /**
+     * @return list<array{depense_categorie_id: int, montant: float}>
+     */
+    private function validatedLignes(Request $request, float $montantBudget): array
+    {
+        $allowedIds = DepenseCategorie::query()->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        $validated = $request->validate([
+            'lignes' => ['nullable', 'array'],
+            'lignes.*.depense_categorie_id' => ['nullable', 'integer', Rule::in($allowedIds)],
+            'lignes.*.montant' => ['nullable', 'numeric', 'min:0'],
+        ], [
+            'lignes.*.depense_categorie_id.in' => 'Catégorie invalide.',
+        ]);
+
+        $rows = collect($validated['lignes'] ?? [])
+            ->filter(fn ($row) => filled($row['depense_categorie_id'] ?? null))
+            ->map(fn ($row) => [
+                'depense_categorie_id' => (int) $row['depense_categorie_id'],
+                'montant' => round((float) ($row['montant'] ?? 0), 2),
+            ])
+            ->values();
+
+        if ($rows->isEmpty()) {
+            return [];
+        }
+
+        if ($rows->pluck('depense_categorie_id')->duplicates()->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'lignes' => 'Chaque catégorie ne peut apparaître qu’une seule fois dans la répartition.',
+            ]);
+        }
+
+        $sum = round((float) $rows->sum('montant'), 2);
+        if ($sum - $montantBudget > 0.009) {
+            throw ValidationException::withMessages([
+                'lignes' => 'La somme des catégories ('.format_ar($sum).') dépasse le budget mensuel ('.format_ar($montantBudget).').',
+            ]);
+        }
+
+        return $rows->all();
     }
 
     private function uniqueMonthRule(Request $request, ?int $ignoreId = null)

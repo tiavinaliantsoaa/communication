@@ -71,11 +71,17 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         ->name('activite.index');
 
     ResourceRoutes::register('budget-annuels', BudgetAnnuelController::class, 'budget_annuel');
+    Route::post('budget-annuels/categories', [BudgetAnnuelController::class, 'storeCategorie'])
+        ->middleware('permission:budget_annuel.update')
+        ->name('budget-annuels.categories.store');
+    Route::delete('budget-annuels/categories/{categorie}', [BudgetAnnuelController::class, 'destroyCategorie'])
+        ->middleware('permission:budget_annuel.update')
+        ->name('budget-annuels.categories.destroy');
+    Route::get('budget-annuels/{budget_annuel}', [BudgetAnnuelController::class, 'show'])
+        ->middleware('permission:budget_annuel.view')
+        ->name('budget-annuels.show');
     ResourceRoutes::register('budgets', BudgetController::class, 'budget_mensuel');
     ResourceRoutes::register('depenses', DepenseController::class, 'depenses');
-    Route::post('depenses/categories', [DepenseController::class, 'storeCategorie'])
-        ->middleware('permission:depenses.create')
-        ->name('depenses.categories.store');
     ResourceRoutes::register('fournisseurs', FournisseurController::class, 'fournisseurs');
     ResourceRoutes::register('campagnes', CampagneController::class, 'campagnes');
     Route::middleware('permission:suivi_liens.view')->group(function () {

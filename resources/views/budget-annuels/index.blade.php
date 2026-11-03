@@ -24,7 +24,9 @@
             <tbody class="divide-y divide-slate-100">
                 @forelse($budgets as $budget)
                 <tr class="hover:bg-slate-50/50">
-                    <td class="px-5 py-3 font-medium text-slate-900">{{ $budget->annee }}</td>
+                    <td class="px-5 py-3 font-medium text-slate-900">
+                        <a href="{{ route('budget-annuels.show', $budget) }}" class="hover:text-escm-primary">{{ $budget->annee }}</a>
+                    </td>
                     <td class="px-3 py-3 text-right font-medium text-slate-900">{{ format_ar($budget->montant) }}</td>
                     <td class="px-3 py-3 text-right text-slate-700">{{ format_ar($budget->alloue) }}</td>
                     <td class="px-3 py-3 text-right font-medium {{ $budget->restant <= 0 ? 'text-red-600' : 'text-green-700' }}">{{ format_ar($budget->restant) }}</td>
@@ -35,11 +37,14 @@
                         <p class="text-[11px] text-slate-500">{{ $budget->pct }}% alloué</p>
                     </td>
                     <td class="px-5 py-3">
-                        <x-row-actions
-                            :edit-route="route('budget-annuels.edit', $budget)"
-                            :delete-route="route('budget-annuels.destroy', $budget)"
-                            delete-confirm="Supprimer ce budget annuel ?"
-                        />
+                        <div class="flex items-center justify-end gap-2">
+                            <a href="{{ route('budget-annuels.show', $budget) }}" class="text-xs font-medium text-escm-primary hover:underline">Détail</a>
+                            <x-row-actions
+                                :edit-route="route('budget-annuels.edit', $budget)"
+                                :delete-route="route('budget-annuels.destroy', $budget)"
+                                delete-confirm="Supprimer ce budget annuel ?"
+                            />
+                        </div>
                     </td>
                 </tr>
                 @empty
