@@ -27,7 +27,13 @@ class OnlineTestTakeController extends Controller
         }
 
         if ($invitation->statut === OnlineTestInvitation::STATUT_EN_COURS) {
-            return redirect()->route('online-tests.take.exam', $token);
+            $invitation->load(['test.questions']);
+
+            return view('online-tests.take.session', [
+                'invitation' => $invitation,
+                'phase' => 'exam',
+                'remainingSeconds' => $invitation->remainingSeconds(),
+            ]);
         }
 
         // First visit of unused link: mark opened but still allow start once
@@ -35,9 +41,13 @@ class OnlineTestTakeController extends Controller
             $invitation->update(['opened_at' => now()]);
         }
 
-        $invitation->load('test');
+        $invitation->load(['test.questions']);
 
-        return view('online-tests.take.notice', compact('invitation'));
+        return view('online-tests.take.session', [
+            'invitation' => $invitation,
+            'phase' => 'notice',
+            'remainingSeconds' => 0,
+        ]);
     }
 
     public function start(Request $request, string $token)
@@ -67,31 +77,22 @@ class OnlineTestTakeController extends Controller
             'ends_at' => $startedAt->copy()->addMinutes((int) $test->duree_minutes),
         ]);
 
-        return redirect()->route('online-tests.take.exam', $token);
+        $invitation->refresh();
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'ok' => true,
+                'remaining' => $invitation->remainingSeconds(),
+                'ends_at' => $invitation->ends_at?->toIso8601String(),
+            ]);
+        }
+
+        return redirect()->route('online-tests.take.show', $token);
     }
 
     public function exam(string $token)
     {
-        $invitation = $this->findInvitation($token);
-        $invitation->markExpiredIfNeeded();
-        $invitation->refresh();
-
-        if ($invitation->statut === OnlineTestInvitation::STATUT_ANNULE) {
-            return view('online-tests.take.cancelled', compact('invitation'));
-        }
-
-        if ($invitation->statut === OnlineTestInvitation::STATUT_EXPIRE) {
-            return view('online-tests.take.finished', compact('invitation'));
-        }
-
-        abort_unless($invitation->statut === OnlineTestInvitation::STATUT_EN_COURS, 403);
-
-        $invitation->load(['test.questions']);
-
-        return view('online-tests.take.exam', [
-            'invitation' => $invitation,
-            'remainingSeconds' => $invitation->remainingSeconds(),
-        ]);
+        return redirect()->route('online-tests.take.show', $token);
     }
 
     public function time(string $token)

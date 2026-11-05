@@ -29,10 +29,11 @@ class OnlineTestTakeTest extends TestCase
         $this->post(route('online-tests.take.start', $invitation->token), [])
             ->assertSessionHasErrors(['accepte_regles', 'fullscreen_ok']);
 
-        $this->post(route('online-tests.take.start', $invitation->token), [
+        $this->postJson(route('online-tests.take.start', $invitation->token), [
             'accepte_regles' => '1',
             'fullscreen_ok' => '1',
-        ])->assertRedirect(route('online-tests.take.exam', $invitation->token));
+        ])->assertOk()
+            ->assertJsonStructure(['ok', 'remaining', 'ends_at']);
 
         $invitation->refresh();
         $this->assertSame(OnlineTestInvitation::STATUT_EN_COURS, $invitation->statut);
