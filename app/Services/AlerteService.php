@@ -13,24 +13,24 @@ use Carbon\Carbon;
 
 class AlerteService
 {
-    public function all(?int $annee = null, ?int $mois = null, ?User $user = null): array
+    public function all(?int $annee = null, ?int $mois = null, ?User $user = null, ?int $departementId = null, bool $includePersonal = true): array
     {
         $annee = $annee ?? now()->year;
         $mois = $mois ?? now()->month;
         $user = $user ?? auth()->user();
 
-        $snap = app(BudgetMensuelService::class)->forMonth($annee, $mois);
+        $snap = app(BudgetMensuelService::class)->forMonth($annee, $mois, $departementId);
         $budgetMontant = $snap['budget_effectif'];
         $totalDepense = $snap['depense'];
 
-        $budgetAnnuel = BudgetAnnuel::where('annee', $annee)->first();
+        $budgetAnnuel = $this->scoped(BudgetAnnuel::class, $departementId)->where('annee', $annee)->first();
         $budgetAnnuelMontant = $budgetAnnuel ? (float) $budgetAnnuel->montant : 0;
-        $budgetAnnuelAlloue = (float) Budget::where('annee', $annee)->sum('montant');
+        $budgetAnnuelAlloue = (float) $this->scoped(Budget::class, $departementId)->where('annee', $annee)->sum('montant');
 
         $alertes = [];
         $moisLabel = Carbon::create($annee, $mois, 1)->locale('fr')->isoFormat('MMMM YYYY');
 
-        if ($user) {
+        if ($includePersonal && $user) {
             $perso = UserNotification::where('user_id', $user->id)
                 ->orderByDesc('created_at')
                 ->limit(30)
@@ -97,7 +97,8 @@ class AlerteService
             }
         }
 
-        $stocksFaibles = Stock::whereColumn('quantite', '<=', 'seuil_alerte')
+        $stocksFaibles = $this->scoped(Stock::class, $departementId)
+            ->whereColumn('quantite', '<=', 'seuil_alerte')
             ->orderBy('quantite')
             ->get();
 
@@ -113,7 +114,8 @@ class AlerteService
             ];
         }
 
-        $depensesEnAttente = Depense::where('statut', 'en_attente')
+        $depensesEnAttente = $this->scoped(Depense::class, $departementId)
+            ->where('statut', 'en_attente')
             ->orderByDesc('date_depense')
             ->limit(5)
             ->get();
@@ -129,7 +131,8 @@ class AlerteService
             ];
         }
 
-        $evenementsProches = Evenement::where('statut', '!=', 'annule')
+        $evenementsProches = $this->scoped(Evenement::class, $departementId)
+            ->where('statut', '!=', 'annule')
             ->whereDate('date_debut', '>=', now()->toDateString())
             ->whereDate('date_debut', '<=', now()->addDays(14)->toDateString())
             ->orderBy('date_debut')
@@ -154,5 +157,19 @@ class AlerteService
     public function count(?int $annee = null, ?int $mois = null, ?User $user = null): int
     {
         return count($this->all($annee, $mois, $user));
+    }
+
+    /**
+     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $model
+     */
+    private function scoped(string $model, ?int $departementId)
+    {
+        if ($departementId) {
+            $table = (new $model)->getTable();
+
+            return $model::withoutGlobalScope('departement')->where($table.'.departement_id', $departementId);
+        }
+
+        return $model::query();
     }
 }

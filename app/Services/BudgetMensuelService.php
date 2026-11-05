@@ -23,17 +23,17 @@ class BudgetMensuelService
      *     is_depassement: bool
      * }
      */
-    public function forMonth(int $annee, int $mois): array
+    public function forMonth(int $annee, int $mois, ?int $departementId = null): array
     {
-        $carry = $this->carryInto($annee, $mois);
+        $carry = $this->carryInto($annee, $mois, $departementId);
 
-        return $this->compute($annee, $mois, $carry);
+        return $this->compute($annee, $mois, $carry, $departementId);
     }
 
     /**
      * Amount of previous months' overspend deducted from this month's budget.
      */
-    public function carryInto(int $annee, int $mois): float
+    public function carryInto(int $annee, int $mois, ?int $departementId = null): float
     {
         $carry = 0.0;
 
@@ -42,7 +42,7 @@ class BudgetMensuelService
         for ($y = $annee - 1; $y <= $annee; $y++) {
             $lastMonth = ($y === $annee) ? ($mois - 1) : 12;
             for ($m = 1; $m <= $lastMonth; $m++) {
-                $snap = $this->compute($y, $m, $carry);
+                $snap = $this->compute($y, $m, $carry, $departementId);
                 $carry = $snap['depassement'];
             }
         }
@@ -64,11 +64,18 @@ class BudgetMensuelService
      *     is_depassement: bool
      * }
      */
-    private function compute(int $annee, int $mois, float $reportPrecedent): array
+    private function compute(int $annee, int $mois, float $reportPrecedent, ?int $departementId = null): array
     {
-        $budget = Budget::where('annee', $annee)->where('mois', $mois)->first();
+        $budgetQuery = $departementId
+            ? Budget::withoutGlobalScope('departement')->where('departement_id', $departementId)
+            : Budget::query();
+        $depenseQuery = $departementId
+            ? Depense::withoutGlobalScope('departement')->where('departement_id', $departementId)
+            : Depense::query();
+
+        $budget = $budgetQuery->where('annee', $annee)->where('mois', $mois)->first();
         $budgetBase = $budget ? (float) $budget->montant : 0.0;
-        $depense = (float) Depense::whereYear('date_depense', $annee)
+        $depense = (float) $depenseQuery->whereYear('date_depense', $annee)
             ->whereMonth('date_depense', $mois)
             ->sum('montant');
 

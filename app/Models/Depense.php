@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Depense extends Model
 {
@@ -55,6 +56,11 @@ class Depense extends Model
         'reste_a_payer' => 'decimal:2',
         'date_depense' => 'date',
     ];
+
+    public function departement(): BelongsTo
+    {
+        return $this->belongsTo(Departement::class);
+    }
 
     public function getStatutLabelAttribute(): string
     {

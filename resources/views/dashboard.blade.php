@@ -1,12 +1,26 @@
 @php
+    $vueDirection = $vueDirection ?? false;
     $title = 'Dashboard';
-    $subtitle = 'Vue d\'ensemble du service communication';
+    $subtitle = $vueDirection
+        ? 'Vue d\'ensemble de tous les départements'
+        : 'Vue d\'ensemble du service communication';
 @endphp
 
 @extends('layouts.app')
 
 @section('content')
 {{-- KPI Cards --}}
+@if($vueDirection)
+<div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    @foreach($cartesAnnuelles as $carte)
+        <x-kpi-card :label="$carte['label']" :value="format_ar($carte['montant'])" :subtext="'Restant : ' . format_ar($carte['restant'])" icon-color="blue" :progress="$carte['pct']" :progress-label="$carte['pct'] . '% alloué en mensuel'" progress-color="blue">
+            <x-slot:icon>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg>
+            </x-slot:icon>
+        </x-kpi-card>
+    @endforeach
+</div>
+@else
 <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-6">
     <x-kpi-card label="Budget annuel" :value="format_ar($kpis['budget_annuel'])" :subtext="'Restant : ' . format_ar($kpis['budget_annuel_restant'])" icon-color="blue" :progress="$kpis['pct_annuel_alloue']" :progress-label="$kpis['pct_annuel_alloue'] . '% alloué en mensuel'" progress-color="blue">
         <x-slot:icon>
@@ -64,12 +78,24 @@
         </x-slot:icon>
     </x-kpi-card>
 </div>
+@endif
 
 {{-- Charts --}}
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
     <div class="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <h3 class="text-sm font-semibold text-slate-900 mb-4">Évolution Budget vs Dépenses {{ $annee }}</h3>
         <div id="chart-evolution" class="h-72"></div>
+        @if($vueDirection)
+            <div class="flex flex-wrap gap-2 mt-4 pt-3 border-t border-slate-100" id="evolution-departements">
+                @foreach($chartDepartements as $bouton)
+                    <button
+                        type="button"
+                        data-evolution-key="{{ $bouton['key'] }}"
+                        class="evolution-dept-btn rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors {{ $bouton['key'] === 'tous' ? 'bg-escm-primary text-white border-escm-primary' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300' }}"
+                    >{{ $bouton['label'] }}</button>
+                @endforeach
+            </div>
+        @endif
     </div>
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
         <h3 class="text-sm font-semibold text-slate-900 mb-4">Répartition des dépenses — {{ ucfirst($moisLabel) }}</h3>
@@ -89,6 +115,9 @@
                 <thead>
                     <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-100">
                         <th class="px-5 py-3">Date</th>
+                        @if($vueDirection)
+                            <th class="px-3 py-3">Département</th>
+                        @endif
                         <th class="px-3 py-3">Fournisseur</th>
                         <th class="px-3 py-3 hidden md:table-cell">Objet</th>
                         <th class="px-3 py-3 hidden lg:table-cell">Campagne</th>
@@ -100,6 +129,9 @@
                     @forelse($depensesRecentes as $depense)
                     <tr class="hover:bg-slate-50/50">
                         <td class="px-5 py-3 text-slate-600 whitespace-nowrap">{{ $depense->date_depense->format('d/m/Y') }}</td>
+                        @if($vueDirection)
+                            <td class="px-3 py-3 text-slate-700 whitespace-nowrap">{{ $depense->departement->nom ?? '—' }}</td>
+                        @endif
                         <td class="px-3 py-3 font-medium text-slate-900">{{ $depense->fournisseur }}</td>
                         <td class="px-3 py-3 text-slate-600 hidden md:table-cell">{{ $depense->objet }}</td>
                         <td class="px-3 py-3 text-slate-600 hidden lg:table-cell">{{ $depense->campagne }}</td>
@@ -108,7 +140,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="6" class="px-5 py-8 text-center text-slate-500">Aucune dépense pour {{ ucfirst($moisLabel) }}.</td>
+                        <td colspan="{{ $vueDirection ? 7 : 6 }}" class="px-5 py-8 text-center text-slate-500">Aucune dépense pour {{ ucfirst($moisLabel) }}.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -229,13 +261,16 @@
 
 @php
     $title = 'Dashboard';
-    $subtitle = 'Vue d\'ensemble du service communication';
+    $subtitle = ($vueDirection ?? false)
+        ? 'Vue d\'ensemble de tous les départements'
+        : 'Vue d\'ensemble du service communication';
 @endphp
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const evolutionData = @json($chartEvolution);
+    const evolutionSets = @json(($vueDirection ?? false) ? $chartsEvolution : ['tous' => $chartEvolution]);
+    const evolutionData = evolutionSets.tous;
     const repartitionData = @json($chartRepartition);
 
     if (typeof ApexCharts !== 'undefined') {
@@ -267,7 +302,28 @@ document.addEventListener('DOMContentLoaded', function () {
             return sign + compact + suffix;
         };
 
-        new ApexCharts(document.querySelector('#chart-evolution'), {
+        const yaxisFor = (data) => {
+            const values = []
+                .concat(data.budget_prevu || [], data.depenses || [], data.reste || [])
+                .map((v) => Number(v) || 0);
+            const min = Math.min(0, ...values);
+            let max = Math.max(0, ...values);
+            if (!Number.isFinite(max) || max <= min) {
+                max = min + 1;
+            }
+
+            return {
+                min,
+                max,
+                forceNiceScale: true,
+                labels: {
+                    formatter: (v) => formatShort(v),
+                    style: { colors: '#94a3b8', fontSize: '11px' }
+                }
+            };
+        };
+
+        const evolutionChart = new ApexCharts(document.querySelector('#chart-evolution'), {
             chart: { type: 'line', height: 288, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
             series: [
                 { name: 'Budget prévu', data: evolutionData.budget_prevu },
@@ -277,16 +333,39 @@ document.addEventListener('DOMContentLoaded', function () {
             colors: ['#3b82f6', '#f97316', '#22c55e'],
             stroke: { width: [2, 2, 2], dashArray: [5, 0, 0], curve: 'smooth' },
             xaxis: { categories: evolutionData.labels, labels: { style: { colors: '#94a3b8', fontSize: '11px' } } },
-            yaxis: {
-                labels: {
-                    formatter: (v) => formatShort(v),
-                    style: { colors: '#94a3b8', fontSize: '11px' }
-                }
-            },
+            yaxis: yaxisFor(evolutionData),
             grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
             legend: { position: 'top', horizontalAlign: 'right', fontSize: '12px', markers: { radius: 12 } },
             tooltip: { y: { formatter: (v) => new Intl.NumberFormat('fr-FR').format(v) + ' Ar' } },
-        }).render();
+        });
+        evolutionChart.render();
+
+        document.querySelectorAll('[data-evolution-key]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const key = button.getAttribute('data-evolution-key');
+                const data = evolutionSets[key];
+                if (!data) {
+                    return;
+                }
+                evolutionChart.updateOptions({
+                    series: [
+                        { name: 'Budget prévu', data: data.budget_prevu },
+                        { name: 'Dépenses', data: data.depenses },
+                        { name: 'Reste', data: data.reste },
+                    ],
+                    yaxis: yaxisFor(data),
+                }, true, true);
+                document.querySelectorAll('[data-evolution-key]').forEach((el) => {
+                    const on = el.getAttribute('data-evolution-key') === key;
+                    el.classList.toggle('bg-escm-primary', on);
+                    el.classList.toggle('text-white', on);
+                    el.classList.toggle('border-escm-primary', on);
+                    el.classList.toggle('bg-white', !on);
+                    el.classList.toggle('text-slate-600', !on);
+                    el.classList.toggle('border-slate-200', !on);
+                });
+            });
+        });
 
         new ApexCharts(document.querySelector('#chart-repartition'), {
             chart: { type: 'donut', height: 288, fontFamily: 'Inter, sans-serif' },
