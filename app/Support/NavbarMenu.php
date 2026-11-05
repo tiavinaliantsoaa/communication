@@ -34,6 +34,7 @@ class NavbarMenu
             ['key' => 'evenements', 'label' => 'Événements', 'group' => 'Campagnes', 'permission' => 'evenements.view', 'routes' => ['evenements.*']],
             ['key' => 'suivi_liens', 'label' => 'Suivi de lien', 'group' => 'Suivi de lien', 'permission' => 'suivi_liens.view', 'routes' => ['suivi-liens.*']],
             ['key' => 'crm', 'label' => 'CRM', 'group' => 'CRM', 'permission' => 'crm.view', 'routes' => ['crm.*']],
+            ['key' => 'online_tests', 'label' => 'Test en ligne', 'group' => 'Test en ligne', 'permission' => 'online_tests.view', 'routes' => ['crm.online-tests.*']],
             ['key' => 'stocks', 'label' => 'Stocks', 'group' => 'Stock Marketing', 'permission' => 'stocks.view', 'routes' => ['stocks.index', 'stocks.create', 'stocks.store', 'stocks.edit', 'stocks.update', 'stocks.destroy']],
             ['key' => 'stocks_mouvements', 'label' => 'Entrées / Sorties', 'group' => 'Stock Marketing', 'permission' => 'stocks_mouvements.view', 'routes' => ['stocks.mouvements.*']],
             ['key' => 'it_ticketing', 'label' => 'IT Ticketing', 'group' => 'IT Ticketing', 'permission' => 'it_ticketing.view', 'routes' => ['it-tickets.*']],

@@ -52,6 +52,7 @@ class Role extends Model
             'stocks.mouvements.index' => ['label' => 'Entrées / Sorties', 'permission' => 'stocks_mouvements.view'],
             'it-tickets.index' => ['label' => 'IT Ticketing', 'permission' => 'it_ticketing.view'],
             'enseignants.index' => ['label' => 'CV enseignant', 'permission' => 'enseignants.view'],
+            'crm.online-tests.index' => ['label' => 'Test en ligne', 'permission' => 'online_tests.view'],
             'users.index' => ['label' => 'Utilisateurs', 'permission' => 'users.view'],
             'profile.edit' => ['label' => 'Profil', 'permission' => ''],
         ];

@@ -10,8 +10,13 @@ use App\Http\Controllers\Crm\CandidateController as CrmCandidateController;
 use App\Http\Controllers\Crm\DashboardController as CrmDashboardController;
 use App\Http\Controllers\Crm\ExportController as CrmExportController;
 use App\Http\Controllers\Crm\ImportController as CrmImportController;
+use App\Http\Controllers\Crm\OnlineTestController as CrmOnlineTestController;
+use App\Http\Controllers\Crm\OnlineTestLinkController as CrmOnlineTestLinkController;
+use App\Http\Controllers\Crm\OnlineTestQuestionController as CrmOnlineTestQuestionController;
+use App\Http\Controllers\Crm\OnlineTestResultController as CrmOnlineTestResultController;
 use App\Http\Controllers\Crm\PipelineController as CrmPipelineController;
 use App\Http\Controllers\Crm\SettingsController as CrmSettingsController;
+use App\Http\Controllers\OnlineTestTakeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiscussionController;
 use App\Http\Controllers\DepartementController;
@@ -43,6 +48,15 @@ Route::get('/', function () {
 Route::get('/l/{slug}', LinkRedirectController::class)
     ->where('slug', '[A-Za-z0-9\-_]+')
     ->name('liens.redirect');
+
+Route::prefix('t')->name('online-tests.take.')->where(['token' => '[A-Za-z0-9]+'])->group(function () {
+    Route::get('/{token}', [OnlineTestTakeController::class, 'show'])->name('show');
+    Route::post('/{token}/start', [OnlineTestTakeController::class, 'start'])->name('start');
+    Route::get('/{token}/examen', [OnlineTestTakeController::class, 'exam'])->name('exam');
+    Route::get('/{token}/time', [OnlineTestTakeController::class, 'time'])->name('time');
+    Route::post('/{token}/cancel', [OnlineTestTakeController::class, 'cancel'])->name('cancel');
+    Route::post('/{token}/submit', [OnlineTestTakeController::class, 'submit'])->name('submit');
+});
 
 Route::middleware(['auth', 'departement.menu'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
@@ -201,6 +215,55 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         Route::post('/candidats/{candidat}/documents', [CrmCandidateController::class, 'storeDocuments'])
             ->middleware('permission:crm.update')
             ->name('candidats.documents.store');
+    });
+
+    Route::middleware('permission:online_tests.view')->prefix('crm/tests')->name('crm.online-tests.')->group(function () {
+        Route::get('/', [CrmOnlineTestController::class, 'index'])->name('index');
+        Route::get('/create', [CrmOnlineTestController::class, 'create'])
+            ->middleware('permission:online_tests.create')
+            ->name('create');
+        Route::post('/', [CrmOnlineTestController::class, 'store'])
+            ->middleware('permission:online_tests.create')
+            ->name('store');
+
+        Route::get('/liens', [CrmOnlineTestLinkController::class, 'index'])->name('links.index');
+        Route::get('/liens/create', [CrmOnlineTestLinkController::class, 'create'])
+            ->middleware('permission:online_tests.create')
+            ->name('links.create');
+        Route::post('/liens', [CrmOnlineTestLinkController::class, 'store'])
+            ->middleware('permission:online_tests.create')
+            ->name('links.store');
+        Route::delete('/liens/{invitation}', [CrmOnlineTestLinkController::class, 'destroy'])
+            ->middleware('permission:online_tests.delete')
+            ->name('links.destroy');
+
+        Route::get('/resultats', [CrmOnlineTestResultController::class, 'index'])->name('results.index');
+        Route::get('/resultats/{invitation}', [CrmOnlineTestResultController::class, 'show'])->name('results.show');
+        Route::post('/resultats/{invitation}/noter', [CrmOnlineTestResultController::class, 'grade'])
+            ->middleware('permission:online_tests.update')
+            ->name('results.grade');
+
+        Route::get('/{onlineTest}', [CrmOnlineTestController::class, 'show'])->name('show');
+        Route::get('/{onlineTest}/edit', [CrmOnlineTestController::class, 'edit'])
+            ->middleware('permission:online_tests.update')
+            ->name('edit');
+        Route::put('/{onlineTest}', [CrmOnlineTestController::class, 'update'])
+            ->middleware('permission:online_tests.update')
+            ->name('update');
+        Route::delete('/{onlineTest}', [CrmOnlineTestController::class, 'destroy'])
+            ->middleware('permission:online_tests.delete')
+            ->name('destroy');
+
+        Route::get('/{onlineTest}/questions', [CrmOnlineTestQuestionController::class, 'index'])->name('questions.index');
+        Route::post('/{onlineTest}/questions', [CrmOnlineTestQuestionController::class, 'store'])
+            ->middleware('permission:online_tests.update')
+            ->name('questions.store');
+        Route::put('/{onlineTest}/questions/{question}', [CrmOnlineTestQuestionController::class, 'update'])
+            ->middleware('permission:online_tests.update')
+            ->name('questions.update');
+        Route::delete('/{onlineTest}/questions/{question}', [CrmOnlineTestQuestionController::class, 'destroy'])
+            ->middleware('permission:online_tests.update')
+            ->name('questions.destroy');
     });
 
     Route::prefix('stocks')->name('stocks.')->group(function () {

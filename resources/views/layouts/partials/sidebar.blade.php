@@ -138,6 +138,28 @@
         @endif
 
         @php
+            $testItems = array_filter([
+                $show('online_tests') ? ['route' => 'crm.online-tests.links.index', 'label' => 'Liens candidats', 'icon' => 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1', 'active' => ['crm.online-tests.links.*']] : null,
+                $show('online_tests') ? ['route' => 'crm.online-tests.results.index', 'label' => 'Résultats', 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', 'active' => ['crm.online-tests.results.*']] : null,
+                $show('online_tests') ? ['route' => 'crm.online-tests.index', 'label' => 'Création des tests', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'active' => ['crm.online-tests.index', 'crm.online-tests.create', 'crm.online-tests.store', 'crm.online-tests.show', 'crm.online-tests.edit', 'crm.online-tests.update', 'crm.online-tests.questions.*']] : null,
+            ]);
+        @endphp
+        @if(count($testItems))
+        <div>
+            <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Test en ligne</p>
+            <div class="space-y-0.5">
+                @foreach($testItems as $item)
+                    <a href="{{ route($item['route']) }}"
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $isActive($item['active'] ?? $item['route']) ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $item['icon'] }}"/></svg>
+                        {{ $item['label'] }}
+                    </a>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        @php
             $stockItems = array_filter([
                 $show('stocks') ? ['route' => 'stocks.index', 'label' => 'Stocks', 'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'] : null,
                 $show('stocks_mouvements') ? ['route' => 'stocks.mouvements.index', 'label' => 'Entrées / Sorties', 'icon' => 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'] : null,
