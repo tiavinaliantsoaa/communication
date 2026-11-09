@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -57,6 +58,21 @@ class OnlineTestInvitation extends Model
         'valide' => 'boolean',
     ];
 
+    protected static function booted(): void
+    {
+        // Invitations have no departement_id of their own. Staff queries must
+        // follow the parent test, which is already department-scoped. Public
+        // candidates are unauthenticated, so this scope does not apply to them.
+        static::addGlobalScope('departement', function (Builder $builder) {
+            $user = auth()->user();
+            if (! $user || ! $user->restrictsDepartementData()) {
+                return;
+            }
+
+            $builder->whereHas('test');
+        });
+    }
+
     public function test(): BelongsTo
     {
         return $this->belongsTo(OnlineTest::class, 'online_test_id');
@@ -86,7 +102,7 @@ class OnlineTestInvitation extends Model
     {
         do {
             $token = Str::random(48);
-        } while (static::query()->where('token', $token)->exists());
+        } while (static::withoutGlobalScope('departement')->where('token', $token)->exists());
 
         return $token;
     }
