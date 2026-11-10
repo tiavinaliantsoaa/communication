@@ -25,6 +25,7 @@ class AccessService
             'campagnes.view', 'campagnes.create', 'campagnes.update',
             'suivi_liens.view', 'suivi_liens.create', 'suivi_liens.update', 'suivi_liens.delete',
             'crm.view', 'crm.create', 'crm.update', 'crm.delete',
+            'online_tests.view', 'online_tests.create', 'online_tests.update', 'online_tests.delete',
             'calendrier_editorial.view', 'calendrier_editorial.create', 'calendrier_editorial.update',
             'calendrier_saan.view', 'calendrier_saan.create', 'calendrier_saan.update',
             'calendrier_krismasy.view', 'calendrier_krismasy.create', 'calendrier_krismasy.update',
@@ -61,6 +62,7 @@ class AccessService
             'it_ticketing.view', 'it_ticketing.create',
             'suivi_liens.view',
             'crm.view',
+            'online_tests.view',
             'enseignants.view',
         ];
 

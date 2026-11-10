@@ -93,6 +93,12 @@ class Permission extends Model
                 'crm.update' => 'Modifier',
                 'crm.delete' => 'Supprimer',
             ],
+            'Test en ligne' => [
+                'online_tests.view' => 'Voir',
+                'online_tests.create' => 'Créer / générer liens',
+                'online_tests.update' => 'Modifier / noter',
+                'online_tests.delete' => 'Supprimer',
+            ],
             'Calendrier ESCM' => [
                 'calendrier_editorial.view' => 'Voir',
                 'calendrier_editorial.create' => 'Créer',

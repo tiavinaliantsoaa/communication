@@ -26,6 +26,7 @@ class ActivityLog extends Model
         'user' => 'Utilisateurs',
         'auth' => 'Connexion',
         'it_ticketing' => 'IT Ticketing',
+        'online_tests' => 'Test en ligne',
         'autre' => 'Autre',
     ];
 
@@ -73,6 +74,7 @@ class ActivityLog extends Model
             'user' => 'bg-rose-100 text-rose-800',
             'auth' => 'bg-slate-800 text-white',
             'it_ticketing' => 'bg-sky-100 text-sky-800',
+            'online_tests' => 'bg-indigo-100 text-indigo-800',
             default => 'bg-slate-100 text-slate-700',
         };
     }

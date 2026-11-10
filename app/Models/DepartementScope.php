@@ -58,6 +58,7 @@ class DepartementScope implements Scope
             'projet_pieces_jointes',
             'projet_activites',
             'activity_logs',
+            'online_tests',
         ];
     }
 
@@ -67,6 +68,7 @@ class DepartementScope implements Scope
     public static function models(): array
     {
         return [
+            OnlineTest::class,
             Budget::class,
             BudgetAnnuel::class,
             Depense::class,
