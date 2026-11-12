@@ -88,10 +88,18 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
     Route::middleware('permission:ecole.view')->prefix('ecole')->name('ecole.')->group(function () {
         Route::get('/', [EcoleController::class, 'dashboard'])->name('dashboard');
         Route::get('/etudiants', [EcoleController::class, 'etudiants'])->name('etudiants.index');
+        Route::post('/etudiants', [EcoleController::class, 'storeEtudiant'])->name('etudiants.store');
+        Route::delete('/etudiants/{etudiant}', [EcoleController::class, 'destroyEtudiant'])->name('etudiants.destroy');
         Route::get('/classes', [EcoleController::class, 'classes'])->name('classes.index');
         Route::get('/groupes', [EcoleController::class, 'groupes'])->name('groupes.index');
+        Route::post('/groupes', [EcoleController::class, 'storeGroupe'])->name('groupes.store');
+        Route::delete('/groupes/{groupe}', [EcoleController::class, 'destroyGroupe'])->name('groupes.destroy');
         Route::get('/emplois-du-temps', [EcoleController::class, 'emplois'])->name('emplois.index');
+        Route::post('/emplois-du-temps', [EcoleController::class, 'storeSeance'])->name('emplois.store');
+        Route::delete('/emplois-du-temps/{seance}', [EcoleController::class, 'destroySeance'])->name('emplois.destroy');
         Route::get('/retards-absences', [EcoleController::class, 'absences'])->name('absences.index');
+        Route::post('/retards-absences', [EcoleController::class, 'storeAbsence'])->name('absences.store');
+        Route::delete('/retards-absences/{assiduite}', [EcoleController::class, 'destroyAbsence'])->name('absences.destroy');
         Route::get('/bulletins', [EcoleController::class, 'bulletins'])->name('bulletins.index');
     });
 

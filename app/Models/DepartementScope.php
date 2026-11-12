@@ -59,6 +59,10 @@ class DepartementScope implements Scope
             'projet_activites',
             'activity_logs',
             'online_tests',
+            'ecole_groupes',
+            'ecole_etudiants',
+            'ecole_seances',
+            'ecole_assiduites',
         ];
     }
 
@@ -94,6 +98,10 @@ class DepartementScope implements Scope
             ProjetPieceJointe::class,
             ProjetActivite::class,
             ActivityLog::class,
+            EcoleGroupe::class,
+            EcoleEtudiant::class,
+            EcoleSeance::class,
+            EcoleAssiduite::class,
         ];
     }
 }
