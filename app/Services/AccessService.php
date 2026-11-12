@@ -110,5 +110,21 @@ class AccessService
 
         $ids = $role->permissions()->pluck('permissions.id')->all();
         $user->permissions()->sync($ids);
+        static::grantPedagogiqueMenus($user);
+    }
+
+    public static function grantPedagogiqueMenus(User $user): void
+    {
+        $user->loadMissing('departement');
+        if ($user->departement?->slug !== 'pedagogique') {
+            return;
+        }
+
+        $permissionId = Permission::query()->where('key', 'ecole.view')->value('id');
+        if (! $permissionId) {
+            return;
+        }
+
+        $user->permissions()->syncWithoutDetaching([$permissionId]);
     }
 }

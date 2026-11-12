@@ -106,10 +106,13 @@ class UserController extends Controller
         }
 
         $roleChanged = ($validated['role'] ?? null) !== $user->role;
+        $departementChanged = (int) $validated['departement_id'] !== (int) $user->departement_id;
         $user->update($validated);
 
         if ($roleChanged) {
             \App\Services\AccessService::syncUserPermissionsFromRole($user->fresh());
+        } elseif ($departementChanged) {
+            \App\Services\AccessService::grantPedagogiqueMenus($user->fresh());
         }
 
         app(ActivityLogger::class)->log(

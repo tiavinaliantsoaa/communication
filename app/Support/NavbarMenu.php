@@ -39,7 +39,34 @@ class NavbarMenu
             ['key' => 'stocks_mouvements', 'label' => 'Entrées / Sorties', 'group' => 'Stock Marketing', 'permission' => 'stocks_mouvements.view', 'routes' => ['stocks.mouvements.*']],
             ['key' => 'it_ticketing', 'label' => 'IT Ticketing', 'group' => 'IT Ticketing', 'permission' => 'it_ticketing.view', 'routes' => ['it-tickets.*']],
             ['key' => 'enseignants', 'label' => 'CV enseignant', 'group' => 'CV enseignant', 'permission' => 'enseignants.view', 'routes' => ['enseignants.*']],
+            ['key' => 'ecole_dashboard', 'label' => 'Dashboard', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.dashboard']],
+            ['key' => 'ecole_etudiants', 'label' => 'Gestion Etudiants', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.etudiants.*']],
+            ['key' => 'ecole_classes', 'label' => 'Gestion Classe', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.classes.*']],
+            ['key' => 'ecole_groupes', 'label' => 'Gestion Groupe', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.groupes.*']],
+            ['key' => 'ecole_emplois', 'label' => 'Emplois du temps', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.emplois.*']],
+            ['key' => 'ecole_absences', 'label' => 'Retard et Absence', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.absences.*']],
+            ['key' => 'ecole_bulletins', 'label' => 'Bulletin de note', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.bulletins.*']],
         ];
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function schoolKeys(): array
+    {
+        return array_values(array_map(
+            fn (array $item) => $item['key'],
+            array_filter(static::items(), fn (array $item) => $item['group'] === 'Gestion École')
+        ));
+    }
+
+    public static function enabledByDefault(Departement $departement, string $key): bool
+    {
+        if (in_array($key, static::schoolKeys(), true)) {
+            return $departement->slug === 'pedagogique';
+        }
+
+        return true;
     }
 
     /**
@@ -75,12 +102,19 @@ class NavbarMenu
         }
 
         if (! $departementId || ! Schema::hasTable('departement_menus')) {
-            return true;
+            return ! in_array($key, static::schoolKeys(), true);
         }
 
         $map = static::mapFor($departementId);
+        if (! array_key_exists($key, $map)) {
+            if (! in_array($key, static::schoolKeys(), true)) {
+                return true;
+            }
 
-        return $map[$key] ?? true;
+            return Departement::query()->whereKey($departementId)->value('slug') === 'pedagogique';
+        }
+
+        return (bool) $map[$key];
     }
 
     public static function enabledForCurrent(string $key): bool
@@ -148,7 +182,7 @@ class NavbarMenu
         foreach (static::keys() as $key) {
             $departement->menus()->updateOrCreate(
                 ['menu_key' => $key],
-                ['enabled' => true, 'updated_at' => $now]
+                ['enabled' => static::enabledByDefault($departement, $key), 'updated_at' => $now]
             );
         }
 

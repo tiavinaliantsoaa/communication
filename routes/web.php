@@ -19,6 +19,7 @@ use App\Http\Controllers\Crm\SettingsController as CrmSettingsController;
 use App\Http\Controllers\OnlineTestTakeController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DiscussionController;
+use App\Http\Controllers\EcoleController;
 use App\Http\Controllers\DepartementController;
 use App\Http\Controllers\DepenseController;
 use App\Http\Controllers\EvenementController;
@@ -83,6 +84,16 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
     Route::get('/activite', [ActiviteController::class, 'index'])
         ->middleware('permission:activite.view')
         ->name('activite.index');
+
+    Route::middleware('permission:ecole.view')->prefix('ecole')->name('ecole.')->group(function () {
+        Route::get('/', [EcoleController::class, 'dashboard'])->name('dashboard');
+        Route::get('/etudiants', [EcoleController::class, 'etudiants'])->name('etudiants.index');
+        Route::get('/classes', [EcoleController::class, 'classes'])->name('classes.index');
+        Route::get('/groupes', [EcoleController::class, 'groupes'])->name('groupes.index');
+        Route::get('/emplois-du-temps', [EcoleController::class, 'emplois'])->name('emplois.index');
+        Route::get('/retards-absences', [EcoleController::class, 'absences'])->name('absences.index');
+        Route::get('/bulletins', [EcoleController::class, 'bulletins'])->name('bulletins.index');
+    });
 
     ResourceRoutes::register('budget-annuels', BudgetAnnuelController::class, 'budget_annuel');
     Route::post('budget-annuels/categories', [BudgetAnnuelController::class, 'storeCategorie'])
