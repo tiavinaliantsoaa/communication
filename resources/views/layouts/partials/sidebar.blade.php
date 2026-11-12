@@ -59,23 +59,6 @@
                 $show('fournisseurs') ? ['route' => 'fournisseurs.index', 'label' => 'Fournisseurs', 'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'] : null,
                 $show('gestion_projet') ? ['route' => 'gestion-projet.index', 'label' => 'Gestion de projet', 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', 'active' => 'gestion-projet.*'] : null,
             ]);
-        @endphp
-        @if(count($budgetItems))
-        <div>
-            <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Budget & Dépenses</p>
-            <div class="space-y-0.5">
-                @foreach($budgetItems as $item)
-                    <a href="{{ route($item['route']) }}"
-                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $isActive($item['active'] ?? $item['route']) ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
-                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $item['icon'] }}"/></svg>
-                        {{ $item['label'] }}
-                    </a>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        @php
             $campagneItems = array_filter([
                 $show('campagnes') ? ['route' => 'campagnes.index', 'label' => 'Campagnes (Boost FB)', 'icon' => 'M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z'] : null,
                 $show('calendrier_editorial') ? ['route' => ['calendrier-editorial', 'calendrier-editorial.*'], 'href' => 'calendrier-editorial', 'label' => 'Calendrier ESCM', 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'] : null,
@@ -83,36 +66,9 @@
                 $show('calendrier_krismasy') ? ['route' => ['calendrier-krismasy', 'calendrier-krismasy.*'], 'href' => 'calendrier-krismasy', 'label' => 'Calendrier Krismasy', 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'] : null,
                 $show('evenements') ? ['route' => 'evenements.index', 'label' => 'Événements', 'icon' => 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'] : null,
             ]);
-        @endphp
-        @if(count($campagneItems))
-        <div>
-            <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Campagnes</p>
-            <div class="space-y-0.5">
-                @foreach($campagneItems as $item)
-                    <a href="{{ route($item['href'] ?? $item['route']) }}"
-                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $isActive($item['route']) ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
-                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $item['icon'] }}"/></svg>
-                        {{ $item['label'] }}
-                    </a>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        @if($show('suivi_liens'))
-        <div>
-            <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Suivi de lien</p>
-            <div class="space-y-0.5">
-                <a href="{{ route('suivi-liens.index') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $isActive('suivi-liens.*') ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                    Suivi de lien
-                </a>
-            </div>
-        </div>
-        @endif
-
-        @php
+            $suiviItems = array_filter([
+                $show('suivi_liens') ? ['route' => 'suivi-liens.index', 'label' => 'Suivi de lien', 'icon' => 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1', 'active' => 'suivi-liens.*'] : null,
+            ]);
             $onAbandonedCandidate = isset($candidate) && $candidate instanceof \App\Models\CrmCandidate && $candidate->abandon;
             $crmItems = array_filter([
                 $show('crm') ? ['route' => 'crm.dashboard', 'label' => 'Tableau de bord', 'icon' => 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', 'active' => 'crm.dashboard'] : null,
@@ -121,90 +77,60 @@
                 $show('crm') ? ['route' => 'crm.pipeline', 'label' => 'Pipeline', 'icon' => 'M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2', 'active' => 'crm.pipeline'] : null,
                 $show('crm') ? ['route' => 'crm.export', 'label' => 'Export', 'icon' => 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4', 'active' => ['crm.export', 'crm.export.download']] : null,
             ]);
-        @endphp
-        @if(count($crmItems))
-        <div>
-            <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">CRM</p>
-            <div class="space-y-0.5">
-                @foreach($crmItems as $item)
-                    <a href="{{ route($item['route']) }}"
-                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ ($item['is_active'] ?? $isActive($item['active'] ?? $item['route'])) ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
-                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $item['icon'] }}"/></svg>
-                        {{ $item['label'] }}
-                    </a>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        @php
             $testItems = array_filter([
                 $show('online_tests') ? ['route' => 'crm.online-tests.links.index', 'label' => 'Liens candidats', 'icon' => 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1', 'active' => ['crm.online-tests.links.*']] : null,
                 $show('online_tests') ? ['route' => 'crm.online-tests.results.index', 'label' => 'Résultats', 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', 'active' => ['crm.online-tests.results.*']] : null,
                 $show('online_tests') ? ['route' => 'crm.online-tests.index', 'label' => 'Création des tests', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'active' => ['crm.online-tests.index', 'crm.online-tests.create', 'crm.online-tests.store', 'crm.online-tests.show', 'crm.online-tests.edit', 'crm.online-tests.update', 'crm.online-tests.questions.*']] : null,
             ]);
-        @endphp
-        @if(count($testItems))
-        <div>
-            <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Test en ligne</p>
-            <div class="space-y-0.5">
-                @foreach($testItems as $item)
-                    <a href="{{ route($item['route']) }}"
-                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $isActive($item['active'] ?? $item['route']) ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
-                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $item['icon'] }}"/></svg>
-                        {{ $item['label'] }}
-                    </a>
-                @endforeach
-            </div>
-        </div>
-        @endif
-
-        @php
             $stockItems = array_filter([
-                $show('stocks') ? ['route' => 'stocks.index', 'label' => 'Stocks', 'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'] : null,
-                $show('stocks_mouvements') ? ['route' => 'stocks.mouvements.index', 'label' => 'Entrées / Sorties', 'icon' => 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'] : null,
+                $show('stocks') ? ['route' => 'stocks.index', 'label' => 'Stocks', 'icon' => 'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4', 'active' => ['stocks.index', 'stocks.create', 'stocks.store', 'stocks.show', 'stocks.edit', 'stocks.update', 'stocks.destroy']] : null,
+                $show('stocks_mouvements') ? ['route' => 'stocks.mouvements.index', 'label' => 'Entrées / Sorties', 'icon' => 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4', 'active' => 'stocks.mouvements.*'] : null,
             ]);
+            $itItems = array_filter([
+                $show('it_ticketing') ? ['route' => 'it-tickets.index', 'label' => 'IT Ticketing', 'icon' => 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4', 'active' => 'it-tickets.*'] : null,
+            ]);
+            $enseignantItems = array_filter([
+                $show('enseignants') ? ['route' => 'enseignants.index', 'label' => 'Enseignants', 'icon' => 'M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z', 'active' => 'enseignants.*'] : null,
+            ]);
+            $navSections = [
+                ['title' => 'Budget & Dépenses', 'items' => $budgetItems],
+                ['title' => 'Campagnes', 'items' => $campagneItems],
+                ['title' => 'Suivi de lien', 'items' => $suiviItems],
+                ['title' => 'CRM', 'items' => $crmItems],
+                ['title' => 'Test en ligne', 'items' => $testItems],
+                ['title' => 'Stock Marketing', 'items' => $stockItems],
+                ['title' => 'IT Ticketing', 'items' => $itItems],
+                ['title' => 'CV enseignant', 'items' => $enseignantItems],
+            ];
         @endphp
-        @if(count($stockItems))
-        <div>
-            <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Stock Marketing</p>
-            <div class="space-y-0.5">
-                @foreach($stockItems as $item)
-                    <a href="{{ route($item['route']) }}"
-                       class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $isActive($item['route']) ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
-                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $item['icon'] }}"/></svg>
-                        {{ $item['label'] }}
-                    </a>
-                @endforeach
-            </div>
-        </div>
-        @endif
 
-        @if($show('it_ticketing'))
-        <div>
-            <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">IT Ticketing</p>
-            <div class="space-y-0.5">
-                <a href="{{ route('it-tickets.index') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $isActive('it-tickets.*') ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
-                    IT Ticketing
-                </a>
-            </div>
-        </div>
-        @endif
-
-        @if($show('enseignants'))
-        <div>
-            <p class="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">CV enseignant</p>
-            <div class="space-y-0.5">
-                <a href="{{ route('enseignants.index') }}"
-                   class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $isActive('enseignants.*') ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
-                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
-                    Enseignants
-                </a>
-            </div>
-        </div>
-        @endif
+        @foreach($navSections as $section)
+            @if(count($section['items']))
+                @php
+                    $sectionOpen = collect($section['items'])->contains(function ($item) use ($isActive) {
+                        return (bool) ($item['is_active'] ?? $isActive($item['active'] ?? $item['route']));
+                    });
+                @endphp
+                <div x-data="{ open: {{ $sectionOpen ? 'true' : 'false' }} }">
+                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'" class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 transition-colors hover:bg-slate-700/40 hover:text-slate-200">
+                        <span>{{ $section['title'] }}</span>
+                        <svg class="h-3.5 w-3.5 shrink-0 transition-transform duration-200" :class="open && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div x-show="open" x-cloak class="mt-1 space-y-0.5">
+                        @foreach($section['items'] as $item)
+                            @php
+                                $itemActive = $item['is_active'] ?? $isActive($item['active'] ?? $item['route']);
+                            @endphp
+                            <a href="{{ route($item['href'] ?? $item['route']) }}"
+                               class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $itemActive ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
+                                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $item['icon'] }}"/></svg>
+                                {{ $item['label'] }}
+                            </a>
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        @endforeach
     </nav>
 
     {{-- Paramètres footer --}}
