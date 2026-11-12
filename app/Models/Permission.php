@@ -151,6 +151,9 @@ class Permission extends Model
                 'enseignants.update' => 'Modifier',
                 'enseignants.delete' => 'Supprimer',
             ],
+            'Gestion École' => [
+                'ecole.view' => 'Voir',
+            ],
             'Utilisateurs' => [
                 'users.view' => 'Voir',
                 'users.create' => 'Créer',
