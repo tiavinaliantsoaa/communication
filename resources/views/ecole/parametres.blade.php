@@ -1,51 +1,43 @@
 @extends('layouts.app')
 
 @section('content')
-<script>
-    function ecoleAnneePicker(selection, actuelle) {
-        return {
-            open: false,
-            selection: selection,
-            actuelle: actuelle,
-            pending: '',
-            choose(value) {
-                if (value === this.selection) {
-                    this.open = false;
-                    return;
-                }
-                if (value === this.actuelle) {
-                    this.envoyerAnnee(value);
-                    return;
-                }
-                this.pending = value;
-                this.open = true;
-            },
-            fermerFenetre() {
-                this.open = false;
-            },
-            appliquerAnnee() {
-                if (!this.pending || this.pending === this.actuelle || this.pending === this.selection) {
-                    this.open = false;
-                    return;
-                }
-                this.envoyerAnnee(this.pending);
-            },
-            envoyerAnnee(value) {
-                this.$refs.field.value = value;
-                this.$refs.form.submit();
-            },
-        };
+<div class="max-w-xl" x-data="{
+    fenetre: false,
+    selection: @js($selection),
+    actuelle: @js($actuelle),
+    pending: '',
+    choose(value) {
+        if (value === this.selection) {
+            this.fenetre = false;
+            return;
+        }
+        if (value === this.actuelle) {
+            this.$refs.field.value = value;
+            this.$refs.form.submit();
+            return;
+        }
+        this.pending = value;
+        this.fenetre = true;
+    },
+    fermerFenetre() {
+        this.fenetre = false;
+    },
+    appliquerAnnee() {
+        if (!this.pending || this.pending === this.actuelle || this.pending === this.selection) {
+            this.fenetre = false;
+            return;
+        }
+        this.$refs.field.value = this.pending;
+        this.$refs.form.submit();
     }
-</script>
-
-<div class="max-w-xl" x-data='ecoleAnneePicker(@js($selection), @js($actuelle))'>
+}">
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <h3 class="text-sm font-semibold text-slate-900 mb-1">Année à afficher</h3>
         <p class="text-sm text-slate-500 mb-4">Cette année est utilisée dans toute la gestion école : groupes, étudiants, emplois du temps et absences.</p>
         <div class="space-y-2">
             @foreach($annees as $annee)
                 <button type="button"
-                        @click='choose(@js($annee))'
+                        @click="choose(@js($annee))"
                         class="flex w-full items-center justify-between gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-colors {{ $annee === $selection ? 'border-escm-primary bg-blue-50 text-slate-900' : 'border-slate-200 text-slate-700 hover:bg-slate-50' }}">
                     <span class="font-medium">{{ $annee }}</span>
                     @if($annee === $actuelle)
@@ -61,9 +53,8 @@
         <input x-ref="field" type="hidden" name="annee_universitaire" value="{{ $selection }}">
     </form>
 
-    <div x-show="open"
+    <div x-show="fenetre"
          x-cloak
-         x-transition.opacity
          class="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60"
          @keydown.escape.window="fermerFenetre()"
          @click="fermerFenetre()">

@@ -50,7 +50,11 @@ class EcoleAnneeCrmTest extends TestCase
             ->assertOk()
             ->assertSee($future)
             ->assertSee($past)
-            ->assertSee('Année choisi non actuelle, les données et modifications seront gardées pour l’année non actuelle choisi.');
+            ->assertSee('Année choisi non actuelle, les données et modifications seront gardées pour l’année non actuelle choisi.')
+            ->assertSee('x-show="fenetre"', false)
+            ->assertSee('fenetre: false', false)
+            ->assertDontSee('ecoleAnneePicker', false)
+            ->assertDontSee('confirm(', false);
 
         $this->actingAs($admin)
             ->withSession(['departement_actif_id' => $communication->id])
