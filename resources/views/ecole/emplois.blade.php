@@ -22,12 +22,9 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Jour</label>
-                    <select name="jour" class="{{ $input }}" required>
-                        @foreach($jours as $numero => $label)
-                            <option value="{{ $numero }}" @selected((int) old('jour', 1) === (int) $numero)>{{ $label }}</option>
-                        @endforeach
-                    </select>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Date</label>
+                    <input type="date" name="date" value="{{ $dateParDefaut }}" required class="{{ $input }}">
+                    @error('date')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -50,30 +47,42 @@
                     <input type="text" name="salle" value="{{ old('salle') }}" maxlength="120" class="{{ $input }}" placeholder="Ex. Grasse">
                 </div>
                 <button type="submit" class="bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2.5 rounded-lg">Enregistrer</button>
-                <p class="text-xs text-slate-500">Le créneau se répète chaque semaine, entre 08h et 17h, et s’affiche sur le dashboard du groupe.</p>
+                <p class="text-xs text-slate-500">Ce créneau concerne uniquement cette date, entre 08h et 17h. Il s’affiche sur le dashboard de cette semaine.</p>
             </form>
         @endif
     </div>
 
     <div class="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-            <h3 class="text-sm font-semibold text-slate-900">Créneaux{{ $groupe ? ' — '.$groupe->nom : '' }}</h3>
-            @if($groupes->isNotEmpty())
-                <form method="GET" action="{{ route('ecole.emplois.index') }}">
-                    <label class="sr-only" for="filtre-groupe">Groupe</label>
-                    <select id="filtre-groupe" name="groupe" onchange="this.form.submit()" class="rounded-lg border-slate-300 text-sm shadow-sm focus:border-escm-primary focus:ring-escm-primary">
-                        @foreach($groupes as $ligne)
-                            <option value="{{ $ligne->id }}" @selected($groupe && (int) $groupe->id === (int) $ligne->id)>{{ $ligne->nom }}</option>
-                        @endforeach
-                    </select>
-                </form>
-            @endif
+            <div>
+                <h3 class="text-sm font-semibold text-slate-900">Créneaux{{ $groupe ? ' — '.$groupe->nom : '' }}</h3>
+                <p class="text-xs text-slate-500 mt-0.5">{{ $semaineLabel }}</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ $prevUrl }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50" title="Semaine précédente">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                </a>
+                <a href="{{ $nextUrl }}" class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50" title="Semaine suivante">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </a>
+                @if($groupes->isNotEmpty())
+                    <form method="GET" action="{{ route('ecole.emplois.index') }}">
+                        <input type="hidden" name="semaine" value="{{ $monday->toDateString() }}">
+                        <label class="sr-only" for="filtre-groupe">Groupe</label>
+                        <select id="filtre-groupe" name="groupe" onchange="this.form.submit()" class="rounded-lg border-slate-300 text-sm shadow-sm focus:border-escm-primary focus:ring-escm-primary">
+                            @foreach($groupes as $ligne)
+                                <option value="{{ $ligne->id }}" @selected($groupe && (int) $groupe->id === (int) $ligne->id)>{{ $ligne->nom }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+                @endif
+            </div>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-100">
-                        <th class="px-5 py-3">Jour</th>
+                        <th class="px-5 py-3">Date</th>
                         <th class="px-3 py-3">Horaire</th>
                         <th class="px-3 py-3">Matière</th>
                         <th class="px-3 py-3">Salle</th>
@@ -83,7 +92,7 @@
                 <tbody class="divide-y divide-slate-100">
                     @forelse($seances as $seance)
                         <tr>
-                            <td class="px-5 py-3 font-medium text-slate-900">{{ $jours[$seance->jour] ?? $seance->jour }}</td>
+                            <td class="px-5 py-3 font-medium text-slate-900 whitespace-nowrap">{{ $seance->date?->locale('fr')->isoFormat('ddd D MMM YYYY') }}</td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ \App\Support\EcoleTimetable::label($seance->heure('heure_debut')) }} – {{ \App\Support\EcoleTimetable::label($seance->heure('heure_fin')) }}</td>
                             <td class="px-3 py-3 text-slate-800">{{ $seance->matiere }}</td>
                             <td class="px-3 py-3 text-slate-600">{{ $seance->salle ?: '—' }}</td>

@@ -35,14 +35,22 @@ class EcoleAnneeCrmTest extends TestCase
 
         $this->actingAs($admin)->withSession(['departement_actif_id' => $pedagogique->id]);
 
-        $future = AnneeUniversitaire::options()[1];
+        $future = collect(AnneeUniversitaire::options())->first(fn (string $year) => $year > AnneeUniversitaire::current());
+        $past = collect(AnneeUniversitaire::options())->first(fn (string $year) => $year < AnneeUniversitaire::current());
 
         $this->get(route('ecole.etudiants.index'))
             ->assertOk()
             ->assertSee('Année Universitaire')
             ->assertSee(AnneeUniversitaire::current())
+            ->assertSee('Actuelle')
+            ->assertSee('Paramètre école')
+            ->assertDontSee($future);
+
+        $this->get(route('ecole.parametres.index'))
+            ->assertOk()
             ->assertSee($future)
-            ->assertSee('Actuelle');
+            ->assertSee($past)
+            ->assertSee('Année choisi non actuelle, les données et modifications seront gardées pour l’année non actuelle choisi.');
 
         $this->actingAs($admin)
             ->withSession(['departement_actif_id' => $communication->id])

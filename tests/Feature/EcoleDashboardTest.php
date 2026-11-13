@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Departement;
 use App\Models\EcoleGroupe;
 use App\Models\User;
+use App\Support\EcoleTimetable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -51,23 +52,37 @@ class EcoleDashboardTest extends TestCase
 
         $etudiant = $b1->etudiants()->firstOrFail();
 
+        $jeudi = EcoleTimetable::monday()->addDays(3);
+
         $this->post(route('ecole.emplois.store'), [
             'ecole_groupe_id' => $b1->id,
-            'jour' => 4,
+            'date' => $jeudi->toDateString(),
             'heure_debut' => '08:00',
             'heure_fin' => '09:00',
             'matiere' => 'COM & PLAN',
             'salle' => 'Grasse',
-        ])->assertRedirect(route('ecole.emplois.index', ['groupe' => $b1->id]));
+        ])->assertRedirect(route('ecole.emplois.index', [
+            'groupe' => $b1->id,
+            'semaine' => EcoleTimetable::monday()->toDateString(),
+        ]));
 
         $this->post(route('ecole.emplois.store'), [
             'ecole_groupe_id' => $b1->id,
-            'jour' => 1,
+            'date' => EcoleTimetable::monday()->toDateString(),
             'heure_debut' => '07:30',
             'heure_fin' => '08:30',
             'matiere' => 'Trop tot',
             'salle' => 'Ivato',
         ])->assertSessionHasErrors('heure_debut');
+
+        $this->post(route('ecole.emplois.store'), [
+            'ecole_groupe_id' => $b1->id,
+            'date' => EcoleTimetable::monday()->addWeek()->toDateString(),
+            'heure_debut' => '10:00',
+            'heure_fin' => '11:00',
+            'matiere' => 'COURS AUTRE SEMAINE',
+            'salle' => 'Lille',
+        ])->assertRedirect();
 
         $this->post(route('ecole.absences.store'), [
             'ecole_etudiant_id' => $etudiant->id,
@@ -104,7 +119,18 @@ class EcoleDashboardTest extends TestCase
             ->assertSee('17h')
             ->assertSee('COM & PLAN')
             ->assertSee('Grasse')
-            ->assertDontSee('Trop tot');
+            ->assertDontSee('Trop tot')
+            ->assertDontSee('COURS AUTRE SEMAINE');
+
+        $this->actingAs($admin)
+            ->withSession(['departement_actif_id' => $pedagogique->id])
+            ->get(route('ecole.dashboard', [
+                'groupe' => $b1->id,
+                'semaine' => EcoleTimetable::monday()->addWeek()->toDateString(),
+            ]))
+            ->assertOk()
+            ->assertSee('COURS AUTRE SEMAINE')
+            ->assertDontSee('COM & PLAN');
 
         $this->actingAs($admin)
             ->withSession(['departement_actif_id' => $pedagogique->id])

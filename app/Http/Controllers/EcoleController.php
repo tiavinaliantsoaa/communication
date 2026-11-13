@@ -59,7 +59,7 @@ class EcoleController extends Controller
             'hours' => EcoleTimetable::hours(),
             'columns' => EcoleTimetable::columns(
                 $monday,
-                $groupe ? $groupe->seances()->orderBy('heure_debut')->get() : collect()
+                $groupe ? $this->seancesDeLaSemaine($groupe, $monday) : collect()
             ),
             'nowTop' => EcoleTimetable::nowTop($monday),
             'prevUrl' => $this->dashboardUrl($groupe, $monday->copy()->subWeek()),
@@ -244,16 +244,30 @@ class EcoleController extends Controller
         $this->bootPeriode($request);
         $groupes = EcoleGroupe::orderBy('nom')->get();
         $groupe = $this->selectedGroupe($request, $groupes);
+        $monday = $this->monday($request);
+        $friday = $monday->copy()->addDays(4);
+        $today = now()->startOfDay();
+        $dateParDefaut = $today->between($monday, $friday) && $today->isoWeekday() <= 5
+            ? $today->toDateString()
+            : $monday->toDateString();
 
         return view('ecole.emplois', [
             'title' => 'Emplois du temps',
-            'subtitle' => 'Gestion École',
+            'subtitle' => 'Gestion École — '.AnneeUniversitaire::selected(),
             'groupes' => $groupes,
             'groupe' => $groupe,
-            'jours' => EcoleTimetable::days(),
-            'seances' => $groupe
-                ? $groupe->seances()->orderBy('jour')->orderBy('heure_debut')->get()
-                : collect(),
+            'monday' => $monday,
+            'semaineLabel' => $monday->isoFormat('D MMM').' – '.$friday->isoFormat('D MMM YYYY'),
+            'prevUrl' => route('ecole.emplois.index', array_filter([
+                'groupe' => $groupe?->id,
+                'semaine' => $monday->copy()->subWeek()->toDateString(),
+            ])),
+            'nextUrl' => route('ecole.emplois.index', array_filter([
+                'groupe' => $groupe?->id,
+                'semaine' => $monday->copy()->addWeek()->toDateString(),
+            ])),
+            'dateParDefaut' => old('date', $dateParDefaut),
+            'seances' => $this->seancesDeLaSemaine($groupe, $monday),
         ]);
     }
 
@@ -261,18 +275,23 @@ class EcoleController extends Controller
     {
         $data = $request->validate([
             'ecole_groupe_id' => ['required', 'integer'],
-            'jour' => ['required', 'integer', Rule::in(array_keys(EcoleTimetable::days()))],
+            'date' => ['required', 'date'],
             'heure_debut' => ['required', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
             'heure_fin' => ['required', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
             'matiere' => ['required', 'string', 'max:120'],
             'salle' => ['nullable', 'string', 'max:120'],
         ], [
             'ecole_groupe_id.required' => 'Choisissez un groupe.',
-            'jour.required' => 'Choisissez un jour.',
+            'date.required' => 'Choisissez une date.',
             'matiere.required' => 'La matière est obligatoire.',
         ]);
 
         $groupe = EcoleGroupe::findOrFail($data['ecole_groupe_id']);
+        $date = Carbon::parse($data['date'])->startOfDay();
+        if ($date->isoWeekday() > 5) {
+            return back()->withErrors(['date' => 'Choisissez un jour du lundi au vendredi.'])->withInput();
+        }
+
         $debut = substr($data['heure_debut'], 0, 5);
         $fin = substr($data['heure_fin'], 0, 5);
         if ($message = $this->creneauInvalide($debut, $fin)) {
@@ -281,7 +300,8 @@ class EcoleController extends Controller
 
         EcoleSeance::create([
             'ecole_groupe_id' => $groupe->id,
-            'jour' => (int) $data['jour'],
+            'date' => $date->toDateString(),
+            'jour' => $date->isoWeekday(),
             'heure_debut' => $debut,
             'heure_fin' => $fin,
             'matiere' => trim($data['matiere']),
@@ -289,17 +309,24 @@ class EcoleController extends Controller
         ]);
 
         return redirect()
-            ->route('ecole.emplois.index', ['groupe' => $groupe->id])
-            ->with('success', 'Créneau ajouté à l’emploi du temps.');
+            ->route('ecole.emplois.index', [
+                'groupe' => $groupe->id,
+                'semaine' => $date->copy()->startOfWeek(Carbon::MONDAY)->toDateString(),
+            ])
+            ->with('success', 'Créneau ajouté pour le '.$date->locale('fr')->isoFormat('dddd D MMMM YYYY').'.');
     }
 
     public function destroySeance(EcoleSeance $seance)
     {
         $groupeId = $seance->ecole_groupe_id;
+        $semaine = $seance->date?->copy()->startOfWeek(Carbon::MONDAY)->toDateString();
         $seance->delete();
 
         return redirect()
-            ->route('ecole.emplois.index', ['groupe' => $groupeId])
+            ->route('ecole.emplois.index', array_filter([
+                'groupe' => $groupeId,
+                'semaine' => $semaine,
+            ]))
             ->with('success', 'Créneau supprimé.');
     }
 
@@ -368,17 +395,30 @@ class EcoleController extends Controller
         return $this->page('Bulletin de note', 'Aucun bulletin pour le moment.');
     }
 
+    public function parametres(Request $request)
+    {
+        $this->bootPeriode($request);
+
+        return view('ecole.parametres', [
+            'title' => 'Paramètre école',
+            'subtitle' => 'Gestion École',
+            'annees' => AnneeUniversitaire::options(),
+            'selection' => AnneeUniversitaire::selected(),
+            'actuelle' => AnneeUniversitaire::current(),
+        ]);
+    }
+
     public function annee(Request $request)
     {
         $data = $request->validate([
             'annee_universitaire' => ['required', 'string', Rule::in(AnneeUniversitaire::options())],
         ], [
-            'annee_universitaire.in' => 'Choisissez l’année universitaire en cours ou une année à venir.',
+            'annee_universitaire.in' => 'Choisissez une année universitaire proposée.',
         ]);
 
         AnneeUniversitaire::select($data['annee_universitaire']);
 
-        return back();
+        return redirect()->route('ecole.parametres.index');
     }
 
     private function page(string $title, string $empty)
@@ -425,6 +465,20 @@ class EcoleController extends Controller
             'groupe' => $groupe?->id,
             'semaine' => $monday->toDateString(),
         ]));
+    }
+
+    private function seancesDeLaSemaine(?EcoleGroupe $groupe, Carbon $monday)
+    {
+        if (! $groupe) {
+            return collect();
+        }
+
+        return $groupe->seances()
+            ->whereDate('date', '>=', $monday->toDateString())
+            ->whereDate('date', '<=', $monday->copy()->addDays(4)->toDateString())
+            ->orderBy('date')
+            ->orderBy('heure_debut')
+            ->get();
     }
 
     private function creneauInvalide(string $debut, string $fin): ?string

@@ -66,7 +66,8 @@ class GestionEcoleMenuTest extends TestCase
             ->assertSee('Gestion Groupe')
             ->assertSee('Emplois du temps')
             ->assertSee('Retard et Absence')
-            ->assertSee('Bulletin de note');
+            ->assertSee('Bulletin de note')
+            ->assertSee('Paramètre école');
 
         $this->assertSame(1, substr_count($menu->getContent(), 'Gestion École'));
 

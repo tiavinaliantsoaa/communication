@@ -10,6 +10,7 @@ class EcoleSeance extends Model
     protected $fillable = [
         'departement_id',
         'ecole_groupe_id',
+        'date',
         'jour',
         'heure_debut',
         'heure_fin',
@@ -19,6 +20,7 @@ class EcoleSeance extends Model
 
     protected $casts = [
         'jour' => 'integer',
+        'date' => 'date',
     ];
 
     public function groupe(): BelongsTo

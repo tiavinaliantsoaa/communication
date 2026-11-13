@@ -100,6 +100,7 @@
                 $show('ecole_emplois') ? ['route' => 'ecole.emplois.index', 'label' => 'Emplois du temps', 'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', 'active' => 'ecole.emplois.*'] : null,
                 $show('ecole_absences') ? ['route' => 'ecole.absences.index', 'label' => 'Retard et Absence', 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', 'active' => 'ecole.absences.*'] : null,
                 $show('ecole_bulletins') ? ['route' => 'ecole.bulletins.index', 'label' => 'Bulletin de note', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'active' => 'ecole.bulletins.*'] : null,
+                $show('ecole_parametres') ? ['route' => 'ecole.parametres.index', 'label' => 'Paramètre école', 'icon' => 'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4', 'active' => ['ecole.parametres.*', 'ecole.annee']] : null,
             ]);
             $navSections = [
                 ['title' => 'Gestion École', 'items' => $ecoleItems],
@@ -119,24 +120,13 @@
                 $anneeChoisie = \App\Support\AnneeUniversitaire::selected();
                 $anneeActuelle = \App\Support\AnneeUniversitaire::current();
             @endphp
-            <div x-data="{ open: true }">
-                <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'" class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 transition-colors hover:bg-slate-700/40 hover:text-slate-200">
-                    <span>Année Universitaire</span>
-                    <svg class="h-3.5 w-3.5 shrink-0 transition-transform duration-200" :class="open && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                </button>
-                <div x-show="open" x-cloak class="mt-1 space-y-0.5">
-                    @foreach(\App\Support\AnneeUniversitaire::options() as $annee)
-                        <form method="POST" action="{{ route('ecole.annee') }}">
-                            @csrf
-                            <input type="hidden" name="annee_universitaire" value="{{ $annee }}">
-                            <button type="submit" class="flex w-full items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm transition-colors {{ $annee === $anneeChoisie ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
-                                <span>{{ $annee }}</span>
-                                @if($annee === $anneeActuelle)
-                                    <span class="text-[10px] uppercase tracking-wide {{ $annee === $anneeChoisie ? 'text-white' : 'text-slate-400' }}">Actuelle</span>
-                                @endif
-                            </button>
-                        </form>
-                    @endforeach
+            <div class="px-3">
+                <p class="px-0 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Année Universitaire</p>
+                <div class="flex items-center justify-between gap-2 rounded-lg bg-escm-primary px-3 py-2 text-sm font-medium text-white">
+                    <span>{{ $anneeChoisie }}</span>
+                    @if($anneeChoisie === $anneeActuelle)
+                        <span class="text-[10px] uppercase tracking-wide">Actuelle</span>
+                    @endif
                 </div>
             </div>
         @endif

@@ -6,6 +6,8 @@ use Carbon\Carbon;
 
 class AnneeUniversitaire
 {
+    public const PAST_COUNT = 3;
+
     public const FUTURE_COUNT = 3;
 
     public static function current(?Carbon $date = null): string
@@ -23,7 +25,7 @@ class AnneeUniversitaire
     {
         $start = (int) explode('-', self::current($date))[0];
         $years = [];
-        for ($i = 0; $i <= self::FUTURE_COUNT; $i++) {
+        for ($i = -self::PAST_COUNT; $i <= self::FUTURE_COUNT; $i++) {
             $years[] = ($start + $i).'-'.($start + $i + 1);
         }
 

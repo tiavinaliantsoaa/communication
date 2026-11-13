@@ -59,6 +59,7 @@ class Role extends Model
             'ecole.emplois.index' => ['label' => 'Emplois du temps', 'permission' => 'ecole.view'],
             'ecole.absences.index' => ['label' => 'Retard et Absence', 'permission' => 'ecole.view'],
             'ecole.bulletins.index' => ['label' => 'Bulletin de note', 'permission' => 'ecole.view'],
+            'ecole.parametres.index' => ['label' => 'Paramètre école', 'permission' => 'ecole.view'],
             'crm.online-tests.index' => ['label' => 'Test en ligne', 'permission' => 'online_tests.view'],
             'users.index' => ['label' => 'Utilisateurs', 'permission' => 'users.view'],
             'profile.edit' => ['label' => 'Profil', 'permission' => ''],

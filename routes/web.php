@@ -103,6 +103,7 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         Route::post('/retards-absences', [EcoleController::class, 'storeAbsence'])->name('absences.store');
         Route::delete('/retards-absences/{assiduite}', [EcoleController::class, 'destroyAbsence'])->name('absences.destroy');
         Route::get('/bulletins', [EcoleController::class, 'bulletins'])->name('bulletins.index');
+        Route::get('/parametres', [EcoleController::class, 'parametres'])->name('parametres.index');
     });
 
     ResourceRoutes::register('budget-annuels', BudgetAnnuelController::class, 'budget_annuel');

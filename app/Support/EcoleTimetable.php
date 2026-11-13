@@ -90,7 +90,13 @@ class EcoleTimetable
      */
     public static function columns(Carbon $monday, Collection $seances): array
     {
-        $byDay = $seances->groupBy('jour');
+        $byDay = $seances->groupBy(function (EcoleSeance $seance) {
+            if ($seance->date) {
+                return Carbon::parse($seance->date)->isoWeekday();
+            }
+
+            return (int) $seance->jour;
+        });
         $columns = [];
 
         foreach (self::days() as $jour => $label) {

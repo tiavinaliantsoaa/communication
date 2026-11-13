@@ -39,13 +39,14 @@ class NavbarMenu
             ['key' => 'stocks_mouvements', 'label' => 'Entrées / Sorties', 'group' => 'Stock Marketing', 'permission' => 'stocks_mouvements.view', 'routes' => ['stocks.mouvements.*']],
             ['key' => 'it_ticketing', 'label' => 'IT Ticketing', 'group' => 'IT Ticketing', 'permission' => 'it_ticketing.view', 'routes' => ['it-tickets.*']],
             ['key' => 'enseignants', 'label' => 'CV enseignant', 'group' => 'CV enseignant', 'permission' => 'enseignants.view', 'routes' => ['enseignants.*']],
-            ['key' => 'ecole_dashboard', 'label' => 'Dashboard', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.dashboard', 'ecole.annee']],
+            ['key' => 'ecole_dashboard', 'label' => 'Dashboard', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.dashboard']],
             ['key' => 'ecole_etudiants', 'label' => 'Gestion Etudiants', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.etudiants.*']],
             ['key' => 'ecole_classes', 'label' => 'Gestion Classe', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.classes.*']],
             ['key' => 'ecole_groupes', 'label' => 'Gestion Groupe', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.groupes.*']],
             ['key' => 'ecole_emplois', 'label' => 'Emplois du temps', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.emplois.*']],
             ['key' => 'ecole_absences', 'label' => 'Retard et Absence', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.absences.*']],
             ['key' => 'ecole_bulletins', 'label' => 'Bulletin de note', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.bulletins.*']],
+            ['key' => 'ecole_parametres', 'label' => 'Paramètre école', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.parametres.*', 'ecole.annee']],
         ];
     }
 
