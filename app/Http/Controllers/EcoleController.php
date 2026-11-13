@@ -2,10 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CrmCandidate;
+use App\Models\CrmNote;
 use App\Models\EcoleAssiduite;
 use App\Models\EcoleEtudiant;
 use App\Models\EcoleGroupe;
 use App\Models\EcoleSeance;
+use App\Services\CrmActivityLogger;
+use App\Support\AnneeUniversitaire;
 use App\Support\EcoleTimetable;
 use App\Support\Periode;
 use Carbon\Carbon;
@@ -33,7 +37,7 @@ class EcoleController extends Controller
 
         return view('ecole.dashboard', [
             'title' => 'Dashboard',
-            'subtitle' => 'Gestion École',
+            'subtitle' => 'Gestion École — '.AnneeUniversitaire::selected(),
             'annee' => $annee,
             'mois' => $mois,
             'moisLabel' => $moisLabel,
@@ -70,18 +74,47 @@ class EcoleController extends Controller
 
         return view('ecole.etudiants', [
             'title' => 'Gestion Etudiants',
-            'subtitle' => 'Gestion École',
+            'subtitle' => 'Gestion École — '.AnneeUniversitaire::selected(),
             'groupes' => EcoleGroupe::orderBy('nom')->get(),
             'etudiants' => EcoleEtudiant::with('groupe')->orderBy('nom')->orderBy('prenom')->get(),
         ]);
     }
 
-    public function storeEtudiant(Request $request)
+    public function searchCrm(Request $request)
+    {
+        $term = trim((string) $request->query('q', ''));
+        $linkedIds = EcoleEtudiant::query()
+            ->whereNotNull('crm_candidate_id')
+            ->pluck('crm_candidate_id');
+
+        $candidates = CrmCandidate::query()
+            ->where('statut', 'inscrit')
+            ->where(function ($query) {
+                $query->where('abandon', false)->orWhereNull('abandon');
+            })
+            ->when($linkedIds->isNotEmpty(), fn ($query) => $query->whereNotIn('id', $linkedIds))
+            ->when($term !== '', fn ($query) => $query->searchNameOrPhone($term))
+            ->orderBy('nom')
+            ->orderBy('prenom')
+            ->limit(12)
+            ->get(['id', 'prenom', 'nom', 'programme', 'telephone']);
+
+        return response()->json($candidates->map(fn (CrmCandidate $candidate) => [
+            'id' => $candidate->id,
+            'prenom' => $candidate->prenom,
+            'nom' => $candidate->nom,
+            'label' => $candidate->full_name,
+            'programme' => $candidate->programme,
+        ])->values());
+    }
+
+    public function storeEtudiant(Request $request, CrmActivityLogger $crmLog)
     {
         $data = $request->validate([
             'prenom' => ['required', 'string', 'max:100'],
             'nom' => ['required', 'string', 'max:100'],
             'ecole_groupe_id' => ['required', 'integer'],
+            'crm_candidate_id' => ['nullable', 'integer'],
         ], [
             'prenom.required' => 'Le prénom est obligatoire.',
             'nom.required' => 'Le nom est obligatoire.',
@@ -89,18 +122,68 @@ class EcoleController extends Controller
         ]);
 
         $groupe = EcoleGroupe::findOrFail($data['ecole_groupe_id']);
-        EcoleEtudiant::create([
+        $candidate = null;
+        if (! empty($data['crm_candidate_id'])) {
+            $candidate = CrmCandidate::query()
+                ->where('statut', 'inscrit')
+                ->where(function ($query) {
+                    $query->where('abandon', false)->orWhereNull('abandon');
+                })
+                ->findOrFail($data['crm_candidate_id']);
+
+            $already = EcoleEtudiant::query()->where('crm_candidate_id', $candidate->id)->exists();
+            if ($already) {
+                return back()
+                    ->withErrors(['crm_candidate_id' => 'Ce candidat est déjà lié à un groupe pour cette année universitaire.'])
+                    ->withInput();
+            }
+        }
+
+        $etudiant = EcoleEtudiant::create([
             'ecole_groupe_id' => $groupe->id,
+            'crm_candidate_id' => $candidate?->id,
             'prenom' => trim($data['prenom']),
             'nom' => trim($data['nom']),
         ]);
+
+        if ($candidate) {
+            $phrase = $etudiant->inscriptionLabel();
+            $alreadyNoted = $candidate->crmNotes()->where('content', $phrase)->exists();
+            if (! $alreadyNoted) {
+                $candidate->crmNotes()->create([
+                    'user_id' => $request->user()->id,
+                    'content' => $phrase,
+                ]);
+                $crmLog->noteAdded($candidate, $request->user());
+            }
+            $candidate->touchInteraction();
+        }
 
         return redirect()->route('ecole.etudiants.index')->with('success', 'Étudiant ajouté.');
     }
 
     public function destroyEtudiant(EcoleEtudiant $etudiant)
     {
+        $groupeNom = $etudiant->groupe?->nom;
+        $phrase = $groupeNom ? $etudiant->inscriptionLabel() : null;
+        $candidateId = $etudiant->crm_candidate_id;
         $etudiant->delete();
+
+        if ($candidateId && $phrase && $groupeNom) {
+            $encoreInscrit = EcoleEtudiant::withoutGlobalScopes(['departement', 'annee'])
+                ->where('crm_candidate_id', $candidateId)
+                ->whereHas('groupe', function ($query) use ($groupeNom) {
+                    $query->withoutGlobalScopes(['departement', 'annee'])->where('nom', $groupeNom);
+                })
+                ->exists();
+
+            if (! $encoreInscrit) {
+                CrmNote::query()
+                    ->where('crm_candidate_id', $candidateId)
+                    ->where('content', $phrase)
+                    ->delete();
+            }
+        }
 
         return redirect()->route('ecole.etudiants.index')->with('success', 'Étudiant supprimé.');
     }
@@ -131,7 +214,9 @@ class EcoleController extends Controller
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('ecole_groupes', 'nom')->where(fn ($query) => $query->where('departement_id', $departementId)),
+                Rule::unique('ecole_groupes', 'nom')->where(fn ($query) => $query
+                    ->where('departement_id', $departementId)
+                    ->where('annee_universitaire', AnneeUniversitaire::selected())),
             ],
         ], [
             'nom.required' => 'Le nom du groupe est obligatoire.',
@@ -281,6 +366,19 @@ class EcoleController extends Controller
         $this->bootPeriode($request);
 
         return $this->page('Bulletin de note', 'Aucun bulletin pour le moment.');
+    }
+
+    public function annee(Request $request)
+    {
+        $data = $request->validate([
+            'annee_universitaire' => ['required', 'string', Rule::in(AnneeUniversitaire::options())],
+        ], [
+            'annee_universitaire.in' => 'Choisissez l’année universitaire en cours ou une année à venir.',
+        ]);
+
+        AnneeUniversitaire::select($data['annee_universitaire']);
+
+        return back();
     }
 
     private function page(string $title, string $empty)

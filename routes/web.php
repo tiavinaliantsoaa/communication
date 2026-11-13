@@ -87,6 +87,7 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
 
     Route::middleware('permission:ecole.view')->prefix('ecole')->name('ecole.')->group(function () {
         Route::get('/', [EcoleController::class, 'dashboard'])->name('dashboard');
+        Route::get('/etudiants/crm', [EcoleController::class, 'searchCrm'])->name('etudiants.crm');
         Route::get('/etudiants', [EcoleController::class, 'etudiants'])->name('etudiants.index');
         Route::post('/etudiants', [EcoleController::class, 'storeEtudiant'])->name('etudiants.store');
         Route::delete('/etudiants/{etudiant}', [EcoleController::class, 'destroyEtudiant'])->name('etudiants.destroy');
@@ -94,6 +95,7 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         Route::get('/groupes', [EcoleController::class, 'groupes'])->name('groupes.index');
         Route::post('/groupes', [EcoleController::class, 'storeGroupe'])->name('groupes.store');
         Route::delete('/groupes/{groupe}', [EcoleController::class, 'destroyGroupe'])->name('groupes.destroy');
+        Route::post('/annee-universitaire', [EcoleController::class, 'annee'])->name('annee');
         Route::get('/emplois-du-temps', [EcoleController::class, 'emplois'])->name('emplois.index');
         Route::post('/emplois-du-temps', [EcoleController::class, 'storeSeance'])->name('emplois.store');
         Route::delete('/emplois-du-temps/{seance}', [EcoleController::class, 'destroySeance'])->name('emplois.destroy');

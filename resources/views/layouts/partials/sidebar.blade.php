@@ -114,6 +114,33 @@
             ];
         @endphp
 
+        @if(count($ecoleItems))
+            @php
+                $anneeChoisie = \App\Support\AnneeUniversitaire::selected();
+                $anneeActuelle = \App\Support\AnneeUniversitaire::current();
+            @endphp
+            <div x-data="{ open: true }">
+                <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'" class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 transition-colors hover:bg-slate-700/40 hover:text-slate-200">
+                    <span>Année Universitaire</span>
+                    <svg class="h-3.5 w-3.5 shrink-0 transition-transform duration-200" :class="open && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </button>
+                <div x-show="open" x-cloak class="mt-1 space-y-0.5">
+                    @foreach(\App\Support\AnneeUniversitaire::options() as $annee)
+                        <form method="POST" action="{{ route('ecole.annee') }}">
+                            @csrf
+                            <input type="hidden" name="annee_universitaire" value="{{ $annee }}">
+                            <button type="submit" class="flex w-full items-center justify-between gap-2 px-3 py-2 rounded-lg text-sm transition-colors {{ $annee === $anneeChoisie ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
+                                <span>{{ $annee }}</span>
+                                @if($annee === $anneeActuelle)
+                                    <span class="text-[10px] uppercase tracking-wide {{ $annee === $anneeChoisie ? 'text-white' : 'text-slate-400' }}">Actuelle</span>
+                                @endif
+                            </button>
+                        </form>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         @foreach($navSections as $section)
             @if(count($section['items']))
                 @php
