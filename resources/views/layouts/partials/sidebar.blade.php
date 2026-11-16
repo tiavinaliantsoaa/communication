@@ -3,16 +3,11 @@
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
 >
     {{-- Logo --}}
-    <div class="flex items-center gap-3 px-5 py-5 border-b border-slate-700/50">
-        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 ring-2 ring-white/20">
-            <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
-            </svg>
+    <div class="flex items-center gap-3 px-5 py-5 border-b border-white/15">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white p-1.5">
+            <img src="{{ asset('images/escm-logo.png') }}" alt="" class="h-full w-full object-contain">
         </div>
-        <div>
-            <div class="text-white font-bold text-lg leading-tight tracking-wide">ESCM</div>
-            <div class="text-slate-400 text-[10px] uppercase tracking-widest">{{ $departementActif->nom ?? 'ESCM' }}</div>
-        </div>
+        <div class="text-white font-bold text-lg leading-tight tracking-wide">ESCM plateforme</div>
     </div>
 
     {{-- Navigation --}}
@@ -26,7 +21,7 @@
         <div class="space-y-0.5">
             @if($show('dashboard'))
             <a href="{{ route('dashboard') }}"
-               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('dashboard') ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('dashboard') ? 'bg-escm-primary text-white' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 Dashboard
             </a>
@@ -35,7 +30,7 @@
             <a href="{{ route('discussions.index') }}"
                id="discussion-nav"
                data-poll-url="{{ route('discussions.poll') }}"
-               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('discussions.*') ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('discussions.*') ? 'bg-escm-primary text-white' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                 Discussion
                 <span id="discussion-unread" class="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-white" @if(($discussionUnread ?? 0) < 1) hidden @endif>{{ ($discussionUnread ?? 0) > 9 ? '9+' : ($discussionUnread ?? 0) }}</span>
@@ -44,7 +39,7 @@
             @endif
             @if($show('activite'))
             <a href="{{ route('activite.index') }}"
-               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('activite.*') ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('activite.*') ? 'bg-escm-primary text-white' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Activité
             </a>
@@ -121,7 +116,7 @@
                 $anneeActuelle = \App\Support\AnneeUniversitaire::current();
             @endphp
             <div class="px-3">
-                <p class="px-0 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500">Année Universitaire</p>
+                <p class="px-0 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/70">Année Universitaire</p>
                 <div class="flex items-center justify-between gap-2 rounded-lg bg-escm-primary px-3 py-2 text-sm font-medium text-white">
                     <span>{{ $anneeChoisie }}</span>
                     @if($anneeChoisie === $anneeActuelle)
@@ -139,7 +134,7 @@
                     });
                 @endphp
                 <div x-data="{ open: {{ $sectionOpen ? 'true' : 'false' }} }">
-                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'" class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-500 transition-colors hover:bg-slate-700/40 hover:text-slate-200">
+                    <button type="button" @click="open = !open" :aria-expanded="open ? 'true' : 'false'" class="flex w-full items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wider text-white/70 transition-colors hover:bg-white/10 hover:text-white">
                         <span>{{ $section['title'] }}</span>
                         <svg class="h-3.5 w-3.5 shrink-0 transition-transform duration-200" :class="open && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
@@ -149,7 +144,7 @@
                                 $itemActive = $item['is_active'] ?? $isActive($item['active'] ?? $item['route']);
                             @endphp
                             <a href="{{ route($item['href'] ?? $item['route']) }}"
-                               class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $itemActive ? 'bg-escm-primary text-white' : 'text-slate-300 hover:bg-slate-700/50 hover:text-white' }}">
+                               class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $itemActive ? 'bg-escm-primary text-white' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
                                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $item['icon'] }}"/></svg>
                                 {{ $item['label'] }}
                             </a>
@@ -161,8 +156,8 @@
     </nav>
 
     {{-- Paramètres footer --}}
-    <div class="border-t border-slate-700/50 px-3 py-3" x-data="{ settingsOpen: false }">
-        <button @click="settingsOpen = !settingsOpen" class="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm text-slate-300 hover:bg-slate-700/50 hover:text-white transition-colors">
+    <div class="border-t border-white/15 px-3 py-3" x-data="{ settingsOpen: false }">
+        <button @click="settingsOpen = !settingsOpen" class="flex w-full items-center justify-between px-3 py-2 rounded-lg text-sm text-white/90 hover:bg-white/15 hover:text-white transition-colors">
             <span class="flex items-center gap-3">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                 Paramètres
@@ -170,16 +165,16 @@
             <svg class="w-4 h-4 transition-transform" :class="settingsOpen && 'rotate-180'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
         </button>
         <div x-show="settingsOpen" class="mt-1 space-y-0.5 pl-2">
-            <a href="{{ route('profile.edit') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-slate-400 hover:text-white hover:bg-slate-700/50">Gestion du profil</a>
+            <a href="{{ route('profile.edit') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-white/80 hover:text-white hover:bg-white/15">Gestion du profil</a>
             @if($can('users.view'))
-            <a href="{{ route('users.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-slate-400 hover:text-white hover:bg-slate-700/50">Gestion des utilisateurs</a>
+            <a href="{{ route('users.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-white/80 hover:text-white hover:bg-white/15">Gestion des utilisateurs</a>
             @endif
             @if(auth()->user()?->isSuperAdmin())
-            <a href="{{ route('acces.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-slate-400 hover:text-white hover:bg-slate-700/50">Gestion d’accès</a>
-            <a href="{{ route('navbar.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-slate-400 hover:text-white hover:bg-slate-700/50">Gestion liste navbar</a>
+            <a href="{{ route('acces.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-white/80 hover:text-white hover:bg-white/15">Gestion d’accès</a>
+            <a href="{{ route('navbar.index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-white/80 hover:text-white hover:bg-white/15">Gestion liste navbar</a>
             @endif
             @if($can('parametres.systeme'))
-            <a href="{{ route('parametres.systeme') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-slate-400 hover:text-white hover:bg-slate-700/50">Configuration système</a>
+            <a href="{{ route('parametres.systeme') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-xs text-white/80 hover:text-white hover:bg-white/15">Configuration système</a>
             @endif
         </div>
     </div>

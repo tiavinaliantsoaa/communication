@@ -4,23 +4,18 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Connexion - ESCM Communication</title>
+    <title>Connexion - ESCM Plateformes</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 min-h-screen flex items-center justify-center p-4">
+<body class="font-sans antialiased bg-escm-sidebar min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-md">
         <div class="bg-white rounded-2xl shadow-2xl p-8 sm:p-10">
             {{-- Logo --}}
             <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-escm-sidebar mb-4">
-                    <svg class="h-8 w-8 text-white" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
-                    </svg>
-                </div>
-                <h1 class="text-2xl font-bold text-slate-900">ESCM</h1>
-                <p class="text-sm text-slate-500 uppercase tracking-widest mt-1">Communication</p>
+                <img src="{{ asset('images/escm-logo.png') }}" alt="" class="mx-auto h-16 w-16 object-contain mb-4">
+                <h1 class="text-2xl font-bold text-slate-900">ESCM Plateformes</h1>
             </div>
 
             @if (session('status'))
@@ -65,7 +60,7 @@
                 </button>
             </form>
         </div>
-        <p class="text-center text-slate-400 text-xs mt-6">&copy; {{ date('Y') }} ESCM Communication</p>
+        <p class="text-center text-white/80 text-xs mt-6">&copy; {{ date('Y') }} ESCM Business School</p>
     </div>
 </body>
 </html>
