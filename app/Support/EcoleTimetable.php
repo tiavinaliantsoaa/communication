@@ -86,11 +86,17 @@ class EcoleTimetable
 
     /**
      * @param  Collection<int, EcoleSeance>  $seances
-     * @return list<array{label: string, number: string, isToday: bool, events: list<array{matiere: string, salle: ?string, horaire: string, top: float, height: float, left: float, width: float}>}>
+     * @return list<array{label: string, number: string, isToday: bool, events: list<array{matiere: string, professeur: ?string, salle: ?string, horaire: string, top: float, height: float, left: float, width: float}>}>
      */
     public static function columns(Carbon $monday, Collection $seances): array
     {
-        $byDay = $seances->groupBy('jour');
+        $byDay = $seances->groupBy(function (EcoleSeance $seance) {
+            if ($seance->date) {
+                return Carbon::parse($seance->date)->isoWeekday();
+            }
+
+            return (int) $seance->jour;
+        });
         $columns = [];
 
         foreach (self::days() as $jour => $label) {
@@ -108,7 +114,7 @@ class EcoleTimetable
 
     /**
      * @param  Collection<int, EcoleSeance>  $seances
-     * @return list<array{matiere: string, salle: ?string, horaire: string, top: float, height: float, left: float, width: float}>
+     * @return list<array{matiere: string, professeur: ?string, salle: ?string, horaire: string, top: float, height: float, left: float, width: float}>
      */
     public static function layout(Collection $seances): array
     {
@@ -122,6 +128,7 @@ class EcoleTimetable
                     'start' => $start,
                     'end' => max($start + 15, $end),
                     'matiere' => $seance->matiere,
+                    'professeur' => $seance->professeur,
                     'salle' => $seance->salle,
                     'horaire' => self::label($seance->heure('heure_debut')).' – '.self::label($seance->heure('heure_fin')),
                 ];
@@ -153,6 +160,7 @@ class EcoleTimetable
         return array_map(function (array $item) use ($count, $span) {
             return [
                 'matiere' => $item['matiere'],
+                'professeur' => $item['professeur'],
                 'salle' => $item['salle'],
                 'horaire' => $item['horaire'],
                 'top' => (($item['start'] - (self::START * 60)) / $span) * 100,

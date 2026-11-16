@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Departement;
+use App\Models\EcoleEnseignant;
 use App\Models\EcoleGroupe;
+use App\Models\EcoleMatiere;
 use App\Models\User;
+use App\Support\EcoleTimetable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
@@ -51,23 +54,53 @@ class EcoleDashboardTest extends TestCase
 
         $etudiant = $b1->etudiants()->firstOrFail();
 
-        $this->post(route('ecole.emplois.store'), [
-            'ecole_groupe_id' => $b1->id,
-            'jour' => 4,
-            'heure_debut' => '08:00',
-            'heure_fin' => '09:00',
-            'matiere' => 'COM & PLAN',
-            'salle' => 'Grasse',
-        ])->assertRedirect(route('ecole.emplois.index', ['groupe' => $b1->id]));
+        $this->post(route('ecole.matieres.store'), ['nom' => 'COM & PLAN'])->assertRedirect(route('ecole.matieres.index'));
+        $this->post(route('ecole.matieres.store'), ['nom' => 'Trop tot'])->assertRedirect();
+        $this->post(route('ecole.matieres.store'), ['nom' => 'COURS AUTRE SEMAINE'])->assertRedirect();
+        $this->post(route('ecole.enseignants.store'), [
+            'prenom' => 'Hery',
+            'nom' => 'Rakoto',
+        ])->assertRedirect(route('ecole.enseignants.index'));
+
+        $com = EcoleMatiere::query()->where('nom', 'COM & PLAN')->firstOrFail();
+        $tropTot = EcoleMatiere::query()->where('nom', 'Trop tot')->firstOrFail();
+        $autre = EcoleMatiere::query()->where('nom', 'COURS AUTRE SEMAINE')->firstOrFail();
+        $professeur = EcoleEnseignant::query()->firstOrFail();
+
+        $jeudi = EcoleTimetable::monday()->addDays(3);
 
         $this->post(route('ecole.emplois.store'), [
             'ecole_groupe_id' => $b1->id,
-            'jour' => 1,
+            'date' => $jeudi->toDateString(),
+            'heure_debut' => '08:00',
+            'heure_fin' => '09:00',
+            'ecole_matiere_id' => $com->id,
+            'ecole_enseignant_id' => $professeur->id,
+            'salle' => 'Grasse',
+        ])->assertRedirect(route('ecole.emplois.index', [
+            'groupe' => $b1->id,
+            'semaine' => EcoleTimetable::monday()->toDateString(),
+        ]));
+
+        $this->post(route('ecole.emplois.store'), [
+            'ecole_groupe_id' => $b1->id,
+            'date' => EcoleTimetable::monday()->toDateString(),
             'heure_debut' => '07:30',
             'heure_fin' => '08:30',
-            'matiere' => 'Trop tot',
+            'ecole_matiere_id' => $tropTot->id,
+            'ecole_enseignant_id' => $professeur->id,
             'salle' => 'Ivato',
         ])->assertSessionHasErrors('heure_debut');
+
+        $this->post(route('ecole.emplois.store'), [
+            'ecole_groupe_id' => $b1->id,
+            'date' => EcoleTimetable::monday()->addWeek()->toDateString(),
+            'heure_debut' => '10:00',
+            'heure_fin' => '11:00',
+            'ecole_matiere_id' => $autre->id,
+            'ecole_enseignant_id' => $professeur->id,
+            'salle' => 'Lille',
+        ])->assertRedirect();
 
         $this->post(route('ecole.absences.store'), [
             'ecole_etudiant_id' => $etudiant->id,
@@ -103,14 +136,27 @@ class EcoleDashboardTest extends TestCase
             ->assertSee('08h')
             ->assertSee('17h')
             ->assertSee('COM & PLAN')
+            ->assertSee('Hery Rakoto')
             ->assertSee('Grasse')
-            ->assertDontSee('Trop tot');
+            ->assertDontSee('Trop tot')
+            ->assertDontSee('COURS AUTRE SEMAINE');
+
+        $this->actingAs($admin)
+            ->withSession(['departement_actif_id' => $pedagogique->id])
+            ->get(route('ecole.dashboard', [
+                'groupe' => $b1->id,
+                'semaine' => EcoleTimetable::monday()->addWeek()->toDateString(),
+            ]))
+            ->assertOk()
+            ->assertSee('COURS AUTRE SEMAINE')
+            ->assertDontSee('COM & PLAN');
 
         $this->actingAs($admin)
             ->withSession(['departement_actif_id' => $pedagogique->id])
             ->get(route('ecole.dashboard', ['groupe' => $b2->id]))
             ->assertOk()
             ->assertDontSee('COM & PLAN')
+            ->assertDontSee('Hery Rakoto')
             ->assertDontSee('Grasse');
     }
 }

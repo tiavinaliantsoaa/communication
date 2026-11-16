@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -299,5 +300,26 @@ class CrmCandidate extends Model
     public function touchInteraction(): void
     {
         $this->forceFill(['last_interaction_at' => now()])->saveQuietly();
+    }
+
+    /**
+     * School groups this enrolled candidate is linked to, across departments and years.
+     *
+     * @return \Illuminate\Support\Collection<int, EcoleEtudiant>
+     */
+    public function inscriptionsGroupe()
+    {
+        if (! Schema::hasColumn('ecole_etudiants', 'crm_candidate_id')) {
+            return collect();
+        }
+
+        return EcoleEtudiant::withoutGlobalScopes(['departement', 'annee'])
+            ->where('crm_candidate_id', $this->id)
+            ->with(['groupe' => function ($query) {
+                $query->withoutGlobalScopes(['departement', 'annee']);
+            }])
+            ->get()
+            ->filter(fn (EcoleEtudiant $etudiant) => $etudiant->groupe !== null)
+            ->values();
     }
 }

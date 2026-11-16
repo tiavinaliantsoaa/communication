@@ -43,9 +43,12 @@ class NavbarMenu
             ['key' => 'ecole_etudiants', 'label' => 'Gestion Etudiants', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.etudiants.*']],
             ['key' => 'ecole_classes', 'label' => 'Gestion Classe', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.classes.*']],
             ['key' => 'ecole_groupes', 'label' => 'Gestion Groupe', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.groupes.*']],
+            ['key' => 'ecole_matieres', 'label' => 'Matière', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.matieres.*']],
+            ['key' => 'ecole_enseignants', 'label' => 'Enseignant', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.enseignants.*']],
             ['key' => 'ecole_emplois', 'label' => 'Emplois du temps', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.emplois.*']],
             ['key' => 'ecole_absences', 'label' => 'Retard et Absence', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.absences.*']],
             ['key' => 'ecole_bulletins', 'label' => 'Bulletin de note', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.bulletins.*']],
+            ['key' => 'ecole_parametres', 'label' => 'Paramètre école', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.parametres.*', 'ecole.annee']],
         ];
     }
 

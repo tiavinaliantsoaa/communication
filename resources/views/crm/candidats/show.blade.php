@@ -114,6 +114,9 @@
             <div class="flex justify-between gap-4"><dt class="text-slate-500">Année / Intake</dt><dd class="text-slate-900 font-medium">{{ $candidate->annee_academique ?: '—' }}</dd></div>
             <div class="flex justify-between gap-4"><dt class="text-slate-500">Niveau d’études</dt><dd class="text-slate-900 font-medium">{{ $candidate->niveau_etudes ?: '—' }}</dd></div>
             <div class="flex justify-between gap-4"><dt class="text-slate-500">Établissement</dt><dd class="text-slate-900 font-medium text-right">{{ $candidate->etablissement_origine ?: '—' }}</dd></div>
+            @foreach($candidate->inscriptionsGroupe() as $inscription)
+                <div class="flex justify-between gap-4"><dt class="text-slate-500">Groupe</dt><dd class="text-slate-900 font-medium text-right">{{ $inscription->inscriptionLabel() }}</dd></div>
+            @endforeach
         </dl>
     </div>
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 lg:col-span-2">
