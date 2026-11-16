@@ -21,7 +21,7 @@
         <div class="space-y-0.5">
             @if($show('dashboard'))
             <a href="{{ route('dashboard') }}"
-               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('dashboard') ? 'bg-escm-primary text-white' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('dashboard') ? 'bg-white text-[#d02c2f]' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
                 Dashboard
             </a>
@@ -30,7 +30,7 @@
             <a href="{{ route('discussions.index') }}"
                id="discussion-nav"
                data-poll-url="{{ route('discussions.poll') }}"
-               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('discussions.*') ? 'bg-escm-primary text-white' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('discussions.*') ? 'bg-white text-[#d02c2f]' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
                 Discussion
                 <span id="discussion-unread" class="ml-auto inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-bold text-white" @if(($discussionUnread ?? 0) < 1) hidden @endif>{{ ($discussionUnread ?? 0) > 9 ? '9+' : ($discussionUnread ?? 0) }}</span>
@@ -39,7 +39,7 @@
             @endif
             @if($show('activite'))
             <a href="{{ route('activite.index') }}"
-               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('activite.*') ? 'bg-escm-primary text-white' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
+               class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive('activite.*') ? 'bg-white text-[#d02c2f]' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 Activité
             </a>
@@ -117,7 +117,7 @@
             @endphp
             <div class="px-3">
                 <p class="px-0 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-white/70">Année Universitaire</p>
-                <div class="flex items-center justify-between gap-2 rounded-lg bg-escm-primary px-3 py-2 text-sm font-medium text-white">
+                <div class="flex items-center justify-between gap-2 rounded-lg bg-white/20 px-3 py-2 text-sm font-medium text-white">
                     <span>{{ $anneeChoisie }}</span>
                     @if($anneeChoisie === $anneeActuelle)
                         <span class="text-[10px] uppercase tracking-wide">Actuelle</span>
@@ -144,7 +144,7 @@
                                 $itemActive = $item['is_active'] ?? $isActive($item['active'] ?? $item['route']);
                             @endphp
                             <a href="{{ route($item['href'] ?? $item['route']) }}"
-                               class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $itemActive ? 'bg-escm-primary text-white' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
+                               class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $itemActive ? 'bg-white text-[#d02c2f]' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
                                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $item['icon'] }}"/></svg>
                                 {{ $item['label'] }}
                             </a>

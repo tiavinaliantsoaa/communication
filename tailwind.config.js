@@ -26,7 +26,7 @@ export default {
             colors: {
                 escm: {
                     navy: '#0f172a',
-                    sidebar: '#d02c2f',
+                    sidebar: '#e06a6c',
                     primary: '#2563eb',
                     'primary-dark': '#1d4ed8',
                 },
