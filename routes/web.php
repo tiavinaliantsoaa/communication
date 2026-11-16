@@ -95,6 +95,12 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         Route::get('/groupes', [EcoleController::class, 'groupes'])->name('groupes.index');
         Route::post('/groupes', [EcoleController::class, 'storeGroupe'])->name('groupes.store');
         Route::delete('/groupes/{groupe}', [EcoleController::class, 'destroyGroupe'])->name('groupes.destroy');
+        Route::get('/matieres', [EcoleController::class, 'matieres'])->name('matieres.index');
+        Route::post('/matieres', [EcoleController::class, 'storeMatiere'])->name('matieres.store');
+        Route::delete('/matieres/{matiere}', [EcoleController::class, 'destroyMatiere'])->name('matieres.destroy');
+        Route::get('/enseignants', [EcoleController::class, 'enseignants'])->name('enseignants.index');
+        Route::post('/enseignants', [EcoleController::class, 'storeEnseignant'])->name('enseignants.store');
+        Route::delete('/enseignants/{enseignant}', [EcoleController::class, 'destroyEnseignant'])->name('enseignants.destroy');
         Route::post('/annee-universitaire', [EcoleController::class, 'annee'])->name('annee');
         Route::get('/emplois-du-temps', [EcoleController::class, 'emplois'])->name('emplois.index');
         Route::post('/emplois-du-temps', [EcoleController::class, 'storeSeance'])->name('emplois.store');

@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\CrmCandidate;
 use App\Models\CrmNote;
 use App\Models\EcoleAssiduite;
+use App\Models\EcoleEnseignant;
 use App\Models\EcoleEtudiant;
 use App\Models\EcoleGroupe;
+use App\Models\EcoleMatiere;
 use App\Models\EcoleSeance;
 use App\Services\CrmActivityLogger;
 use App\Support\AnneeUniversitaire;
@@ -239,6 +241,80 @@ class EcoleController extends Controller
         return redirect()->route('ecole.groupes.index')->with('success', 'Groupe supprimé.');
     }
 
+    public function matieres(Request $request)
+    {
+        $this->bootPeriode($request);
+
+        return view('ecole.matieres', [
+            'title' => 'Matière',
+            'subtitle' => 'Gestion École — '.AnneeUniversitaire::selected(),
+            'matieres' => EcoleMatiere::orderBy('nom')->get(),
+        ]);
+    }
+
+    public function storeMatiere(Request $request)
+    {
+        $departementId = $request->user()->currentDepartementId();
+        $data = $request->validate([
+            'nom' => [
+                'required',
+                'string',
+                'max:120',
+                Rule::unique('ecole_matieres', 'nom')->where(fn ($query) => $query->where('departement_id', $departementId)),
+            ],
+        ], [
+            'nom.required' => 'Le nom de la matière est obligatoire.',
+            'nom.unique' => 'Cette matière existe déjà.',
+        ]);
+
+        EcoleMatiere::create(['nom' => trim($data['nom'])]);
+
+        return redirect()->route('ecole.matieres.index')->with('success', 'Matière ajoutée.');
+    }
+
+    public function destroyMatiere(EcoleMatiere $matiere)
+    {
+        $matiere->delete();
+
+        return redirect()->route('ecole.matieres.index')->with('success', 'Matière supprimée.');
+    }
+
+    public function enseignants(Request $request)
+    {
+        $this->bootPeriode($request);
+
+        return view('ecole.enseignants', [
+            'title' => 'Enseignant',
+            'subtitle' => 'Gestion École — '.AnneeUniversitaire::selected(),
+            'enseignants' => EcoleEnseignant::orderBy('nom')->orderBy('prenom')->get(),
+        ]);
+    }
+
+    public function storeEnseignant(Request $request)
+    {
+        $data = $request->validate([
+            'prenom' => ['required', 'string', 'max:80'],
+            'nom' => ['required', 'string', 'max:80'],
+        ], [
+            'prenom.required' => 'Le prénom est obligatoire.',
+            'nom.required' => 'Le nom est obligatoire.',
+        ]);
+
+        EcoleEnseignant::create([
+            'prenom' => trim($data['prenom']),
+            'nom' => trim($data['nom']),
+        ]);
+
+        return redirect()->route('ecole.enseignants.index')->with('success', 'Enseignant ajouté.');
+    }
+
+    public function destroyEnseignant(EcoleEnseignant $enseignant)
+    {
+        $enseignant->delete();
+
+        return redirect()->route('ecole.enseignants.index')->with('success', 'Enseignant supprimé.');
+    }
+
     public function emplois(Request $request)
     {
         $this->bootPeriode($request);
@@ -268,25 +344,42 @@ class EcoleController extends Controller
             ])),
             'dateParDefaut' => old('date', $dateParDefaut),
             'seances' => $this->seancesDeLaSemaine($groupe, $monday),
+            'matieres' => EcoleMatiere::orderBy('nom')->get(),
+            'enseignants' => EcoleEnseignant::orderBy('nom')->orderBy('prenom')->get(),
         ]);
     }
 
     public function storeSeance(Request $request)
     {
+        $departementId = $request->user()->currentDepartementId();
         $data = $request->validate([
             'ecole_groupe_id' => ['required', 'integer'],
             'date' => ['required', 'date'],
             'heure_debut' => ['required', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
             'heure_fin' => ['required', 'regex:/^\d{2}:\d{2}(:\d{2})?$/'],
-            'matiere' => ['required', 'string', 'max:120'],
+            'ecole_matiere_id' => [
+                'required',
+                'integer',
+                Rule::exists('ecole_matieres', 'id')->where(fn ($query) => $query->where('departement_id', $departementId)),
+            ],
+            'ecole_enseignant_id' => [
+                'required',
+                'integer',
+                Rule::exists('ecole_enseignants', 'id')->where(fn ($query) => $query->where('departement_id', $departementId)),
+            ],
             'salle' => ['nullable', 'string', 'max:120'],
         ], [
             'ecole_groupe_id.required' => 'Choisissez un groupe.',
             'date.required' => 'Choisissez une date.',
-            'matiere.required' => 'La matière est obligatoire.',
+            'ecole_matiere_id.required' => 'Choisissez une matière.',
+            'ecole_matiere_id.exists' => 'Choisissez une matière.',
+            'ecole_enseignant_id.required' => 'Choisissez un enseignant.',
+            'ecole_enseignant_id.exists' => 'Choisissez un enseignant.',
         ]);
 
         $groupe = EcoleGroupe::findOrFail($data['ecole_groupe_id']);
+        $matiere = EcoleMatiere::findOrFail($data['ecole_matiere_id']);
+        $enseignant = EcoleEnseignant::findOrFail($data['ecole_enseignant_id']);
         $date = Carbon::parse($data['date'])->startOfDay();
         if ($date->isoWeekday() > 5) {
             return back()->withErrors(['date' => 'Choisissez un jour du lundi au vendredi.'])->withInput();
@@ -304,7 +397,10 @@ class EcoleController extends Controller
             'jour' => $date->isoWeekday(),
             'heure_debut' => $debut,
             'heure_fin' => $fin,
-            'matiere' => trim($data['matiere']),
+            'ecole_matiere_id' => $matiere->id,
+            'ecole_enseignant_id' => $enseignant->id,
+            'matiere' => $matiere->nom,
+            'professeur' => $enseignant->nom_complet,
             'salle' => trim((string) ($data['salle'] ?? '')) ?: null,
         ]);
 

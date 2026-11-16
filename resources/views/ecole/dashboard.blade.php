@@ -111,8 +111,11 @@
                                     $left = number_format($event['left'], 2, '.', '');
                                     $width = number_format($event['width'], 2, '.', '');
                                 @endphp
-                                <div class="absolute overflow-hidden rounded-md px-2 py-1" style="top: {{ $top }}%; height: {{ $height }}%; left: calc({{ $left }}% + 4px); width: calc({{ $width }}% - 8px); background:#dbeafe; border:1px solid #93c5fd; z-index: 2;" title="{{ $event['matiere'] }}{{ $event['salle'] ? ' — '.$event['salle'] : '' }}">
+                                <div class="absolute overflow-hidden rounded-md px-2 py-1" style="top: {{ $top }}%; height: {{ $height }}%; left: calc({{ $left }}% + 4px); width: calc({{ $width }}% - 8px); background:#dbeafe; border:1px solid #93c5fd; z-index: 2;" title="{{ $event['matiere'] }}{{ $event['professeur'] ? ' — '.$event['professeur'] : '' }}{{ $event['salle'] ? ' — '.$event['salle'] : '' }}">
                                     <p class="text-[11px] font-bold leading-tight truncate" style="color:#1e3a8a;">{{ $event['matiere'] }}</p>
+                                    @if($event['professeur'])
+                                        <p class="text-[10px] leading-tight truncate" style="color:#1e3a8a;">{{ $event['professeur'] }}</p>
+                                    @endif
                                     @if($event['salle'])
                                         <p class="text-[10px] leading-tight truncate" style="color:#475569;">{{ $event['salle'] }}</p>
                                     @endif

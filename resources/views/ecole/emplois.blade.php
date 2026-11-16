@@ -10,6 +10,12 @@
         <h3 class="text-sm font-semibold text-slate-900 mb-4">Ajouter un créneau</h3>
         @if($groupes->isEmpty())
             <p class="text-sm text-slate-500">Ajoutez d’abord un groupe.</p>
+        @elseif($matieres->isEmpty())
+            <p class="text-sm text-slate-500">Ajoutez d’abord une matière.</p>
+            <a href="{{ route('ecole.matieres.index') }}" class="mt-3 inline-flex text-sm font-medium text-escm-primary hover:text-escm-primary-dark">Créer une matière</a>
+        @elseif($enseignants->isEmpty())
+            <p class="text-sm text-slate-500">Ajoutez d’abord un enseignant.</p>
+            <a href="{{ route('ecole.enseignants.index') }}" class="mt-3 inline-flex text-sm font-medium text-escm-primary hover:text-escm-primary-dark">Créer un enseignant</a>
         @else
             <form method="POST" action="{{ route('ecole.emplois.store') }}" class="space-y-4">
                 @csrf
@@ -39,8 +45,23 @@
                 @error('heure_debut')<p class="text-sm text-red-600">{{ $message }}</p>@enderror
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Matière</label>
-                    <input type="text" name="matiere" value="{{ old('matiere') }}" required maxlength="120" class="{{ $input }}" placeholder="Ex. COM & PLAN">
-                    @error('matiere')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    <select name="ecole_matiere_id" class="{{ $input }}" required>
+                        <option value="">Choisir une matière</option>
+                        @foreach($matieres as $matiere)
+                            <option value="{{ $matiere->id }}" @selected((int) old('ecole_matiere_id') === (int) $matiere->id)>{{ $matiere->nom }}</option>
+                        @endforeach
+                    </select>
+                    @error('ecole_matiere_id')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Enseignant</label>
+                    <select name="ecole_enseignant_id" class="{{ $input }}" required>
+                        <option value="">Choisir un enseignant</option>
+                        @foreach($enseignants as $enseignant)
+                            <option value="{{ $enseignant->id }}" @selected((int) old('ecole_enseignant_id') === (int) $enseignant->id)>{{ $enseignant->nom_complet }}</option>
+                        @endforeach
+                    </select>
+                    @error('ecole_enseignant_id')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Salle</label>
@@ -85,6 +106,7 @@
                         <th class="px-5 py-3">Date</th>
                         <th class="px-3 py-3">Horaire</th>
                         <th class="px-3 py-3">Matière</th>
+                        <th class="px-3 py-3">Enseignant</th>
                         <th class="px-3 py-3">Salle</th>
                         <th class="px-5 py-3 text-right">Actions</th>
                     </tr>
@@ -95,6 +117,7 @@
                             <td class="px-5 py-3 font-medium text-slate-900 whitespace-nowrap">{{ $seance->date?->locale('fr')->isoFormat('ddd D MMM YYYY') }}</td>
                             <td class="px-3 py-3 text-slate-600 whitespace-nowrap">{{ \App\Support\EcoleTimetable::label($seance->heure('heure_debut')) }} – {{ \App\Support\EcoleTimetable::label($seance->heure('heure_fin')) }}</td>
                             <td class="px-3 py-3 text-slate-800">{{ $seance->matiere }}</td>
+                            <td class="px-3 py-3 text-slate-600">{{ $seance->professeur ?: '—' }}</td>
                             <td class="px-3 py-3 text-slate-600">{{ $seance->salle ?: '—' }}</td>
                             <td class="px-5 py-3 text-right">
                                 <form method="POST" action="{{ route('ecole.emplois.destroy', $seance) }}" onsubmit="return confirm('Supprimer ce créneau ?')">
@@ -106,7 +129,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-5 py-8 text-center text-slate-500">Aucun emploi du temps pour le moment.</td>
+                            <td colspan="6" class="px-5 py-8 text-center text-slate-500">Aucun emploi du temps pour le moment.</td>
                         </tr>
                     @endforelse
                 </tbody>

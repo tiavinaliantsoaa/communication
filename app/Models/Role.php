@@ -56,6 +56,8 @@ class Role extends Model
             'ecole.etudiants.index' => ['label' => 'Gestion Etudiants', 'permission' => 'ecole.view'],
             'ecole.classes.index' => ['label' => 'Gestion Classe', 'permission' => 'ecole.view'],
             'ecole.groupes.index' => ['label' => 'Gestion Groupe', 'permission' => 'ecole.view'],
+            'ecole.matieres.index' => ['label' => 'Matière', 'permission' => 'ecole.view'],
+            'ecole.enseignants.index' => ['label' => 'Enseignant', 'permission' => 'ecole.view'],
             'ecole.emplois.index' => ['label' => 'Emplois du temps', 'permission' => 'ecole.view'],
             'ecole.absences.index' => ['label' => 'Retard et Absence', 'permission' => 'ecole.view'],
             'ecole.bulletins.index' => ['label' => 'Bulletin de note', 'permission' => 'ecole.view'],

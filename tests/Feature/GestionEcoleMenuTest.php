@@ -64,12 +64,21 @@ class GestionEcoleMenuTest extends TestCase
             ->assertSee('Gestion Etudiants')
             ->assertSee('Gestion Classe')
             ->assertSee('Gestion Groupe')
+            ->assertSee('Matière')
+            ->assertSee('Enseignant')
             ->assertSee('Emplois du temps')
             ->assertSee('Retard et Absence')
             ->assertSee('Bulletin de note')
             ->assertSee('Paramètre école');
 
         $this->assertSame(1, substr_count($menu->getContent(), 'Gestion École'));
+        $html = $menu->getContent();
+        $section = strpos($html, 'Gestion École');
+        $year = strpos($html, 'Année Universitaire');
+        $schoolDashboard = strpos($html, route('ecole.dashboard'));
+        $this->assertNotFalse($section);
+        $this->assertNotFalse($year);
+        $this->assertTrue($section < $year && $year < $schoolDashboard);
 
         foreach ([
             'ecole.dashboard' => 'Dashboard',

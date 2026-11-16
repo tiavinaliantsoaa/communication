@@ -100,6 +100,8 @@ class DepartementScope implements Scope
             ActivityLog::class,
             EcoleGroupe::class,
             EcoleEtudiant::class,
+            EcoleMatiere::class,
+            EcoleEnseignant::class,
             EcoleSeance::class,
             EcoleAssiduite::class,
         ];
