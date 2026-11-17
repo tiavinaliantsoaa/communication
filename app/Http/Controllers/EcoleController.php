@@ -147,6 +147,10 @@ class EcoleController extends Controller
             'crm_candidate_id' => $candidate?->id,
             'prenom' => trim($data['prenom']),
             'nom' => trim($data['nom']),
+            'palier' => $candidate ? $this->vide($candidate->niveau_etudes ?: $candidate->programme) : null,
+            'date_naissance' => $candidate?->date_naissance,
+            'email' => $candidate ? $this->vide($candidate->email) : null,
+            'domicile' => $candidate ? $this->vide($candidate->adresse) : null,
         ]);
 
         if ($candidate) {
@@ -189,6 +193,110 @@ class EcoleController extends Controller
         }
 
         return redirect()->route('ecole.etudiants.index')->with('success', 'Étudiant supprimé.');
+    }
+
+    public function showEtudiant(Request $request, EcoleEtudiant $etudiant)
+    {
+        $this->bootPeriode($request);
+        $etudiant->load(['groupe', 'candidat']);
+        $groupe = $etudiant->groupe;
+        $monday = $this->monday($request);
+        $friday = $monday->copy()->addDays(4);
+
+        return view('ecole.etudiant', [
+            'title' => $etudiant->nom_complet,
+            'subtitle' => 'Gestion Groupe'.($groupe ? ' — '.$groupe->nom : ''),
+            'etudiant' => $etudiant,
+            'peutModifier' => $request->user()->peutModifierFicheEleve(),
+            'groupe' => $groupe,
+            'monday' => $monday,
+            'semaineLabel' => $monday->isoFormat('D MMM').' – '.$friday->isoFormat('D MMM YYYY'),
+            'weekNumber' => $monday->isoWeek(),
+            'hours' => EcoleTimetable::hours(),
+            'columns' => EcoleTimetable::columns($monday, $groupe ? $this->seancesDeLaSemaine($groupe, $monday) : collect()),
+            'nowTop' => EcoleTimetable::nowTop($monday),
+            'prevUrl' => route('ecole.etudiants.show', ['etudiant' => $etudiant, 'semaine' => $monday->copy()->subWeek()->toDateString()]),
+            'nextUrl' => route('ecole.etudiants.show', ['etudiant' => $etudiant, 'semaine' => $monday->copy()->addWeek()->toDateString()]),
+            'todayUrl' => route('ecole.etudiants.show', $etudiant),
+        ]);
+    }
+
+    public function editEtudiant(Request $request, EcoleEtudiant $etudiant)
+    {
+        $this->refuserHorsEquipe($request);
+        $this->bootPeriode($request);
+        $etudiant->load(['groupe', 'candidat']);
+
+        return view('ecole.etudiant-edit', [
+            'title' => 'Modifier '.$etudiant->nom_complet,
+            'subtitle' => 'Gestion Groupe',
+            'etudiant' => $etudiant,
+            'groupes' => EcoleGroupe::orderBy('nom')->get(),
+        ]);
+    }
+
+    public function updateEtudiant(Request $request, EcoleEtudiant $etudiant)
+    {
+        $this->refuserHorsEquipe($request);
+        $departementId = $request->user()->currentDepartementId();
+        $data = $request->validate([
+            'prenom' => ['required', 'string', 'max:100'],
+            'nom' => ['required', 'string', 'max:100'],
+            'nom_officiel' => ['nullable', 'string', 'max:150'],
+            'nom_caracteres' => ['nullable', 'string', 'max:150'],
+            'palier' => ['nullable', 'string', 'max:80'],
+            'ecole_groupe_id' => [
+                'required',
+                'integer',
+                Rule::exists('ecole_groupes', 'id')->where(fn ($query) => $query
+                    ->where('departement_id', $departementId)
+                    ->where('annee_universitaire', AnneeUniversitaire::selected())),
+            ],
+            'nom_utilisateur' => [
+                'nullable',
+                'string',
+                'max:80',
+                Rule::unique('ecole_etudiants', 'nom_utilisateur')->where(fn ($query) => $query->where('departement_id', $departementId))->ignore($etudiant->id),
+            ],
+            'date_naissance' => ['nullable', 'date', 'before_or_equal:today'],
+            'site_web' => ['nullable', 'string', 'max:255'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'code_verrouillage' => ['nullable', 'string', 'max:40'],
+            'matricule' => [
+                'nullable',
+                'string',
+                'max:40',
+                Rule::unique('ecole_etudiants', 'matricule')->where(fn ($query) => $query->where('departement_id', $departementId))->ignore($etudiant->id),
+            ],
+            'domicile' => ['nullable', 'string', 'max:255'],
+        ], [
+            'prenom.required' => 'Le prénom est obligatoire.',
+            'nom.required' => 'Le nom est obligatoire.',
+            'ecole_groupe_id.required' => 'Choisissez un groupe.',
+            'ecole_groupe_id.exists' => 'Choisissez un groupe.',
+            'email.email' => 'Le courriel n’est pas valide.',
+            'date_naissance.before_or_equal' => 'La date de naissance ne peut pas être dans le futur.',
+            'nom_utilisateur.unique' => 'Ce nom d’utilisateur est déjà utilisé.',
+            'matricule.unique' => 'Ce matricule est déjà utilisé.',
+        ]);
+
+        $etudiant->update([
+            'prenom' => trim($data['prenom']),
+            'nom' => trim($data['nom']),
+            'nom_officiel' => $this->vide($data['nom_officiel'] ?? null),
+            'nom_caracteres' => $this->vide($data['nom_caracteres'] ?? null),
+            'palier' => $this->vide($data['palier'] ?? null),
+            'ecole_groupe_id' => $data['ecole_groupe_id'],
+            'nom_utilisateur' => $this->vide($data['nom_utilisateur'] ?? null),
+            'date_naissance' => $data['date_naissance'] ?? null,
+            'site_web' => $this->vide($data['site_web'] ?? null),
+            'email' => $this->vide($data['email'] ?? null),
+            'code_verrouillage' => $this->vide($data['code_verrouillage'] ?? null),
+            'matricule' => $this->vide($data['matricule'] ?? null),
+            'domicile' => $this->vide($data['domicile'] ?? null),
+        ]);
+
+        return redirect()->route('ecole.etudiants.show', $etudiant)->with('success', 'Fiche élève mise à jour.');
     }
 
     public function classes(Request $request)
@@ -647,5 +755,19 @@ class EcoleController extends Controller
     private function compte(int $nombre, string $singulier, string $pluriel): string
     {
         return $nombre.' '.($nombre > 1 ? $pluriel : $singulier);
+    }
+
+    private function refuserHorsEquipe(Request $request): void
+    {
+        if (! $request->user()->peutModifierFicheEleve()) {
+            abort(403, 'Seule l’équipe pédagogique peut modifier cette fiche.');
+        }
+    }
+
+    private function vide(?string $value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 }

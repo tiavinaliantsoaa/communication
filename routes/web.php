@@ -90,6 +90,9 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         Route::get('/etudiants/crm', [EcoleController::class, 'searchCrm'])->name('etudiants.crm');
         Route::get('/etudiants', [EcoleController::class, 'etudiants'])->name('etudiants.index');
         Route::post('/etudiants', [EcoleController::class, 'storeEtudiant'])->name('etudiants.store');
+        Route::get('/etudiants/{etudiant}', [EcoleController::class, 'showEtudiant'])->name('etudiants.show');
+        Route::get('/etudiants/{etudiant}/modifier', [EcoleController::class, 'editEtudiant'])->name('etudiants.edit');
+        Route::put('/etudiants/{etudiant}', [EcoleController::class, 'updateEtudiant'])->name('etudiants.update');
         Route::delete('/etudiants/{etudiant}', [EcoleController::class, 'destroyEtudiant'])->name('etudiants.destroy');
         Route::get('/classes', [EcoleController::class, 'classes'])->name('classes.index');
         Route::get('/groupes', [EcoleController::class, 'groupes'])->name('groupes.index');

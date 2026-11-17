@@ -153,6 +153,7 @@ class Permission extends Model
             ],
             'Gestion École' => [
                 'ecole.view' => 'Voir',
+                'ecole.update' => 'Modifier les fiches élèves',
             ],
             'Utilisateurs' => [
                 'users.view' => 'Voir',

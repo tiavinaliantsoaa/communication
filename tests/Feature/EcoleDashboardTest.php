@@ -6,6 +6,9 @@ use App\Models\Departement;
 use App\Models\EcoleAssiduite;
 use App\Models\EcoleEnseignant;
 use App\Models\EcoleGroupe;
+use App\Models\EcoleSeance;
+use App\Models\Permission;
+use App\Services\AccessService;
 use App\Models\EcoleMatiere;
 use App\Models\User;
 use App\Support\EcoleTimetable;
@@ -218,5 +221,103 @@ class EcoleDashboardTest extends TestCase
         $this->assertFalse(EcoleAssiduite::query()
             ->where('ecole_etudiant_id', $b2->etudiants()->where('prenom', 'Mialy')->firstOrFail()->id)
             ->exists());
+    }
+
+    public function test_student_profile_is_visible_and_only_the_pedagogical_team_can_edit_it(): void
+    {
+        $pedagogique = Departement::query()->where('slug', 'pedagogique')->firstOrFail();
+        $communication = Departement::query()->where('slug', 'communication')->firstOrFail();
+        $admin = User::factory()->create([
+            'role' => 'super_admin',
+            'departement_id' => $pedagogique->id,
+            'password' => 'password',
+        ]);
+        $viewer = User::factory()->create([
+            'role' => 'responsable_communication',
+            'departement_id' => $pedagogique->id,
+            'password' => 'password',
+        ]);
+        $editor = User::factory()->create([
+            'role' => 'responsable_communication',
+            'departement_id' => $pedagogique->id,
+            'password' => 'password',
+        ]);
+        $commercial = User::factory()->create([
+            'role' => 'responsable_communication',
+            'departement_id' => $communication->id,
+            'password' => 'password',
+        ]);
+        $viewId = Permission::query()->where('key', 'ecole.view')->value('id');
+        $viewer->permissions()->sync([$viewId]);
+        $commercial->permissions()->sync([$viewId]);
+        AccessService::grantPedagogiqueMenus($editor);
+
+        $this->actingAs($admin)->withSession(['departement_actif_id' => $pedagogique->id]);
+        $this->post(route('ecole.groupes.store'), ['nom' => 'B1 G1'])->assertRedirect();
+        $groupe = EcoleGroupe::query()->where('nom', 'B1 G1')->firstOrFail();
+        $this->post(route('ecole.etudiants.store'), [
+            'prenom' => 'Claire',
+            'nom' => 'Andiva',
+            'ecole_groupe_id' => $groupe->id,
+        ])->assertRedirect();
+        $etudiant = $groupe->etudiants()->where('prenom', 'Claire')->firstOrFail();
+        $etudiant->update(['date_naissance' => '2005-12-17']);
+
+        EcoleSeance::create([
+            'ecole_groupe_id' => $groupe->id,
+            'date' => EcoleTimetable::monday()->toDateString(),
+            'jour' => 1,
+            'heure_debut' => '08:00',
+            'heure_fin' => '09:00',
+            'matiere' => 'COM & PLAN',
+            'professeur' => 'Hery Rakoto',
+            'salle' => 'Grasse',
+        ]);
+
+        $this->get(route('ecole.groupes.show', $groupe))
+            ->assertOk()
+            ->assertSee(route('ecole.etudiants.show', $etudiant), false);
+
+        $this->actingAs($viewer)
+            ->get(route('ecole.etudiants.show', $etudiant))
+            ->assertOk()
+            ->assertSee('Claire Andiva')
+            ->assertSee('Information générale')
+            ->assertSee('20 années, 11 mois')
+            ->assertSee('COM & PLAN')
+            ->assertDontSee(route('ecole.etudiants.edit', $etudiant), false);
+
+        $this->actingAs($viewer)->put(route('ecole.etudiants.update', $etudiant), [
+            'prenom' => 'Claire',
+            'nom' => 'Andiva',
+            'ecole_groupe_id' => $groupe->id,
+            'email' => 'claire.andiva@escm.mg',
+        ])->assertForbidden();
+
+        $this->actingAs($commercial)
+            ->get(route('ecole.etudiants.show', $etudiant))
+            ->assertNotFound();
+
+        $this->actingAs($editor)->put(route('ecole.etudiants.update', $etudiant), [
+            'prenom' => 'Claire',
+            'nom' => 'Andiva',
+            'nom_officiel' => 'ANDIVA Claire Mariame',
+            'palier' => 'Licence 1',
+            'ecole_groupe_id' => $groupe->id,
+            'email' => 'claire.andiva@escm.mg',
+            'matricule' => 'E26-011',
+            'domicile' => 'Antananarivo',
+        ])->assertRedirect(route('ecole.etudiants.show', $etudiant));
+
+        $this->actingAs($editor)
+            ->get(route('ecole.etudiants.show', $etudiant))
+            ->assertOk()
+            ->assertSee('Modifier')
+            ->assertSee('ANDIVA Claire Mariame')
+            ->assertSee('Licence 1')
+            ->assertSee('claire.andiva@escm.mg')
+            ->assertSee('E26-011')
+            ->assertSee('Antananarivo')
+            ->assertSee('2026-2027: B1 G1');
     }
 }

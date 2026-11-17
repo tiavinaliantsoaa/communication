@@ -37,7 +37,7 @@
         @else
             <div class="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 @foreach($etudiants as $etudiant)
-                    <div>
+                    <a href="{{ route('ecole.etudiants.show', $etudiant) }}" class="block rounded-lg hover:bg-white" aria-label="Voir le profil de {{ $etudiant->nom_complet }}">
                         <div class="mx-auto flex h-20 w-16 items-end justify-center overflow-hidden rounded border border-slate-200 bg-slate-200">
                             <svg viewBox="0 0 64 80" class="h-full w-full text-white" fill="currentColor" aria-hidden="true">
                                 <circle cx="32" cy="22" r="12"/>
@@ -45,7 +45,7 @@
                             </svg>
                         </div>
                         <p class="mt-2 text-center text-xs font-semibold leading-4 text-red-600">{{ $etudiant->nom_complet }}</p>
-                    </div>
+                    </a>
                 @endforeach
             </div>
         @endif
