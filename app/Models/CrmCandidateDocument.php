@@ -57,6 +57,38 @@ class CrmCandidateDocument extends Model
         return filled($this->external_url) && ! filled($this->path);
     }
 
+    public function fileLabel(): string
+    {
+        return $this->original_name ?: 'Document';
+    }
+
+    public function previewKind(): string
+    {
+        $name = strtolower((string) ($this->original_name ?: $this->path ?: $this->external_url));
+        $mime = strtolower((string) $this->mime);
+
+        if (preg_match('/\.(jpe?g|png|gif|webp)(\?.*)?$/', $name) || str_starts_with($mime, 'image/')) {
+            return 'image';
+        }
+        if (preg_match('/\.pdf(\?.*)?$/', $name) || $mime === 'application/pdf') {
+            return 'pdf';
+        }
+        if ($this->isExternal()) {
+            return 'link';
+        }
+
+        return 'file';
+    }
+
+    public function previewUrl(): ?string
+    {
+        if (filled($this->path)) {
+            return route('crm.candidats.documents.preview', [$this->crm_candidate_id, $this->id]);
+        }
+
+        return filled($this->external_url) ? $this->external_url : null;
+    }
+
     protected static function booted(): void
     {
         static::deleting(function (self $doc) {

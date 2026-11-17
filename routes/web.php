@@ -210,6 +210,7 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
             ->name('candidats.store');
         Route::get('/candidats/{candidat}', [CrmCandidateController::class, 'show'])->name('candidats.show');
         Route::get('/candidats/{candidat}/documents/{document}/fichier', [CrmCandidateController::class, 'downloadDocument'])->name('candidats.documents.download');
+        Route::get('/candidats/{candidat}/documents/{document}/apercu', [CrmCandidateController::class, 'previewDocument'])->name('candidats.documents.preview');
         Route::get('/candidats/{candidat}/edit', [CrmCandidateController::class, 'edit'])
             ->middleware('permission:crm.update')
             ->name('candidats.edit');

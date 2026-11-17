@@ -163,6 +163,7 @@
 @endif
 
 @if($tab === 'documents')
+<div x-data="crmDocPreview()">
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
     <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between gap-3">
         <h3 class="text-sm font-semibold text-slate-800">Documents du dossier</h3>
@@ -183,27 +184,38 @@
                             @endif
                         </div>
                         @forelse($docs as $doc)
-                            <div class="mt-2 flex flex-wrap items-center justify-between gap-3">
-                                <div class="min-w-0">
-                                    @if($doc->url)
-                                        <a href="{{ $doc->url }}" target="_blank" rel="noopener" class="inline-block text-sm text-escm-primary hover:underline truncate max-w-full">{{ $doc->original_name ?: 'Voir le fichier' }}</a>
-                                    @else
-                                        <span class="text-sm text-slate-600">{{ $doc->original_name ?: 'Fichier' }}</span>
+                            <div class="mt-2 flex items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2">
+                                <span class="text-sm text-slate-800 truncate" title="{{ $doc->fileLabel() }}">{{ $doc->fileLabel() }}</span>
+                                <div class="flex items-center gap-1 shrink-0">
+                                    @if($doc->previewUrl())
+                                        <button type="button" class="p-1.5 rounded text-slate-400 hover:text-escm-primary hover:bg-blue-50" title="Aperçu"
+                                            @click="openDocPreview({{ \Illuminate\Support\Js::from([
+                                                'nom' => $doc->fileLabel(),
+                                                'url' => $doc->previewUrl(),
+                                                'download_url' => $doc->url,
+                                                'kind' => $doc->previewKind(),
+                                                'mime' => $doc->mime,
+                                            ]) }})">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                        </button>
+                                        <a href="{{ $doc->url }}" class="p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100" title="Télécharger">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                                        </a>
                                     @endif
-                                    <p class="text-[11px] text-slate-400 mt-0.5">
-                                        Déposé le {{ $doc->updated_at?->format('d/m/Y H:i') }}
-                                        @if($doc->isExternal())
-                                            · Lien Glide
-                                        @endif
-                                    </p>
+                                    @if(auth()->user()->canAccess('crm.update'))
+                                    <form method="POST" action="{{ route('crm.candidats.documents.destroy', [$candidate, $doc]) }}" onsubmit="return confirm('Supprimer ce document ?')">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" class="text-slate-400 hover:text-red-600 text-sm px-1">Suppr.</button>
+                                    </form>
+                                    @endif
                                 </div>
-                                @if(auth()->user()->canAccess('crm.update'))
-                                <form method="POST" action="{{ route('crm.candidats.documents.destroy', [$candidate, $doc]) }}" onsubmit="return confirm('Supprimer ce document ?')">
-                                    @csrf @method('DELETE')
-                                    <button type="submit" class="text-xs font-semibold text-red-600 hover:underline">Supprimer</button>
-                                </form>
-                                @endif
                             </div>
+                            <p class="text-[11px] text-slate-400">
+                                Déposé le {{ $doc->updated_at?->format('d/m/Y H:i') }}
+                                @if($doc->isExternal())
+                                    · Lien Glide
+                                @endif
+                            </p>
                         @empty
                             <p class="mt-1 text-sm text-slate-400">Non fourni</p>
                         @endforelse
@@ -237,6 +249,158 @@
     </form>
     @endif
 </div>
+
+<template x-teleport="body">
+    <div
+        x-show="docPreview.open"
+        x-cloak
+        class="fixed inset-0 flex flex-col"
+        style="z-index: 99999;"
+        @keydown.escape.window="if (docPreview.open) closeDocPreview()"
+    >
+        <div class="absolute inset-0 bg-black/80" @click="closeDocPreview()"></div>
+        <div class="relative z-10 flex flex-col h-full max-h-full pointer-events-none">
+            <div class="pointer-events-auto flex items-center gap-3 px-4 py-3 bg-slate-950 border-b border-white/15 shrink-0 shadow-lg">
+                <p class="min-w-0 flex-1 text-sm font-semibold text-white truncate" x-text="docPreview.nom || 'Document'"></p>
+                <a
+                    x-show="docPreview.download_url"
+                    :href="docPreview.download_url"
+                    class="inline-flex items-center gap-1.5 shrink-0 rounded-lg bg-sky-500 hover:bg-sky-400 px-3.5 py-2 text-xs font-bold text-white shadow"
+                    @click.stop
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Télécharger
+                </a>
+                <button type="button" @click="closeDocPreview()" class="shrink-0 p-2 rounded-lg text-white hover:bg-white/10" title="Fermer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="pointer-events-auto relative flex-1 min-h-0 flex items-center justify-center p-4 sm:p-6" @click.self="closeDocPreview()">
+                <p x-show="docPreview.loading" class="text-sm text-white">Chargement de l’aperçu…</p>
+                <p x-show="!docPreview.loading && docPreview.error" class="text-sm text-white text-center max-w-sm" x-text="docPreview.error"></p>
+                <img
+                    x-ref="docImage"
+                    x-show="!docPreview.loading && !docPreview.error && docPreview.kind === 'image'"
+                    alt=""
+                    class="rounded-lg shadow-2xl object-contain bg-white"
+                    style="max-height: 70vh; max-width: min(880px, 92vw);"
+                    @click.stop
+                >
+                <div
+                    x-ref="pdfPages"
+                    x-show="!docPreview.loading && !docPreview.error && docPreview.kind === 'pdf'"
+                    class="w-full max-w-4xl flex flex-col items-center gap-3"
+                    style="overflow: auto; max-height: 70vh;"
+                    @click.stop
+                ></div>
+                <template x-if="docPreview.open && docPreview.kind === 'link'">
+                    <iframe
+                        :src="docPreview.url"
+                        class="w-full max-w-4xl rounded-lg bg-white shadow-2xl"
+                        style="height: 70vh;"
+                        @click.stop
+                    ></iframe>
+                </template>
+                <p x-show="docPreview.open && docPreview.kind === 'file'" class="text-sm text-white/80 text-center max-w-sm">
+                    Aperçu indisponible pour ce type de fichier. Utilisez Télécharger.
+                </p>
+            </div>
+        </div>
+    </div>
+</template>
+</div>
+@push('scripts')
+<script>
+function crmDocPreview() {
+    return {
+        docPreview: { open: false, nom: '', url: '', download_url: '', kind: 'file', mime: '', loading: false, error: '', objectUrl: '' },
+        openDocPreview(payload) {
+            this.closeDocPreview();
+            this.docPreview = {
+                open: true,
+                nom: payload.nom || 'Document',
+                url: payload.url || '',
+                download_url: payload.download_url || payload.url || '',
+                kind: payload.kind || 'file',
+                mime: payload.mime || '',
+                loading: payload.kind === 'image' || payload.kind === 'pdf',
+                error: '',
+                objectUrl: '',
+            };
+            if (payload.kind === 'image' || payload.kind === 'pdf') {
+                this.$nextTick(() => this.loadDocPreview(payload));
+            }
+        },
+        async loadDocPreview(payload) {
+            try {
+                const res = await fetch(payload.url, {
+                    credentials: 'same-origin',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/plain' },
+                });
+                if (!res.ok) throw new Error('http');
+                const bytes = this.decodePreview(await res.text());
+                if (payload.kind === 'image') {
+                    const blob = new Blob([bytes], { type: payload.mime || 'image/jpeg' });
+                    const url = URL.createObjectURL(blob);
+                    this.docPreview.objectUrl = url;
+                    this.$refs.docImage.src = url;
+                } else {
+                    await this.renderPdf(bytes);
+                }
+            } catch (e) {
+                this.docPreview.error = 'Aperçu indisponible. Utilisez Télécharger.';
+            } finally {
+                this.docPreview.loading = false;
+            }
+        },
+        decodePreview(text) {
+            const binary = atob(text.replace(/\s/g, ''));
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            return bytes;
+        },
+        async renderPdf(buffer) {
+            await this.loadPdfJs();
+            const pdf = await window.pdfjsLib.getDocument({ data: buffer }).promise;
+            const container = this.$refs.pdfPages;
+            container.innerHTML = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 1.35 });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                canvas.className = 'bg-white rounded-lg shadow-2xl';
+                canvas.style.maxWidth = '100%';
+                canvas.style.height = 'auto';
+                container.appendChild(canvas);
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+                if (i === 1) this.docPreview.loading = false;
+            }
+        },
+        loadPdfJs() {
+            if (window.pdfjsLib) return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                script.onload = () => {
+                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    resolve();
+                };
+                script.onerror = () => reject(new Error('pdfjs'));
+                document.head.appendChild(script);
+            });
+        },
+        closeDocPreview() {
+            if (this.docPreview.objectUrl) URL.revokeObjectURL(this.docPreview.objectUrl);
+            if (this.$refs.docImage) this.$refs.docImage.removeAttribute('src');
+            if (this.$refs.pdfPages) this.$refs.pdfPages.innerHTML = '';
+            this.docPreview = { open: false, nom: '', url: '', download_url: '', kind: 'file', mime: '', loading: false, error: '', objectUrl: '' };
+        },
+    };
+}
+</script>
+@endpush
 @endif
 
 @if($tab === 'notes')

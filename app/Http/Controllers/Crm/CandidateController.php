@@ -279,6 +279,14 @@ class CandidateController extends Controller
         return PrivateFile::download($document->path, $document->original_name ?: 'document');
     }
 
+    public function previewDocument(CrmCandidate $candidat, CrmCandidateDocument $document)
+    {
+        abort_unless((int) $document->crm_candidate_id === (int) $candidat->id, 404);
+        abort_unless(filled($document->path), 404);
+
+        return PrivateFile::raw($document->path);
+    }
+
     public function destroyDocument(CrmCandidate $candidat, CrmCandidateDocument $document)
     {
         abort_unless((int) $document->crm_candidate_id === (int) $candidat->id, 404);
