@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Crm;
 
 use App\Http\Controllers\Controller;
 use App\Services\ActivityLogger;
+use App\Services\Crm\CrmCandidateDocumentImporter;
 use App\Services\Crm\GlideImporter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -87,6 +88,46 @@ class ImportController extends Controller
             : 'Import Glide terminé.';
 
         return back()->with('success', $message)->with('import_report', $report);
+    }
+
+    public function storeDocuments(Request $request, CrmCandidateDocumentImporter $importer)
+    {
+        $request->validate([
+            'documents_file' => ['required', 'file', 'max:20480'],
+        ], [
+            'documents_file.required' => 'Ajoutez un fichier Excel ou CSV de documents.',
+            'documents_file.max' => 'Le fichier documents ne doit pas dépasser 20 Mo.',
+        ]);
+
+        $file = $request->file('documents_file');
+        $extension = strtolower((string) $file?->getClientOriginalExtension());
+        if (! in_array($extension, ['csv', 'txt', 'xlsx'], true)) {
+            return back()->withErrors([
+                'documents_file' => 'Le fichier doit être un Excel (.xlsx) ou un CSV.',
+            ]);
+        }
+
+        $stored = $file->store('crm-imports');
+        try {
+            $report = $importer->import(Storage::path($stored), $request->user());
+        } finally {
+            Storage::delete($stored);
+        }
+
+        if (($report['documents_created'] ?? 0) > 0) {
+            app(ActivityLogger::class)->log(
+                'crm',
+                'Import documents : '.$report['documents_created'].' document(s) enregistré(s) sur le serveur.',
+                $request->user(),
+                'create',
+                'CRM',
+                route('crm.settings')
+            );
+        }
+
+        return back()
+            ->with('success', 'Import des documents terminé.')
+            ->with('document_import_report', $report);
     }
 
     public function destroyAll(Request $request, GlideImporter $importer)

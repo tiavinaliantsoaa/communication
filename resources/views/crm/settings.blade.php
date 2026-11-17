@@ -100,6 +100,52 @@
         @endif
     </div>
 
+    {{-- Import des documents --}}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="px-5 py-4 border-b border-slate-100">
+            <h3 class="text-sm font-semibold text-slate-900">Importer des documents</h3>
+            <p class="text-xs text-slate-500 mt-0.5">Importer un fichier excel ou csv - le fichier doit avoir une colonne ID, le type du document et URL du.</p>
+        </div>
+
+        @if(session('document_import_report'))
+            @php $docReport = session('document_import_report'); @endphp
+            <div class="mx-5 mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+                <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1">
+                    <li>Documents enregistrés sur le serveur : <strong>{{ $docReport['documents_created'] ?? 0 }}</strong></li>
+                    <li>Documents déjà sur le serveur : <strong>{{ $docReport['documents_already_local'] ?? 0 }}</strong></li>
+                    <li>Documents sans candidat : <strong>{{ $docReport['documents_skipped_unmatched'] ?? 0 }}</strong></li>
+                    <li>Lignes invalides : <strong>{{ $docReport['documents_skipped_invalid'] ?? 0 }}</strong></li>
+                    <li>Téléchargements échoués : <strong>{{ $docReport['documents_skipped_download'] ?? 0 }}</strong></li>
+                    <li>Types de documents ajoutés : <strong>{{ $docReport['document_types_created'] ?? 0 }}</strong></li>
+                </ul>
+                @if(!empty($docReport['errors']))
+                    <ul class="mt-2 list-disc list-inside text-xs text-red-700 space-y-0.5">
+                        @foreach($docReport['errors'] as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
+        @endif
+
+        @if(auth()->user()->canAccess('crm.update'))
+        <form method="POST" action="{{ route('crm.settings.documents.import') }}" enctype="multipart/form-data" class="px-5 py-4 space-y-4">
+            @csrf
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">CSV Documents</label>
+                <input type="file" name="documents_file" accept=".csv,.txt,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                       class="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-escm-primary/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-escm-primary hover:file:bg-escm-primary/20">
+                @error('documents_file')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                <p class="mt-2 text-[11px] text-slate-500">Colonnes attendues : Row ID, Type, URL, Applicants Unique/ID, Uploaded_at. Applicants Unique/ID est l’ID du candidat dans l’application. Le fichier est téléchargé et enregistré sur le serveur.</p>
+            </div>
+            <button type="submit" class="inline-flex items-center bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2 rounded-lg"
+                    onclick="return confirm('Lancer l’import des documents maintenant ? Les fichiers seront téléchargés sur le serveur.')">IMPORTER</button>
+        </form>
+        @else
+        <div class="px-5 py-6 text-sm text-slate-500">Vous n’avez pas le droit d’importer des documents.</div>
+        @endif
+    </div>
+
     {{-- Purge CRM --}}
     <div class="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
         <div class="px-5 py-4 border-b border-red-100 bg-red-50/60">

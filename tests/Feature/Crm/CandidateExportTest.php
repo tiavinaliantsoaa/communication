@@ -29,7 +29,9 @@ class CandidateExportTest extends TestCase
             ->assertOk()
             ->assertSee('Colonnes du fichier Excel')
             ->assertSee('Année / Intake')
-            ->assertSee('Exporter en Excel');
+            ->assertSee('Exporter en Excel')
+            ->assertSee('Exporter en CSV')
+            ->assertSee('ID');
     }
 
     public function test_export_requires_at_least_one_column(): void
@@ -90,6 +92,49 @@ class CandidateExportTest extends TestCase
         $this->assertStringContainsString('0341111111', $sheet);
         $this->assertStringNotContainsString('Marie Rabe', $sheet);
         $this->assertStringNotContainsString('jean@test.com', $sheet);
+    }
+
+    public function test_export_puts_the_candidate_id_in_the_first_column_and_can_download_csv(): void
+    {
+        $user = $this->makeUser();
+        $candidate = CrmCandidate::create([
+            'prenom' => 'Jean',
+            'nom' => 'Rakoto',
+            'telephone' => '0341111111',
+            'email' => 'jean@test.com',
+            'programme' => 'B1',
+            'annee_academique' => 'Fall 2026',
+            'statut' => 'intention_deposee',
+            'advisor_id' => $user->id,
+            'abandon' => false,
+        ]);
+
+        $xlsx = $this->actingAs($user)
+            ->post(route('crm.export.download'), [
+                'population' => 'actifs',
+                'columns' => ['telephone', 'id', 'email'],
+                'format' => 'xlsx',
+            ]);
+
+        $xlsx->assertOk();
+        $sheet = $this->sheetXml($xlsx->streamedContent());
+        $this->assertStringContainsString('<c r="A1" t="s"><v>0</v></c>', $sheet);
+        $this->assertStringContainsString('<si><t xml:space="preserve">ID</t></si>', $sheet);
+        $this->assertStringContainsString((string) $candidate->id, $sheet);
+
+        $csv = $this->actingAs($user)
+            ->post(route('crm.export.download'), [
+                'population' => 'actifs',
+                'columns' => ['telephone', 'id'],
+                'format' => 'csv',
+            ]);
+
+        $csv->assertOk();
+        $csv->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $content = $csv->streamedContent();
+        $this->assertStringStartsWith("\xEF\xBB\xBF", $content);
+        $this->assertStringContainsString('ID;Téléphone', $content);
+        $this->assertStringContainsString($candidate->id.';0341111111', $content);
     }
 
     private function makeUser(): User

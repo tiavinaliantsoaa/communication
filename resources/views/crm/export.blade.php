@@ -149,10 +149,19 @@
             candidat{{ $count > 1 ? 's' : '' }} correspondent actuellement à ces filtres.
             <button type="submit" formmethod="GET" formaction="{{ route('crm.export') }}" class="font-medium text-escm-primary hover:underline">Actualiser le nombre</button>
         </p>
-        <button type="submit" class="inline-flex items-center justify-center gap-2 bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-5 py-2.5 rounded-lg">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            Exporter en Excel
-        </button>
+        <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2">
+                Exporter en
+            </label>
+            <button type="submit" name="format" value="xlsx" class="inline-flex items-center justify-center gap-2 bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-5 py-2.5 rounded-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                Excel
+            </button>
+            <button type="submit" name="format" value="csv" class="inline-flex items-center justify-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-medium px-5 py-2.5 rounded-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                CSV
+            </button>
+        </div>
     </div>
 </form>
 @endsection

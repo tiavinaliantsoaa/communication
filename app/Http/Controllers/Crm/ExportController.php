@@ -57,8 +57,11 @@ class ExportController extends Controller
                 ->with('error', 'Aucun candidat ne correspond aux filtres choisis.');
         }
 
-        $binary = $exporter->xlsx($candidates, $filters);
-        $filename = 'candidats-'.now()->format('Y-m-d').'.xlsx';
+        $format = $request->input('format') === 'csv' ? 'csv' : 'xlsx';
+        $binary = $format === 'csv'
+            ? $exporter->csv($candidates, $filters)
+            : $exporter->xlsx($candidates, $filters);
+        $filename = 'candidats-'.now()->format('Y-m-d').'.'.$format;
 
         app(ActivityLogger::class)->log(
             'crm',
@@ -72,7 +75,9 @@ class ExportController extends Controller
         return response()->streamDownload(function () use ($binary) {
             echo $binary;
         }, $filename, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Type' => $format === 'csv'
+                ? 'text/csv; charset=UTF-8'
+                : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Cache-Control' => 'no-store, no-cache, must-revalidate',
         ]);
     }

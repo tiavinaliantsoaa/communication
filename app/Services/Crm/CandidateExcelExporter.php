@@ -17,6 +17,7 @@ class CandidateExcelExporter
     ];
 
     public const COLUMNS = [
+        'id' => 'ID',
         'full_name' => 'Nom complet',
         'prenom' => 'Prénom',
         'nom' => 'Nom',
@@ -46,7 +47,7 @@ class CandidateExcelExporter
     ];
 
     public const COLUMN_GROUPS = [
-        'Identité et contact' => ['full_name', 'prenom', 'nom', 'telephone', 'email', 'genre', 'date_naissance', 'adresse', 'contact_parent_1', 'contact_parent_2'],
+        'Identité et contact' => ['id', 'full_name', 'prenom', 'nom', 'telephone', 'email', 'genre', 'date_naissance', 'adresse', 'contact_parent_1', 'contact_parent_2'],
         'Scolarité' => ['programme', 'annee_academique', 'niveau_etudes', 'etablissement_origine'],
         'CRM' => ['statut', 'advisor', 'source', 'notes', 'abandon', 'abandon_raison', 'last_interaction_at'],
     ];
@@ -109,6 +110,9 @@ class CandidateExcelExporter
     public function table(iterable $candidates, array $filters): array
     {
         $columns = $filters['columns'];
+        if (in_array('id', $columns, true)) {
+            $columns = array_merge(['id'], array_values(array_diff($columns, ['id'])));
+        }
         $headers = array_map(fn (string $key) => self::COLUMNS[$key], $columns);
         $rows = [];
 
@@ -131,6 +135,25 @@ class CandidateExcelExporter
         $table = $this->table($candidates, $filters);
 
         return $this->xlsx->build($table['headers'], $table['rows']);
+    }
+
+    /**
+     * @param  array{columns: list<string>}  $filters
+     */
+    public function csv(iterable $candidates, array $filters): string
+    {
+        $table = $this->table($candidates, $filters);
+        $handle = fopen('php://temp', 'r+');
+        fwrite($handle, "\xEF\xBB\xBF");
+        fputcsv($handle, $table['headers'], ';');
+        foreach ($table['rows'] as $row) {
+            fputcsv($handle, $row, ';');
+        }
+        rewind($handle);
+        $csv = stream_get_contents($handle);
+        fclose($handle);
+
+        return $csv === false ? '' : $csv;
     }
 
     /**
@@ -170,6 +193,7 @@ class CandidateExcelExporter
     private function cellValue(CrmCandidate $candidate, string $key): string
     {
         return match ($key) {
+            'id' => (string) $candidate->id,
             'full_name' => $candidate->full_name,
             'prenom' => (string) $candidate->prenom,
             'nom' => (string) $candidate->nom,

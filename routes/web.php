@@ -192,6 +192,9 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         Route::post('/parametres/import', [CrmImportController::class, 'store'])
             ->middleware('permission:crm.update')
             ->name('settings.import');
+        Route::post('/parametres/import-documents', [CrmImportController::class, 'storeDocuments'])
+            ->middleware('permission:crm.update')
+            ->name('settings.documents.import');
         Route::delete('/parametres/donnees', [CrmImportController::class, 'destroyAll'])
             ->middleware('permission:crm.update')
             ->name('settings.destroy-all');
