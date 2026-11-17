@@ -120,6 +120,25 @@ class User extends Authenticatable
         return $this->role === 'super_admin';
     }
 
+    public function estEquipePedagogique(): bool
+    {
+        $departementId = $this->currentDepartementId();
+        if (! $departementId) {
+            return false;
+        }
+
+        if ((int) $this->departement_id === $departementId && $this->relationLoaded('departement') && $this->departement) {
+            return $this->departement->slug === 'pedagogique';
+        }
+
+        return Departement::query()->whereKey($departementId)->value('slug') === 'pedagogique';
+    }
+
+    public function peutModifierFicheEleve(): bool
+    {
+        return $this->estEquipePedagogique() && $this->canAccess('ecole.update');
+    }
+
     public function canValidateEditorial(): bool
     {
         return $this->canValidateCalendar(\App\Models\EditorialEvent::SERVICE_EDITORIAL);

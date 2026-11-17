@@ -120,11 +120,14 @@ class AccessService
             return;
         }
 
-        $permissionId = Permission::query()->where('key', 'ecole.view')->value('id');
-        if (! $permissionId) {
+        $ids = Permission::query()
+            ->whereIn('key', ['ecole.view', 'ecole.update'])
+            ->pluck('id')
+            ->all();
+        if ($ids === []) {
             return;
         }
 
-        $user->permissions()->syncWithoutDetaching([$permissionId]);
+        $user->permissions()->syncWithoutDetaching($ids);
     }
 }

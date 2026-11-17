@@ -90,10 +90,16 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         Route::get('/etudiants/crm', [EcoleController::class, 'searchCrm'])->name('etudiants.crm');
         Route::get('/etudiants', [EcoleController::class, 'etudiants'])->name('etudiants.index');
         Route::post('/etudiants', [EcoleController::class, 'storeEtudiant'])->name('etudiants.store');
+        Route::get('/etudiants/{etudiant}', [EcoleController::class, 'showEtudiant'])->name('etudiants.show');
+        Route::get('/etudiants/{etudiant}/modifier', [EcoleController::class, 'editEtudiant'])->name('etudiants.edit');
+        Route::put('/etudiants/{etudiant}', [EcoleController::class, 'updateEtudiant'])->name('etudiants.update');
         Route::delete('/etudiants/{etudiant}', [EcoleController::class, 'destroyEtudiant'])->name('etudiants.destroy');
         Route::get('/classes', [EcoleController::class, 'classes'])->name('classes.index');
         Route::get('/groupes', [EcoleController::class, 'groupes'])->name('groupes.index');
         Route::post('/groupes', [EcoleController::class, 'storeGroupe'])->name('groupes.store');
+        Route::get('/groupes/{groupe}', [EcoleController::class, 'showGroupe'])->name('groupes.show');
+        Route::get('/groupes/{groupe}/export', [EcoleController::class, 'exportGroupe'])->name('groupes.export');
+        Route::post('/groupes/{groupe}/presence', [EcoleController::class, 'storePresenceGroupe'])->name('groupes.presence');
         Route::delete('/groupes/{groupe}', [EcoleController::class, 'destroyGroupe'])->name('groupes.destroy');
         Route::get('/matieres', [EcoleController::class, 'matieres'])->name('matieres.index');
         Route::post('/matieres', [EcoleController::class, 'storeMatiere'])->name('matieres.store');
