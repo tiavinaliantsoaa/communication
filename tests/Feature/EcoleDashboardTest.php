@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Departement;
+use App\Models\EcoleAssiduite;
 use App\Models\EcoleEnseignant;
 use App\Models\EcoleGroupe;
 use App\Models\EcoleMatiere;
@@ -158,5 +159,64 @@ class EcoleDashboardTest extends TestCase
             ->assertDontSee('COM & PLAN')
             ->assertDontSee('Hery Rakoto')
             ->assertDontSee('Grasse');
+    }
+
+    public function test_group_eye_shows_only_that_group_students(): void
+    {
+        $pedagogique = Departement::query()->where('slug', 'pedagogique')->firstOrFail();
+        $admin = User::factory()->create([
+            'role' => 'super_admin',
+            'departement_id' => $pedagogique->id,
+            'password' => 'password',
+        ]);
+
+        $this->actingAs($admin)->withSession(['departement_actif_id' => $pedagogique->id]);
+
+        $this->post(route('ecole.groupes.store'), ['nom' => 'B1 G1'])->assertRedirect();
+        $this->post(route('ecole.groupes.store'), ['nom' => 'B2'])->assertRedirect();
+        $b1 = EcoleGroupe::query()->where('nom', 'B1 G1')->firstOrFail();
+        $b2 = EcoleGroupe::query()->where('nom', 'B2')->firstOrFail();
+
+        $this->post(route('ecole.etudiants.store'), [
+            'prenom' => 'Aina',
+            'nom' => 'Rabe',
+            'ecole_groupe_id' => $b1->id,
+        ])->assertRedirect();
+        $this->post(route('ecole.etudiants.store'), [
+            'prenom' => 'Mialy',
+            'nom' => 'Rakoto',
+            'ecole_groupe_id' => $b2->id,
+        ])->assertRedirect();
+
+        $this->get(route('ecole.groupes.index'))
+            ->assertOk()
+            ->assertSee('Voir les étudiants')
+            ->assertSee(route('ecole.groupes.show', $b1), false);
+
+        $this->get(route('ecole.groupes.show', $b1))
+            ->assertOk()
+            ->assertSee('Résultats 1 to 1 de 1')
+            ->assertSee('Aina Rabe')
+            ->assertSee('Enregistrer une présence')
+            ->assertSee('Exporter vers Excel')
+            ->assertDontSee('Mialy Rakoto');
+
+        $export = $this->get(route('ecole.groupes.export', $b1));
+        $export->assertOk();
+        $this->assertStringContainsString('Aina', $export->streamedContent());
+        $this->assertStringNotContainsString('Mialy', $export->streamedContent());
+
+        $this->post(route('ecole.groupes.presence', $b1))
+            ->assertRedirect(route('ecole.groupes.show', $b1));
+
+        $etudiant = $b1->etudiants()->where('prenom', 'Aina')->firstOrFail();
+        $this->assertTrue(EcoleAssiduite::query()
+            ->where('ecole_etudiant_id', $etudiant->id)
+            ->whereDate('date', now()->toDateString())
+            ->where('statut', 'present')
+            ->exists());
+        $this->assertFalse(EcoleAssiduite::query()
+            ->where('ecole_etudiant_id', $b2->etudiants()->where('prenom', 'Mialy')->firstOrFail()->id)
+            ->exists());
     }
 }

@@ -16,6 +16,7 @@ use App\Support\EcoleTimetable;
 use App\Support\Periode;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class EcoleController extends Controller
@@ -239,6 +240,61 @@ class EcoleController extends Controller
         $groupe->delete();
 
         return redirect()->route('ecole.groupes.index')->with('success', 'Groupe supprimé.');
+    }
+
+    public function showGroupe(Request $request, EcoleGroupe $groupe)
+    {
+        $this->bootPeriode($request);
+
+        return view('ecole.groupe-etudiants', [
+            'title' => $groupe->nom,
+            'subtitle' => 'Gestion Groupe',
+            'groupe' => $groupe,
+            'etudiants' => $groupe->etudiants()->orderBy('nom')->orderBy('prenom')->paginate(10)->withQueryString(),
+        ]);
+    }
+
+    public function exportGroupe(EcoleGroupe $groupe)
+    {
+        $etudiants = $groupe->etudiants()->orderBy('nom')->orderBy('prenom')->get();
+        $filename = 'etudiants-'.Str::slug($groupe->nom).'.csv';
+
+        return response()->streamDownload(function () use ($etudiants, $groupe) {
+            $out = fopen('php://output', 'w');
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, ['Prénom', 'Nom', 'Groupe'], ';');
+            foreach ($etudiants as $etudiant) {
+                fputcsv($out, [$etudiant->prenom, $etudiant->nom, $groupe->nom], ';');
+            }
+            fclose($out);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    public function storePresenceGroupe(EcoleGroupe $groupe)
+    {
+        $etudiants = $groupe->etudiants()->get();
+        if ($etudiants->isEmpty()) {
+            return back()->with('error', 'Ce groupe ne contient aucun étudiant.');
+        }
+
+        $date = now()->toDateString();
+        foreach ($etudiants as $etudiant) {
+            EcoleAssiduite::firstOrCreate(
+                [
+                    'ecole_etudiant_id' => $etudiant->id,
+                    'date' => $date,
+                ],
+                ['statut' => 'present']
+            );
+        }
+
+        $nombre = $etudiants->count();
+
+        return redirect()
+            ->route('ecole.groupes.show', $groupe)
+            ->with('success', 'Présence enregistrée pour '.$nombre.' '.($nombre > 1 ? 'étudiants' : 'étudiant').'.');
     }
 
     public function matieres(Request $request)
