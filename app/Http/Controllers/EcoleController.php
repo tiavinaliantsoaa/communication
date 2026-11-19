@@ -64,6 +64,7 @@ class EcoleController extends Controller
         $retard = (int) ($counts['retard'] ?? 0);
         $pointages = $present + $absent + $retard;
         $moisLabel = Carbon::create($annee, $mois, 1)->locale('fr')->isoFormat('MMMM YYYY');
+        $heuresParent = $request->user()?->isParent() ? $this->heuresParent() : null;
 
         return view('ecole.dashboard', [
             'title' => 'Dashboard',
@@ -83,6 +84,7 @@ class EcoleController extends Controller
             'presenceLabel' => $this->compte($present, 'présence', 'présences').' en '.$moisLabel,
             'absenceLabel' => $this->compte($absent, 'absence', 'absences').' en '.$moisLabel
                 .($retard > 0 ? ' · '.$this->compte($retard, 'retard', 'retards') : ''),
+            'heuresParent' => $heuresParent,
             'monday' => $monday,
             'semaineLabel' => $monday->isoFormat('D MMM').' – '.$friday->isoFormat('D MMM YYYY'),
             'weekNumber' => $monday->isoWeek(),
@@ -805,6 +807,80 @@ class EcoleController extends Controller
     private function compte(int $nombre, string $singulier, string $pluriel): string
     {
         return $nombre.' '.($nombre > 1 ? $pluriel : $singulier);
+    }
+
+    /**
+     * @return array{cours: string, absence: string, retard: string, groupes: string}
+     */
+    private function heuresParent(): array
+    {
+        $maintenant = now();
+        $seances = EcoleSeance::query()->get();
+        $cours = 0;
+        $minutesParJour = [];
+
+        foreach ($seances as $seance) {
+            if (! $seance->date) {
+                continue;
+            }
+
+            $minutes = max(0, EcoleTimetable::minutes($seance->heure('heure_fin')) - EcoleTimetable::minutes($seance->heure('heure_debut')));
+            $jour = $seance->ecole_groupe_id.'|'.$seance->date->toDateString();
+            $minutesParJour[$jour] = ($minutesParJour[$jour] ?? 0) + $minutes;
+
+            $fin = $seance->date->copy()->setTimeFromTimeString($seance->heure('heure_fin'));
+            if ($fin->lte($maintenant)) {
+                $cours += $minutes;
+            }
+        }
+
+        $pointages = EcoleAssiduite::query()->get(['ecole_etudiant_id', 'date', 'statut']);
+        $groupesEleves = DB::table('ecole_etudiants')
+            ->whereIn('id', $pointages->pluck('ecole_etudiant_id')->filter()->unique()->all())
+            ->pluck('ecole_groupe_id', 'id');
+        $absence = 0;
+        $retard = 0;
+
+        foreach ($pointages as $pointage) {
+            $groupeId = $groupesEleves[$pointage->ecole_etudiant_id] ?? null;
+            if (! $groupeId || ! $pointage->date) {
+                continue;
+            }
+
+            $minutes = $minutesParJour[$groupeId.'|'.$pointage->date->toDateString()] ?? 0;
+            if ($pointage->statut === 'absent') {
+                $absence += $minutes;
+            } elseif ($pointage->statut === 'retard') {
+                $retard += $minutes;
+            }
+        }
+
+        $noms = EcoleGroupe::query()->orderBy('nom')->pluck('nom')->filter()->implode(', ');
+
+        return [
+            'cours' => $this->duree($cours),
+            'absence' => $this->duree($absence),
+            'retard' => $this->duree($retard),
+            'groupes' => $noms !== '' ? $noms : 'Aucun groupe',
+        ];
+    }
+
+    private function duree(int $minutes): string
+    {
+        if ($minutes <= 0) {
+            return '0 h';
+        }
+
+        $heures = intdiv($minutes, 60);
+        $reste = $minutes % 60;
+        if ($heures === 0) {
+            return $reste.' min';
+        }
+        if ($reste === 0) {
+            return $heures.' h';
+        }
+
+        return $heures.' h '.$reste.' min';
     }
 
     private function refuserHorsEquipe(Request $request): void

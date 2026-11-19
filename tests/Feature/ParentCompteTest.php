@@ -9,6 +9,7 @@ use App\Models\EcoleGroupe;
 use App\Models\EcoleSeance;
 use App\Models\User;
 use App\Support\EcoleTimetable;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\URL;
@@ -130,7 +131,13 @@ class ParentCompteTest extends TestCase
             ->assertOk()
             ->assertSee('COM & PLAN')
             ->assertSee('B1')
+            ->assertSee('Total heure de cours')
+            ->assertSee('Total heure absence')
+            ->assertSee('Total heure retard')
             ->assertSee('Mon enfant')
+            ->assertDontSee('Nombre étudiant')
+            ->assertDontSee('Statistique présence')
+            ->assertDontSee('Statistique absence')
             ->assertSee('Voir l’emploi du temps de B1')
             ->assertDontSee('COURS AUTRE')
             ->assertDontSee('B2')
@@ -164,6 +171,75 @@ class ParentCompteTest extends TestCase
             'date' => $jeudi->toDateString(),
             'statut' => 'present',
         ])->assertForbidden();
+    }
+
+    public function test_parent_hours_ignore_future_courses_and_other_students(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-11-19 12:00:00'));
+
+        try {
+            $this->actingAs($this->equipe());
+            $this->post(route('ecole.groupes.store'), ['nom' => 'B1 G1'])->assertRedirect();
+            $this->post(route('ecole.groupes.store'), ['nom' => 'B2'])->assertRedirect();
+            $b1 = EcoleGroupe::query()->where('nom', 'B1 G1')->firstOrFail();
+            $b2 = EcoleGroupe::query()->where('nom', 'B2')->firstOrFail();
+
+            $this->post(route('ecole.etudiants.store'), [
+                'prenom' => 'Claire',
+                'nom' => 'Andiva',
+                'ecole_groupe_id' => $b1->id,
+                'creer_compte_parent' => '1',
+                'parent_nom' => 'Marie Andiva',
+                'parent_email' => 'heures@example.test',
+                'parent_password' => 'Secret12345',
+            ])->assertRedirect();
+            $this->post(route('ecole.etudiants.store'), [
+                'prenom' => 'Mialy',
+                'nom' => 'Rasoanaivo',
+                'ecole_groupe_id' => $b2->id,
+            ])->assertRedirect();
+
+            $claire = EcoleEtudiant::query()->where('prenom', 'Claire')->firstOrFail();
+            $mialy = EcoleEtudiant::query()->where('prenom', 'Mialy')->firstOrFail();
+
+            $seance = function (EcoleGroupe $groupe, string $date, string $debut, string $fin, string $matiere): void {
+                EcoleSeance::create([
+                    'ecole_groupe_id' => $groupe->id,
+                    'date' => $date,
+                    'jour' => Carbon::parse($date)->isoWeekday(),
+                    'heure_debut' => $debut,
+                    'heure_fin' => $fin,
+                    'matiere' => $matiere,
+                ]);
+            };
+            $seance($b1, '2026-11-18', '08:00', '10:00', 'PASSE');
+            $seance($b1, '2026-11-19', '08:00', '09:30', 'MATIN');
+            $seance($b1, '2026-11-19', '14:00', '16:00', 'APRES');
+            $seance($b1, '2026-11-20', '08:00', '09:00', 'FUTUR');
+            $seance($b2, '2026-11-18', '08:00', '13:00', 'AUTRE GROUPE');
+
+            EcoleAssiduite::create(['ecole_etudiant_id' => $claire->id, 'date' => '2026-11-18', 'statut' => 'absent']);
+            EcoleAssiduite::create(['ecole_etudiant_id' => $claire->id, 'date' => '2026-11-19', 'statut' => 'retard']);
+            EcoleAssiduite::create(['ecole_etudiant_id' => $mialy->id, 'date' => '2026-11-18', 'statut' => 'absent']);
+
+            $parent = User::query()->where('email', 'heures@example.test')->firstOrFail();
+
+            $this->actingAs($parent)
+                ->get(route('ecole.dashboard'))
+                ->assertOk()
+                ->assertSee('Total heure de cours')
+                ->assertSee('3 h 30 min')
+                ->assertSee('Total heure absence')
+                ->assertSee('2 h')
+                ->assertSee('Total heure retard')
+                ->assertSee('B1 G1')
+                ->assertDontSee('AUTRE GROUPE')
+                ->assertDontSee('B2')
+                ->assertDontSee('Statistique absence')
+                ->assertDontSee('Nombre étudiant');
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_the_same_parent_email_links_another_child(): void
