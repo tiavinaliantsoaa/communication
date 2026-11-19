@@ -5,7 +5,9 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+@php $lectureParent = auth()->user()?->isParent(); @endphp
+<div class="grid grid-cols-1 {{ $lectureParent ? '' : 'xl:grid-cols-3' }} gap-6">
+    @unless($lectureParent)
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <h3 class="text-sm font-semibold text-slate-900 mb-4">Ajouter un créneau</h3>
         @if($groupes->isEmpty())
@@ -72,8 +74,9 @@
             </form>
         @endif
     </div>
+    @endunless
 
-    <div class="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="{{ $lectureParent ? '' : 'xl:col-span-2' }} bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
             <div>
                 <h3 class="text-sm font-semibold text-slate-900">Créneaux{{ $groupe ? ' — '.$groupe->nom : '' }}</h3>
@@ -120,11 +123,13 @@
                             <td class="px-3 py-3 text-slate-600">{{ $seance->professeur ?: '—' }}</td>
                             <td class="px-3 py-3 text-slate-600">{{ $seance->salle ?: '—' }}</td>
                             <td class="px-5 py-3 text-right">
-                                <form method="POST" action="{{ route('ecole.emplois.destroy', $seance) }}" onsubmit="return confirm('Supprimer ce créneau ?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-xs font-semibold text-slate-500 hover:text-red-600">Supprimer</button>
-                                </form>
+                                @unless($lectureParent)
+                                    <form method="POST" action="{{ route('ecole.emplois.destroy', $seance) }}" onsubmit="return confirm('Supprimer ce créneau ?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-xs font-semibold text-slate-500 hover:text-red-600">Supprimer</button>
+                                    </form>
+                                @endunless
                             </td>
                         </tr>
                     @empty

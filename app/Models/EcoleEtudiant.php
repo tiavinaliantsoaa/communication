@@ -25,6 +25,7 @@ class EcoleEtudiant extends Model
         'code_verrouillage',
         'matricule',
         'domicile',
+        'parent_user_id',
     ];
 
     protected $casts = [
@@ -46,6 +47,11 @@ class EcoleEtudiant extends Model
     public function candidat(): BelongsTo
     {
         return $this->belongsTo(CrmCandidate::class, 'crm_candidate_id');
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'parent_user_id');
     }
 
     public function inscriptionLabel(): string

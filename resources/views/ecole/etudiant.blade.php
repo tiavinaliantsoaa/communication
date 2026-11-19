@@ -25,7 +25,11 @@
 
 @section('content')
 <div class="mb-4">
-    <a href="{{ $groupe ? route('ecole.groupes.show', $groupe) : route('ecole.groupes.index') }}" class="text-sm font-medium text-escm-primary hover:text-escm-primary-dark">Retour au groupe</a>
+    @if(auth()->user()?->isParent())
+        <a href="{{ route('ecole.dashboard') }}" class="text-sm font-medium text-escm-primary hover:text-escm-primary-dark">Retour au dashboard</a>
+    @else
+        <a href="{{ $groupe ? route('ecole.groupes.show', $groupe) : route('ecole.groupes.index') }}" class="text-sm font-medium text-escm-primary hover:text-escm-primary-dark">Retour au groupe</a>
+    @endif
 </div>
 
 <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">

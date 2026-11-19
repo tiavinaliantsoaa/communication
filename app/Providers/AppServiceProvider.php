@@ -4,6 +4,11 @@ namespace App\Providers;
 
 use App\Models\Departement;
 use App\Models\DepartementScope;
+use App\Models\EcoleAssiduite;
+use App\Models\EcoleEtudiant;
+use App\Models\EcoleGroupe;
+use App\Models\EcoleSeance;
+use App\Models\ParentScope;
 use App\Models\UserNotification;
 use App\Services\AlerteService;
 use Carbon\Carbon;
@@ -29,6 +34,10 @@ class AppServiceProvider extends ServiceProvider
 
         if ($this->app->environment('production')) {
             URL::forceScheme('https');
+        }
+
+        foreach ([EcoleEtudiant::class, EcoleGroupe::class, EcoleAssiduite::class, EcoleSeance::class] as $model) {
+            $model::addGlobalScope('parent', new ParentScope);
         }
 
         foreach (DepartementScope::models() as $model) {

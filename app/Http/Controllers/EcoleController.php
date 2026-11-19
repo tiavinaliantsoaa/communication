@@ -10,17 +10,44 @@ use App\Models\EcoleEtudiant;
 use App\Models\EcoleGroupe;
 use App\Models\EcoleMatiere;
 use App\Models\EcoleSeance;
+use App\Models\Permission;
+use App\Models\User;
 use App\Services\CrmActivityLogger;
 use App\Support\AnneeUniversitaire;
 use App\Support\EcoleTimetable;
 use App\Support\Periode;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class EcoleController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware(function (Request $request, $next) {
+            $user = $request->user();
+            if (! $user || ! $user->isParent()) {
+                return $next($request);
+            }
+
+            $autorisees = [
+                'ecole.dashboard',
+                'ecole.etudiants.show',
+                'ecole.emplois.index',
+                'ecole.absences.index',
+            ];
+
+            if (! in_array($request->route()?->getName(), $autorisees, true)) {
+                abort(403, 'Cette page n’est pas disponible pour un compte parent.');
+            }
+
+            return $next($request);
+        });
+    }
+
     public function dashboard(Request $request)
     {
         [$annee, $mois] = Periode::remember($request);
@@ -113,15 +140,25 @@ class EcoleController extends Controller
 
     public function storeEtudiant(Request $request, CrmActivityLogger $crmLog)
     {
+        $compteParent = $request->boolean('creer_compte_parent');
         $data = $request->validate([
             'prenom' => ['required', 'string', 'max:100'],
             'nom' => ['required', 'string', 'max:100'],
             'ecole_groupe_id' => ['required', 'integer'],
             'crm_candidate_id' => ['nullable', 'integer'],
+            'creer_compte_parent' => ['nullable', 'boolean'],
+            'parent_nom' => [Rule::requiredIf($compteParent), 'nullable', 'string', 'max:120'],
+            'parent_email' => [Rule::requiredIf($compteParent), 'nullable', 'email', 'max:255'],
+            'parent_password' => [Rule::requiredIf($compteParent), 'nullable', 'string', 'min:8', 'max:100'],
         ], [
             'prenom.required' => 'Le prénom est obligatoire.',
             'nom.required' => 'Le nom est obligatoire.',
             'ecole_groupe_id.required' => 'Choisissez un groupe.',
+            'parent_nom.required' => 'Le nom du parent est obligatoire.',
+            'parent_email.required' => 'L’email du parent est obligatoire.',
+            'parent_email.email' => 'L’email du parent n’est pas valide.',
+            'parent_password.required' => 'Le mot de passe du parent est obligatoire.',
+            'parent_password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
         ]);
 
         $groupe = EcoleGroupe::findOrFail($data['ecole_groupe_id']);
@@ -142,16 +179,22 @@ class EcoleController extends Controller
             }
         }
 
-        $etudiant = EcoleEtudiant::create([
-            'ecole_groupe_id' => $groupe->id,
-            'crm_candidate_id' => $candidate?->id,
-            'prenom' => trim($data['prenom']),
-            'nom' => trim($data['nom']),
-            'palier' => $candidate ? $this->vide($candidate->niveau_etudes ?: $candidate->programme) : null,
-            'date_naissance' => $candidate?->date_naissance,
-            'email' => $candidate ? $this->vide($candidate->email) : null,
-            'domicile' => $candidate ? $this->vide($candidate->adresse) : null,
-        ]);
+        $compteCree = false;
+        $etudiant = DB::transaction(function () use ($request, $data, $groupe, $candidate, $compteParent, &$compteCree) {
+            $parent = $compteParent ? $this->compteParent($request, $data, $compteCree) : null;
+
+            return EcoleEtudiant::create([
+                'ecole_groupe_id' => $groupe->id,
+                'crm_candidate_id' => $candidate?->id,
+                'parent_user_id' => $parent?->id,
+                'prenom' => trim($data['prenom']),
+                'nom' => trim($data['nom']),
+                'palier' => $candidate ? $this->vide($candidate->niveau_etudes ?: $candidate->programme) : null,
+                'date_naissance' => $candidate?->date_naissance,
+                'email' => $candidate ? $this->vide($candidate->email) : null,
+                'domicile' => $candidate ? $this->vide($candidate->adresse) : null,
+            ]);
+        });
 
         if ($candidate) {
             $phrase = $etudiant->inscriptionLabel();
@@ -166,7 +209,14 @@ class EcoleController extends Controller
             $candidate->touchInteraction();
         }
 
-        return redirect()->route('ecole.etudiants.index')->with('success', 'Étudiant ajouté.');
+        $message = 'Étudiant ajouté.';
+        if ($compteParent) {
+            $message = $compteCree
+                ? 'Étudiant ajouté. Compte parent créé.'
+                : 'Étudiant ajouté. Compte parent associé.';
+        }
+
+        return redirect()->route('ecole.etudiants.index')->with('success', $message);
     }
 
     public function destroyEtudiant(EcoleEtudiant $etudiant)
@@ -769,5 +819,53 @@ class EcoleController extends Controller
         $value = trim((string) $value);
 
         return $value === '' ? null : $value;
+    }
+
+    private function compteParent(Request $request, array $data, bool &$cree): User
+    {
+        $departementId = $request->user()->currentDepartementId();
+        if (! $departementId) {
+            throw ValidationException::withMessages([
+                'parent_email' => 'Choisissez le département pédagogique avant de créer un compte parent.',
+            ]);
+        }
+
+        $email = mb_strtolower(trim($data['parent_email']));
+        $existant = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
+
+        if ($existant && (! $existant->isParent() || (int) $existant->departement_id !== (int) $departementId)) {
+            throw ValidationException::withMessages([
+                'parent_email' => 'Cet email est déjà utilisé par un autre compte.',
+            ]);
+        }
+
+        if ($existant) {
+            $existant->forceFill([
+                'name' => trim($data['parent_nom']),
+                'password' => $data['parent_password'],
+            ])->save();
+            $user = $existant;
+            $cree = false;
+        } else {
+            $user = User::create([
+                'name' => trim($data['parent_nom']),
+                'email' => $email,
+                'password' => $data['parent_password'],
+                'role' => 'parent',
+                'departement_id' => $departementId,
+            ]);
+            $cree = true;
+        }
+
+        $permissionId = Permission::query()->where('key', 'ecole.view')->value('id');
+        if (! $permissionId) {
+            Permission::syncCatalog();
+            $permissionId = Permission::query()->where('key', 'ecole.view')->value('id');
+        }
+        if ($permissionId) {
+            $user->permissions()->syncWithoutDetaching([$permissionId]);
+        }
+
+        return $user;
     }
 }

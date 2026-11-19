@@ -99,6 +99,38 @@
                 $show('ecole_bulletins') ? ['route' => 'ecole.bulletins.index', 'label' => 'Bulletin de note', 'icon' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z', 'active' => 'ecole.bulletins.*'] : null,
                 $show('ecole_parametres') ? ['route' => 'ecole.parametres.index', 'label' => 'Paramètre école', 'icon' => 'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4', 'active' => ['ecole.parametres.*', 'ecole.annee']] : null,
             ]);
+            if (auth()->user()?->isParent()) {
+                $enfants = auth()->user()->enfants()->with('groupe')->orderBy('nom')->orderBy('prenom')->get();
+                $iconeEnfant = 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z';
+                $parentItems = [[
+                    'route' => 'ecole.dashboard',
+                    'label' => 'Dashboard',
+                    'icon' => 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6',
+                    'active' => 'ecole.dashboard',
+                ]];
+                foreach ($enfants as $enfant) {
+                    $parentItems[] = [
+                        'route' => 'ecole.etudiants.show',
+                        'params' => $enfant,
+                        'label' => $enfants->count() === 1 ? 'Mon enfant' : $enfant->nom_complet,
+                        'icon' => $iconeEnfant,
+                        'is_active' => request()->routeIs('ecole.etudiants.show') && (int) optional(request()->route('etudiant'))->id === (int) $enfant->id,
+                    ];
+                }
+                $parentItems[] = [
+                    'route' => 'ecole.emplois.index',
+                    'label' => 'Emplois du temps',
+                    'icon' => 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+                    'active' => 'ecole.emplois.*',
+                ];
+                $parentItems[] = [
+                    'route' => 'ecole.absences.index',
+                    'label' => 'Retard et Absence',
+                    'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z',
+                    'active' => 'ecole.absences.*',
+                ];
+                $ecoleItems = $parentItems;
+            }
             $anneeChoisie = count($ecoleItems) ? \App\Support\AnneeUniversitaire::selected() : null;
             $anneeActuelle = count($ecoleItems) ? \App\Support\AnneeUniversitaire::current() : null;
             $navSections = [
@@ -142,7 +174,7 @@
                             @php
                                 $itemActive = $item['is_active'] ?? $isActive($item['active'] ?? $item['route']);
                             @endphp
-                            <a href="{{ route($item['href'] ?? $item['route']) }}"
+                            <a href="{{ route($item['href'] ?? $item['route'], $item['params'] ?? []) }}"
                                class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors {{ $itemActive ? 'bg-white text-[#bf282b]' : 'text-white/90 hover:bg-white/15 hover:text-white' }}">
                                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="{{ $item['icon'] }}"/></svg>
                                 {{ $item['label'] }}

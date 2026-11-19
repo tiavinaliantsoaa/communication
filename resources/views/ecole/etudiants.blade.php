@@ -50,6 +50,25 @@
                       onType() {
                           this.selectedId = '';
                           this.search();
+                      },
+                      compteParent: @js((bool) old('creer_compte_parent')),
+                      parentPassword: @js(old('parent_password', '')),
+                      copie: false,
+                      genererMotDePasse() {
+                          const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+                          const bytes = new Uint8Array(12);
+                          crypto.getRandomValues(bytes);
+                          this.parentPassword = Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join('');
+                          this.copie = false;
+                      },
+                      async copierMotDePasse() {
+                          try {
+                              await navigator.clipboard.writeText(this.parentPassword);
+                              this.copie = true;
+                              setTimeout(() => { this.copie = false; }, 2000);
+                          } catch (e) {
+                              this.copie = false;
+                          }
                       }
                   }">
                 @csrf
@@ -87,6 +106,28 @@
                             <option value="{{ $groupe->id }}" @selected((int) old('ecole_groupe_id') === (int) $groupe->id)>{{ $groupe->nom }}</option>
                         @endforeach
                     </select>
+                </div>
+                <label class="flex items-center gap-2 text-sm font-medium text-slate-700">
+                    <input type="checkbox" name="creer_compte_parent" value="1" x-model="compteParent" class="rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
+                    Créer un compte parent
+                </label>
+                <div x-show="compteParent" x-cloak class="space-y-4">
+                    <div>
+                        <label for="parent-nom" class="block text-sm font-medium text-slate-700 mb-1.5">Nom parent</label>
+                        <input id="parent-nom" type="text" name="parent_nom" value="{{ old('parent_nom') }}" :required="compteParent" maxlength="120" class="{{ $input }}">
+                        @error('parent_nom')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label for="parent-email" class="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
+                        <input id="parent-email" type="email" name="parent_email" value="{{ old('parent_email') }}" :required="compteParent" maxlength="255" autocomplete="off" class="{{ $input }}">
+                        @error('parent_email')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label for="parent-password" class="block text-sm font-medium text-slate-700 mb-1.5">Mot de passe</label>
+                        <input id="parent-password" type="text" name="parent_password" x-model="parentPassword" :required="compteParent" minlength="8" maxlength="100" autocomplete="new-password" class="{{ $input }}">
+                        <button type="button" @click="parentPassword ? copierMotDePasse() : genererMotDePasse()" class="mt-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" x-text="parentPassword ? (copie ? 'Mot de passe copié' : 'Copier le mot de passe') : 'Générer un mot de passe'">Générer un mot de passe</button>
+                        @error('parent_password')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    </div>
                 </div>
                 <button type="submit" class="bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2.5 rounded-lg">Ajouter</button>
             </form>

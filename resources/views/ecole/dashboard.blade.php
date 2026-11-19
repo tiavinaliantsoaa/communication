@@ -75,8 +75,8 @@
 
     <div class="px-5 py-3 border-t border-slate-100 text-center">
         @if($groupe)
-            <a href="{{ route('ecole.emplois.index', ['groupe' => $groupe->id]) }}" class="text-sm font-medium text-escm-primary hover:text-escm-primary-dark">Gérer l’emploi du temps de {{ $groupe->nom }}</a>
-        @else
+            <a href="{{ route('ecole.emplois.index', ['groupe' => $groupe->id]) }}" class="text-sm font-medium text-escm-primary hover:text-escm-primary-dark">{{ auth()->user()?->isParent() ? 'Voir l’emploi du temps de '.$groupe->nom : 'Gérer l’emploi du temps de '.$groupe->nom }}</a>
+        @elseif(! auth()->user()?->isParent())
             <a href="{{ route('ecole.groupes.index') }}" class="text-sm font-medium text-escm-primary hover:text-escm-primary-dark">Créer un groupe</a>
         @endif
     </div>

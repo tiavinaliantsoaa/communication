@@ -5,7 +5,9 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+@php $lectureParent = auth()->user()?->isParent(); @endphp
+<div class="grid grid-cols-1 {{ $lectureParent ? '' : 'xl:grid-cols-3' }} gap-6">
+    @unless($lectureParent)
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
         <h3 class="text-sm font-semibold text-slate-900 mb-4">Nouveau pointage</h3>
         @if($etudiants->isEmpty())
@@ -37,8 +39,9 @@
             </form>
         @endif
     </div>
+    @endunless
 
-    <div class="xl:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div class="{{ $lectureParent ? '' : 'xl:col-span-2' }} bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
@@ -64,11 +67,13 @@
                                 ">{{ $assiduite->statut_label }}</span>
                             </td>
                             <td class="px-5 py-3 text-right">
-                                <form method="POST" action="{{ route('ecole.absences.destroy', $assiduite) }}" onsubmit="return confirm('Supprimer ce pointage ?')">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="text-xs font-semibold text-slate-500 hover:text-red-600">Supprimer</button>
-                                </form>
+                                @unless($lectureParent)
+                                    <form method="POST" action="{{ route('ecole.absences.destroy', $assiduite) }}" onsubmit="return confirm('Supprimer ce pointage ?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-xs font-semibold text-slate-500 hover:text-red-600">Supprimer</button>
+                                    </form>
+                                @endunless
                             </td>
                         </tr>
                     @empty
