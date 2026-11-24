@@ -7,6 +7,8 @@ use App\Models\EditorialEvent;
 use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
@@ -97,6 +99,65 @@ class CalendrierEditorialValidationTest extends TestCase
             [['linkedin'], ['befiana_sms']],
             $duplicates->pluck('categorie')->all()
         );
+    }
+
+    public function test_escm_and_saan_store_a_reel_and_reject_files_over_20_mo(): void
+    {
+        Storage::fake('public');
+        $editor = $this->editor([
+            'calendrier_editorial.create',
+            'calendrier_editorial.view',
+            'calendrier_saan.create',
+        ]);
+
+        $reel = UploadedFile::fake()->create('story.mp4', 500, 'video/mp4');
+
+        $this->actingAs($editor)
+            ->post(route('calendrier-editorial.store'), $this->payload([
+                'titre' => 'Contenu reel',
+                'reel' => $reel,
+            ]))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $event = EditorialEvent::query()->where('titre', 'Contenu reel')->firstOrFail();
+        $this->assertNotNull($event->reel_path);
+        $this->assertSame('story.mp4', $event->reel_nom);
+        Storage::disk('public')->assertExists($event->reel_path);
+
+        $this->actingAs($editor)
+            ->get(route('calendrier-editorial'))
+            ->assertOk()
+            ->assertSee('Reel', false);
+
+        $tooLarge = UploadedFile::fake()->create('long.mp4', 20481, 'video/mp4');
+
+        $this->actingAs($editor)
+            ->post(route('calendrier-saan.store'), $this->payload([
+                'titre' => 'Reel trop lourd',
+                'reel' => $tooLarge,
+            ]))
+            ->assertSessionHasErrors('reel');
+
+        $this->assertNull(EditorialEvent::query()->where('titre', 'Reel trop lourd')->first());
+    }
+
+    public function test_krismasy_ignores_a_reel_upload(): void
+    {
+        Storage::fake('public');
+        $editor = $this->editor(['calendrier_krismasy.create']);
+
+        $this->actingAs($editor)
+            ->post(route('calendrier-krismasy.store'), $this->payload([
+                'titre' => 'Sans reel',
+                'reel' => UploadedFile::fake()->create('story.mp4', 200, 'video/mp4'),
+            ]))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $event = EditorialEvent::query()->where('titre', 'Sans reel')->firstOrFail();
+        $this->assertSame(EditorialEvent::SERVICE_KRISMASY, $event->service);
+        $this->assertNull($event->reel_path);
     }
 
     /**

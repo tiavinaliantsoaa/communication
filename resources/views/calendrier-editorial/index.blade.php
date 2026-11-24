@@ -24,6 +24,7 @@
         'typesContenu' => $typesContenu,
         'canValidate' => $canValidate,
         'maxVisuels' => $maxVisuels ?? 10,
+        'supportsReel' => $supportsReel ?? false,
         'baseUrl' => $baseUrl,
         'searchUrl' => $searchUrl,
         'storeUrl' => $storeUrl,
@@ -408,6 +409,19 @@
                                 <p class="text-[11px] text-slate-400 mt-1.5">Cliquez une image pour l’agrandir</p>
                             </dd>
                         </div>
+                        <div class="flex gap-2 pb-2" x-show="supportsReel && selectedEvent.reel && selectedEvent.reel.url">
+                            <dt class="text-slate-500 w-28 shrink-0">Reel</dt>
+                            <dd class="flex-1 min-w-0">
+                                <button
+                                    type="button"
+                                    class="visuel-thumb group relative block w-40 overflow-hidden rounded-lg border border-slate-200 bg-slate-950 aspect-square focus:outline-none focus:ring-2 focus:ring-escm-primary/40"
+                                    @click="openReel(selectedEvent.reel)"
+                                >
+                                    <video :src="selectedEvent.reel ? selectedEvent.reel.url : ''" muted playsinline preload="metadata" class="h-full w-full object-cover pointer-events-none"></video>
+                                </button>
+                                <p class="text-[11px] text-slate-400 mt-1.5" x-text="selectedEvent.reel.nom || 'Reel'"></p>
+                            </dd>
+                        </div>
                     </dl>
                     <div class="px-5 pb-5 mt-2 flex items-center justify-end gap-2 border-t border-slate-100 pt-4 shrink-0 bg-white">
                         <button type="button" @click="selectedEvent = null" class="px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 rounded-lg">
@@ -574,6 +588,19 @@
                                 <img :src="p.url" :alt="p.nom" class="h-full w-full object-cover">
                             </button>
                         </template>
+                    </div>
+                </div>
+
+                <div x-show="supportsReel" x-cloak>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Reel</label>
+                    <input type="file" name="reel" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v"
+                           @change="onCreateReelChange($event)"
+                           class="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-escm-primary file:text-white hover:file:bg-escm-primary-dark">
+                    <p class="mt-1 text-xs text-slate-500">MP4, WEBM ou MOV — 20 Mo maximum</p>
+                    <div x-show="createReelPreview" x-cloak class="mt-2">
+                        <button type="button" class="visuel-thumb block w-40 aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-950" @click="openReel(createReelPreview)">
+                            <video :src="createReelPreview ? createReelPreview.url : ''" muted playsinline preload="metadata" class="h-full w-full object-cover pointer-events-none"></video>
+                        </button>
                     </div>
                 </div>
 
@@ -763,6 +790,34 @@
                     </div>
                 </div>
 
+                <div x-show="supportsReel" x-cloak>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Reel</label>
+                    <input type="hidden" name="remove_reel" :value="editForm.remove_reel ? 1 : 0">
+                    <div x-show="existingEditReel" x-cloak class="mb-2">
+                        <div class="relative inline-block">
+                            <button type="button" class="visuel-thumb block w-40 aspect-square overflow-hidden rounded-lg border border-slate-200 bg-slate-950" :class="editForm.remove_reel && 'opacity-40'" @click="openReel(existingEditReel)">
+                                <video :src="existingEditReel ? existingEditReel.url : ''" muted playsinline preload="metadata" class="h-full w-full object-cover pointer-events-none"></video>
+                            </button>
+                            <button
+                                type="button"
+                                class="absolute top-1 right-1 rounded bg-white/95 border border-slate-200 px-1.5 py-0.5 text-[10px] font-semibold shadow-sm"
+                                :class="editForm.remove_reel ? 'text-emerald-700' : 'text-red-600'"
+                                @click="editForm.remove_reel = !editForm.remove_reel"
+                                x-text="editForm.remove_reel ? 'Annuler' : 'Suppr.'"
+                            ></button>
+                        </div>
+                    </div>
+                    <input type="file" name="reel" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v"
+                           @change="onEditReelChange($event)"
+                           class="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-escm-primary file:text-white hover:file:bg-escm-primary-dark">
+                    <p class="mt-1 text-xs text-slate-500">MP4, WEBM ou MOV — 20 Mo maximum. Un nouveau fichier remplace le reel actuel.</p>
+                    <div x-show="editReelPreview" x-cloak class="mt-2">
+                        <button type="button" class="visuel-thumb block w-40 aspect-square overflow-hidden rounded-lg border border-dashed border-escm-primary/40 bg-slate-950" @click="openReel(editReelPreview)">
+                            <video :src="editReelPreview ? editReelPreview.url : ''" muted playsinline preload="metadata" class="h-full w-full object-cover pointer-events-none"></video>
+                        </button>
+                    </div>
+                </div>
+
                 @if($canValidate)
                 <label class="inline-flex items-center gap-2 text-sm font-medium text-slate-800 cursor-pointer">
                     <input type="checkbox" name="valide" value="1" x-model="editForm.valide" class="rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
@@ -800,7 +855,7 @@
                 {{-- Barre titre + télécharger --}}
                 <div class="pointer-events-auto flex items-center gap-3 px-4 py-3 bg-slate-950 border-b border-white/15 shrink-0 shadow-lg">
                     <div class="min-w-0 flex-1">
-                        <p class="text-sm font-semibold text-white truncate" x-text="(lightbox.items[lightbox.index] && lightbox.items[lightbox.index].nom) ? lightbox.items[lightbox.index].nom : 'Visuel'"></p>
+                        <p class="text-sm font-semibold text-white truncate" x-text="(lightbox.items[lightbox.index] && lightbox.items[lightbox.index].nom) ? lightbox.items[lightbox.index].nom : ((lightbox.items[lightbox.index] && lightbox.items[lightbox.index].kind === 'video') ? 'Reel' : 'Visuel')"></p>
                         <p class="text-xs text-white/60" x-show="lightbox.items.length > 1" x-text="(lightbox.index + 1) + ' / ' + lightbox.items.length"></p>
                     </div>
                     <a
@@ -831,13 +886,23 @@
                     </button>
 
                     <template x-for="item in (lightbox.items[lightbox.index] ? [lightbox.items[lightbox.index]] : [])" :key="'lb-' + lightbox.index + '-' + (item.url || '')">
-                        <img
-                            :src="item.url"
-                            :alt="item.nom || 'Visuel'"
-                            class="lightbox-img rounded-lg shadow-2xl object-contain bg-slate-900/40"
-                            style="max-height: 62vh; max-width: min(640px, 88vw);"
-                            @click.stop
-                        >
+                        <div @click.stop>
+                            <video
+                                x-show="item.kind === 'video'"
+                                :src="item.url"
+                                controls
+                                playsinline
+                                class="lightbox-img rounded-lg shadow-2xl bg-black"
+                                style="max-height: 62vh; max-width: min(640px, 88vw);"
+                            ></video>
+                            <img
+                                x-show="item.kind !== 'video'"
+                                :src="item.url"
+                                :alt="item.nom || 'Visuel'"
+                                class="lightbox-img rounded-lg shadow-2xl object-contain bg-slate-900/40"
+                                style="max-height: 62vh; max-width: min(640px, 88vw);"
+                            >
+                        </div>
                     </template>
 
                     <button
@@ -974,10 +1039,14 @@ function editorialCalendar(config) {
             texte_publication: '',
             texte_publication_linkedin: '',
             remove_visuel_ids: [],
+            remove_reel: false,
         },
         maxVisuels: config.maxVisuels || 10,
+        supportsReel: !!config.supportsReel,
         createPreviews: [],
         editPreviews: [],
+        createReelPreview: null,
+        editReelPreview: null,
         lightbox: { open: false, items: [], index: 0 },
         miniMonth: parseDate(config.currentDate).getMonth(),
         miniYear: parseDate(config.currentDate).getFullYear(),
@@ -1067,6 +1136,36 @@ function editorialCalendar(config) {
             }
         },
 
+        get existingEditReel() {
+            if (!this.supportsReel || !this.editingEvent || !this.editingEvent.reel) {
+                return null;
+            }
+            return this.editingEvent.reel;
+        },
+
+        onCreateReelChange(event) {
+            this.createReelPreview = this.reelPreview(event.target.files && event.target.files[0], event.target);
+        },
+
+        onEditReelChange(event) {
+            this.editReelPreview = this.reelPreview(event.target.files && event.target.files[0], event.target);
+        },
+
+        reelPreview(file, input) {
+            if (!file) return null;
+            if (file.size > 20 * 1024 * 1024) {
+                alert(file.name + ' dépasse 20 Mo.');
+                if (input) input.value = '';
+                return null;
+            }
+            return { url: URL.createObjectURL(file), nom: file.name, kind: 'video' };
+        },
+
+        openReel(item) {
+            if (!item || !item.url) return;
+            this.openLightbox([{ url: item.url, nom: item.nom || 'Reel', kind: 'video' }], 0);
+        },
+
         onEditVisuelsChange(event) {
             const remaining = Math.max(0, this.maxVisuels - this.keptEditVisuels.length);
             this.editPreviews = this.buildPreviews(event.target.files, remaining);
@@ -1118,6 +1217,7 @@ function editorialCalendar(config) {
                     texte_publication: config.old.texte_publication || '',
                     texte_publication_linkedin: config.old.texte_publication_linkedin || '',
                     remove_visuel_ids: [],
+                    remove_reel: false,
                 };
                 this.showEdit = true;
             }
@@ -1418,8 +1518,10 @@ function editorialCalendar(config) {
                 texte_publication: ev.texte_publication || '',
                 texte_publication_linkedin: ev.texte_publication_linkedin || '',
                 remove_visuel_ids: [],
+                remove_reel: false,
             };
             this.editPreviews = [];
+            this.editReelPreview = null;
             this.selectedEvent = null;
             this.showCreate = false;
             this.showEdit = true;

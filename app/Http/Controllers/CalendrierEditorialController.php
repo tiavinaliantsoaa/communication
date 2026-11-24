@@ -65,6 +65,7 @@ class CalendrierEditorialController extends Controller
             'typesContenu' => EditorialEvent::TYPES_CONTENU,
             'canValidate' => auth()->user()?->canValidateCalendar($service) ?? false,
             'maxVisuels' => EditorialEvent::MAX_VISUELS,
+            'supportsReel' => $this->supportsReel($service),
             'baseUrl' => route($prefix),
             'searchUrl' => route($prefix.'.search'),
             'storeUrl' => route($prefix.'.store'),
@@ -103,6 +104,7 @@ class CalendrierEditorialController extends Controller
         $meta = EditorialEvent::serviceMeta($service);
         $validated = $this->validateEvent($request, $service);
         $files = $this->validatedVisuelFiles($request);
+        $reelFile = $this->supportsReel($service) ? $request->file('reel') : null;
         $categories = array_values($validated['categorie'] ?? []);
 
         if ($categories === []) {
@@ -113,13 +115,21 @@ class CalendrierEditorialController extends Controller
 
         $created = [];
 
-        DB::transaction(function () use ($validated, $files, $categories, $service, &$created) {
+        DB::transaction(function () use ($validated, $files, $reelFile, $categories, $service, &$created) {
             $storedVisuels = [];
             foreach ($files as $index => $file) {
                 $storedVisuels[] = [
                     'path' => $file->store('editorial-visuels', 'public'),
                     'nom' => $file->getClientOriginalName(),
                     'position' => $index,
+                ];
+            }
+
+            $storedReel = null;
+            if ($reelFile) {
+                $storedReel = [
+                    'path' => $reelFile->store('editorial-reels', 'public'),
+                    'nom' => $reelFile->getClientOriginalName(),
                 ];
             }
 
@@ -158,6 +168,7 @@ class CalendrierEditorialController extends Controller
                 }
 
                 $this->syncLegacyVisuelColumns($event->fresh('visuels'));
+                $this->attachReelCopy($event, $storedReel, $index > 0);
                 $created[] = $event;
             }
         });
@@ -192,6 +203,8 @@ class CalendrierEditorialController extends Controller
         $meta = EditorialEvent::serviceMeta($service);
         $validated = $this->validateEvent($request, $service, $editorialEvent);
         $files = $this->validatedVisuelFiles($request);
+        $reelFile = $this->supportsReel($service) ? $request->file('reel') : null;
+        $removeReel = $this->supportsReel($service) && $request->boolean('remove_reel');
         $removeIds = array_values(array_filter(array_map('intval', (array) $request->input('remove_visuel_ids', []))));
         $categories = array_values($validated['categorie'] ?? []);
 
@@ -203,7 +216,7 @@ class CalendrierEditorialController extends Controller
 
         $createdCount = 0;
 
-        DB::transaction(function () use ($editorialEvent, $validated, $files, $removeIds, $categories, $service, &$createdCount) {
+        DB::transaction(function () use ($editorialEvent, $validated, $files, $reelFile, $removeReel, $removeIds, $categories, $service, &$createdCount) {
             $editorialEvent->load('visuels');
 
             if ($removeIds) {
@@ -238,6 +251,7 @@ class CalendrierEditorialController extends Controller
             $editorialEvent->update($payload);
             $this->storeVisuelFiles($editorialEvent, $files, $remaining);
             $this->syncLegacyVisuelColumns($editorialEvent->fresh('visuels'));
+            $this->syncReel($editorialEvent, $reelFile, $removeReel);
 
             if ($extraCategories === []) {
                 return;
@@ -275,6 +289,10 @@ class CalendrierEditorialController extends Controller
                 }
 
                 $this->syncLegacyVisuelColumns($duplicate->fresh('visuels'));
+                $this->attachReelCopy($duplicate, [
+                    'path' => $editorialEvent->reel_path,
+                    'nom' => $editorialEvent->reel_nom,
+                ], true);
                 $createdCount++;
             }
         });
@@ -364,6 +382,16 @@ class CalendrierEditorialController extends Controller
             'remove_visuel_ids.*' => ['integer'],
         ];
 
+        if ($this->supportsReel($service)) {
+            $rules['reel'] = ['nullable', 'file', 'max:20480', function (string $attribute, $value, \Closure $fail) {
+                $extension = strtolower((string) $value->getClientOriginalExtension());
+                if (! in_array($extension, ['mp4', 'webm', 'mov', 'm4v'], true)) {
+                    $fail('Le reel doit être une vidéo MP4, WEBM ou MOV.');
+                }
+            }];
+            $rules['remove_reel'] = ['nullable', 'boolean'];
+        }
+
         if ($isFacebookFi && $request->boolean('booster')) {
             $rules['date_fin'] = ['required', 'date', 'after_or_equal:date_debut'];
         }
@@ -376,9 +404,11 @@ class CalendrierEditorialController extends Controller
             'visuels.max' => 'Vous pouvez envoyer au maximum '.EditorialEvent::MAX_VISUELS.' images.',
             'visuels.*.mimes' => 'Chaque visuel doit être une image (jpg, png, webp, gif).',
             'visuels.*.max' => 'Chaque visuel ne doit pas dépasser 5 Mo.',
+            'reel.max' => 'Le reel ne doit pas dépasser 20 Mo.',
+            'reel.uploaded' => 'Le reel n’a pas pu être envoyé. La taille maximale est de 20 Mo.',
         ]);
 
-        unset($validated['visuels'], $validated['remove_visuel_ids']);
+        unset($validated['visuels'], $validated['remove_visuel_ids'], $validated['reel'], $validated['remove_reel']);
 
         $validated['categorie'] = array_values(array_unique($validated['categorie']));
         $validated['booster'] = $isFacebookFi && $request->boolean('booster');
@@ -435,6 +465,62 @@ class CalendrierEditorialController extends Controller
         }
     }
 
+    private function supportsReel(string $service): bool
+    {
+        return in_array($service, [EditorialEvent::SERVICE_EDITORIAL, EditorialEvent::SERVICE_SAAN], true);
+    }
+
+    /**
+     * @param  array{path?: string|null, nom?: string|null}|null  $storedReel
+     */
+    private function attachReelCopy(EditorialEvent $event, ?array $storedReel, bool $copy): void
+    {
+        $path = $storedReel['path'] ?? null;
+        if (! $path) {
+            return;
+        }
+
+        if ($copy) {
+            if (! Storage::disk('public')->exists($path)) {
+                return;
+            }
+            $extension = pathinfo($path, PATHINFO_EXTENSION);
+            $copyPath = 'editorial-reels/'.uniqid('r_', true).($extension ? '.'.$extension : '');
+            Storage::disk('public')->copy($path, $copyPath);
+            $path = $copyPath;
+        }
+
+        $event->forceFill([
+            'reel_path' => $path,
+            'reel_nom' => $storedReel['nom'] ?? null,
+        ])->save();
+    }
+
+    private function syncReel(EditorialEvent $event, mixed $file, bool $remove): void
+    {
+        if (! $remove && ! $file) {
+            return;
+        }
+
+        if ($event->reel_path) {
+            Storage::disk('public')->delete($event->reel_path);
+        }
+
+        if ($file) {
+            $event->forceFill([
+                'reel_path' => $file->store('editorial-reels', 'public'),
+                'reel_nom' => $file->getClientOriginalName(),
+            ])->save();
+
+            return;
+        }
+
+        $event->forceFill([
+            'reel_path' => null,
+            'reel_nom' => null,
+        ])->save();
+    }
+
     private function syncLegacyVisuelColumns(EditorialEvent $event): void
     {
         $first = $event->visuels()->orderBy('position')->orderBy('id')->first();
@@ -483,6 +569,11 @@ class CalendrierEditorialController extends Controller
             'visuels' => $visuels,
             'visuel_url' => $visuels[0]['url'] ?? $event->visuel_url,
             'visuel_nom' => $visuels[0]['nom'] ?? $event->visuel_nom,
+            'reel' => $event->reel_path ? [
+                'url' => $event->reel_url,
+                'nom' => $event->reel_nom ?: 'Reel',
+                'kind' => 'video',
+            ] : null,
             'update_url' => route($prefix.'.update', $event),
             'delete_url' => route($prefix.'.destroy', $event),
         ];

@@ -56,6 +56,8 @@ class EditorialEvent extends Model
         'texte_publication_linkedin',
         'visuel_path',
         'visuel_nom',
+        'reel_path',
+        'reel_nom',
     ];
 
     protected $casts = [
@@ -185,6 +187,15 @@ class EditorialEvent extends Model
         return Storage::disk('public')->url($this->visuel_path);
     }
 
+    public function getReelUrlAttribute(): ?string
+    {
+        if (! $this->reel_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->reel_path);
+    }
+
     protected static function booted(): void
     {
         static::deleting(function (EditorialEvent $event) {
@@ -192,6 +203,10 @@ class EditorialEvent extends Model
 
             if ($event->visuel_path) {
                 Storage::disk('public')->delete($event->visuel_path);
+            }
+
+            if ($event->reel_path) {
+                Storage::disk('public')->delete($event->reel_path);
             }
         });
     }
