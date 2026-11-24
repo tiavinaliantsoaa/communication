@@ -576,9 +576,24 @@
                               placeholder="Texte de la publication…"></textarea>
                 </div>
 
-                <div>
+                <div x-show="supportsReel" x-cloak>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Type de visuel</label>
+                    <div class="flex flex-wrap items-center gap-4">
+                        <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                            <input type="radio" name="type_visuel" value="images" x-model="form.type_visuel" class="text-escm-primary focus:ring-escm-primary border-slate-300">
+                            <span>Images (jusqu’à {{ $maxVisuels ?? 10 }})</span>
+                        </label>
+                        <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                            <input type="radio" name="type_visuel" value="reel" x-model="form.type_visuel" class="text-escm-primary focus:ring-escm-primary border-slate-300">
+                            <span>Reel (une seule)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div x-show="!supportsReel || form.type_visuel !== 'reel'">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Visuels <span class="text-slate-400 font-normal">(max {{ $maxVisuels ?? 10 }})</span></label>
                     <input type="file" name="visuels[]" accept="image/jpeg,image/png,image/webp,image/gif" multiple
+                           :disabled="supportsReel && form.type_visuel === 'reel'"
                            @change="onCreateVisuelsChange($event)"
                            class="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-escm-primary file:text-white hover:file:bg-escm-primary-dark">
                     <p class="mt-1 text-xs text-slate-500">JPG, PNG, WEBP ou GIF — max 5 Mo chacun, jusqu’à {{ $maxVisuels ?? 10 }} images</p>
@@ -591,9 +606,10 @@
                     </div>
                 </div>
 
-                <div x-show="supportsReel" x-cloak>
+                <div x-show="supportsReel && form.type_visuel === 'reel'" x-cloak>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Reel</label>
                     <input type="file" name="reel" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v"
+                           :disabled="form.type_visuel !== 'reel'"
                            @change="onCreateReelChange($event)"
                            class="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-escm-primary file:text-white hover:file:bg-escm-primary-dark">
                     <p class="mt-1 text-xs text-slate-500">MP4, WEBM ou MOV — 20 Mo maximum</p>
@@ -754,7 +770,23 @@
                               class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm"></textarea>
                 </div>
 
-                <div>
+                <div x-show="supportsReel" x-cloak>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Type de visuel</label>
+                    <div class="flex flex-wrap items-center gap-4">
+                        <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                            <input type="radio" name="type_visuel" value="images" x-model="editForm.type_visuel" class="text-escm-primary focus:ring-escm-primary border-slate-300">
+                            <span>Images (jusqu’à {{ $maxVisuels ?? 10 }})</span>
+                        </label>
+                        <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                            <input type="radio" name="type_visuel" value="reel" x-model="editForm.type_visuel" class="text-escm-primary focus:ring-escm-primary border-slate-300">
+                            <span>Reel (une seule)</span>
+                        </label>
+                    </div>
+                    <p x-show="editForm.type_visuel === 'images' && existingEditReel" x-cloak class="mt-1.5 text-xs text-slate-500">Le reel actuel sera supprimé du serveur à l’enregistrement.</p>
+                    <p x-show="editForm.type_visuel === 'reel' && existingEditVisuels.length" x-cloak class="mt-1.5 text-xs text-slate-500">Les images actuelles seront supprimées du serveur à l’enregistrement.</p>
+                </div>
+
+                <div x-show="!supportsReel || editForm.type_visuel !== 'reel'">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Visuels <span class="text-slate-400 font-normal">(max {{ $maxVisuels ?? 10 }})</span></label>
                     <template x-for="id in editForm.remove_visuel_ids" :key="'rm'+id">
                         <input type="hidden" name="remove_visuel_ids[]" :value="id">
@@ -778,6 +810,7 @@
                         </div>
                     </div>
                     <input type="file" name="visuels[]" accept="image/jpeg,image/png,image/webp,image/gif" multiple
+                           :disabled="supportsReel && editForm.type_visuel === 'reel'"
                            @change="onEditVisuelsChange($event)"
                            class="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-escm-primary file:text-white hover:file:bg-escm-primary-dark">
                     <p class="mt-1 text-xs text-slate-500" x-text="`Ajouter des images (reste ${Math.max(0, maxVisuels - keptEditVisuels.length)} place(s)) — JPG/PNG/WEBP/GIF, max 5 Mo chacune`"></p>
@@ -790,7 +823,7 @@
                     </div>
                 </div>
 
-                <div x-show="supportsReel" x-cloak>
+                <div x-show="supportsReel && editForm.type_visuel === 'reel'" x-cloak>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Reel</label>
                     <input type="hidden" name="remove_reel" :value="editForm.remove_reel ? 1 : 0">
                     <div x-show="existingEditReel" x-cloak class="mb-2">
@@ -808,6 +841,7 @@
                         </div>
                     </div>
                     <input type="file" name="reel" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.m4v"
+                           :disabled="editForm.type_visuel !== 'reel'"
                            @change="onEditReelChange($event)"
                            class="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-escm-primary file:text-white hover:file:bg-escm-primary-dark">
                     <p class="mt-1 text-xs text-slate-500">MP4, WEBM ou MOV — 20 Mo maximum. Un nouveau fichier remplace le reel actuel.</p>
@@ -1025,6 +1059,7 @@ function editorialCalendar(config) {
             valide: !!config.old.valide,
             texte_publication: config.old.texte_publication || '',
             texte_publication_linkedin: config.old.texte_publication_linkedin || '',
+            type_visuel: config.old.type_visuel === 'reel' ? 'reel' : 'images',
         },
         editForm: {
             titre: '',
@@ -1040,6 +1075,7 @@ function editorialCalendar(config) {
             texte_publication_linkedin: '',
             remove_visuel_ids: [],
             remove_reel: false,
+            type_visuel: 'images',
         },
         maxVisuels: config.maxVisuels || 10,
         supportsReel: !!config.supportsReel,
@@ -1218,6 +1254,7 @@ function editorialCalendar(config) {
                     texte_publication_linkedin: config.old.texte_publication_linkedin || '',
                     remove_visuel_ids: [],
                     remove_reel: false,
+                    type_visuel: config.old.type_visuel === 'reel' ? 'reel' : (this.editingEvent && this.editingEvent.reel ? 'reel' : 'images'),
                 };
                 this.showEdit = true;
             }
@@ -1467,7 +1504,10 @@ function editorialCalendar(config) {
                 valide: false,
                 texte_publication: '',
                 texte_publication_linkedin: '',
+                type_visuel: 'images',
             };
+            this.createPreviews = [];
+            this.createReelPreview = null;
             this.showCreate = true;
         },
 
@@ -1519,6 +1559,7 @@ function editorialCalendar(config) {
                 texte_publication_linkedin: ev.texte_publication_linkedin || '',
                 remove_visuel_ids: [],
                 remove_reel: false,
+                type_visuel: (ev.reel && ev.reel.url) ? 'reel' : 'images',
             };
             this.editPreviews = [];
             this.editReelPreview = null;

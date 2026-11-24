@@ -103,8 +103,9 @@ class CalendrierEditorialController extends Controller
         $service = $this->resolveService($request);
         $meta = EditorialEvent::serviceMeta($service);
         $validated = $this->validateEvent($request, $service);
-        $files = $this->validatedVisuelFiles($request);
-        $reelFile = $this->supportsReel($service) ? $request->file('reel') : null;
+        $visualType = $this->visualType($request, $service);
+        $files = $visualType === 'images' ? $this->validatedVisuelFiles($request) : [];
+        $reelFile = $visualType === 'reel' ? $request->file('reel') : null;
         $categories = array_values($validated['categorie'] ?? []);
 
         if ($categories === []) {
@@ -202,9 +203,11 @@ class CalendrierEditorialController extends Controller
         $this->assertEventService($editorialEvent, $service);
         $meta = EditorialEvent::serviceMeta($service);
         $validated = $this->validateEvent($request, $service, $editorialEvent);
-        $files = $this->validatedVisuelFiles($request);
-        $reelFile = $this->supportsReel($service) ? $request->file('reel') : null;
-        $removeReel = $this->supportsReel($service) && $request->boolean('remove_reel');
+        $visualType = $this->visualType($request, $service);
+        $files = $visualType === 'images' ? $this->validatedVisuelFiles($request) : [];
+        $reelFile = $visualType === 'reel' ? $request->file('reel') : null;
+        $removeReel = $this->supportsReel($service) && ($visualType === 'images' || $request->boolean('remove_reel'));
+        $dropVisuels = $visualType === 'reel';
         $removeIds = array_values(array_filter(array_map('intval', (array) $request->input('remove_visuel_ids', []))));
         $categories = array_values($validated['categorie'] ?? []);
 
@@ -216,10 +219,15 @@ class CalendrierEditorialController extends Controller
 
         $createdCount = 0;
 
-        DB::transaction(function () use ($editorialEvent, $validated, $files, $reelFile, $removeReel, $removeIds, $categories, $service, &$createdCount) {
+        DB::transaction(function () use ($editorialEvent, $validated, $files, $reelFile, $removeReel, $removeIds, $dropVisuels, $categories, $service, &$createdCount) {
             $editorialEvent->load('visuels');
 
-            if ($removeIds) {
+            if ($dropVisuels) {
+                $editorialEvent->visuels
+                    ->each(fn (EditorialEventVisuel $v) => $v->delete());
+                $editorialEvent->unsetRelation('visuels');
+                $editorialEvent->load('visuels');
+            } elseif ($removeIds) {
                 $editorialEvent->visuels()
                     ->whereIn('id', $removeIds)
                     ->get()
@@ -376,20 +384,27 @@ class CalendrierEditorialController extends Controller
             'valide' => ['nullable', 'boolean'],
             'texte_publication' => ['nullable', 'string', 'max:5000'],
             'texte_publication_linkedin' => ['nullable', 'string', 'max:5000'],
-            'visuels' => ['nullable', 'array', 'max:'.EditorialEvent::MAX_VISUELS],
-            'visuels.*' => ['file', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
             'remove_visuel_ids' => ['nullable', 'array'],
             'remove_visuel_ids.*' => ['integer'],
         ];
 
+        $visualType = $this->visualType($request, $service);
+        if ($visualType === 'images') {
+            $rules['visuels'] = ['nullable', 'array', 'max:'.EditorialEvent::MAX_VISUELS];
+            $rules['visuels.*'] = ['file', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'];
+        }
+
         if ($this->supportsReel($service)) {
-            $rules['reel'] = ['nullable', 'file', 'max:20480', function (string $attribute, $value, \Closure $fail) {
-                $extension = strtolower((string) $value->getClientOriginalExtension());
-                if (! in_array($extension, ['mp4', 'webm', 'mov', 'm4v'], true)) {
-                    $fail('Le reel doit être une vidéo MP4, WEBM ou MOV.');
-                }
-            }];
-            $rules['remove_reel'] = ['nullable', 'boolean'];
+            $rules['type_visuel'] = ['nullable', Rule::in(['images', 'reel'])];
+            if ($visualType === 'reel') {
+                $rules['reel'] = ['nullable', 'file', 'max:20480', function (string $attribute, $value, \Closure $fail) {
+                    $extension = strtolower((string) $value->getClientOriginalExtension());
+                    if (! in_array($extension, ['mp4', 'webm', 'mov', 'm4v'], true)) {
+                        $fail('Le reel doit être une vidéo MP4, WEBM ou MOV.');
+                    }
+                }];
+                $rules['remove_reel'] = ['nullable', 'boolean'];
+            }
         }
 
         if ($isFacebookFi && $request->boolean('booster')) {
@@ -408,7 +423,7 @@ class CalendrierEditorialController extends Controller
             'reel.uploaded' => 'Le reel n’a pas pu être envoyé. La taille maximale est de 20 Mo.',
         ]);
 
-        unset($validated['visuels'], $validated['remove_visuel_ids'], $validated['reel'], $validated['remove_reel']);
+        unset($validated['visuels'], $validated['remove_visuel_ids'], $validated['reel'], $validated['remove_reel'], $validated['type_visuel']);
 
         $validated['categorie'] = array_values(array_unique($validated['categorie']));
         $validated['booster'] = $isFacebookFi && $request->boolean('booster');
@@ -468,6 +483,15 @@ class CalendrierEditorialController extends Controller
     private function supportsReel(string $service): bool
     {
         return in_array($service, [EditorialEvent::SERVICE_EDITORIAL, EditorialEvent::SERVICE_SAAN], true);
+    }
+
+    private function visualType(Request $request, string $service): string
+    {
+        if (! $this->supportsReel($service)) {
+            return 'images';
+        }
+
+        return $request->input('type_visuel') === 'reel' ? 'reel' : 'images';
     }
 
     /**

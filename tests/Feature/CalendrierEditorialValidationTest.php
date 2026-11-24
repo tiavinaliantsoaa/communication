@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Departement;
 use App\Models\EditorialEvent;
+use App\Models\EditorialEventVisuel;
 use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -115,6 +116,7 @@ class CalendrierEditorialValidationTest extends TestCase
         $this->actingAs($editor)
             ->post(route('calendrier-editorial.store'), $this->payload([
                 'titre' => 'Contenu reel',
+                'type_visuel' => 'reel',
                 'reel' => $reel,
             ]))
             ->assertRedirect()
@@ -135,11 +137,63 @@ class CalendrierEditorialValidationTest extends TestCase
         $this->actingAs($editor)
             ->post(route('calendrier-saan.store'), $this->payload([
                 'titre' => 'Reel trop lourd',
+                'type_visuel' => 'reel',
                 'reel' => $tooLarge,
             ]))
             ->assertSessionHasErrors('reel');
 
         $this->assertNull(EditorialEvent::query()->where('titre', 'Reel trop lourd')->first());
+    }
+
+    public function test_switching_visual_type_deletes_the_other_files(): void
+    {
+        Storage::fake('public');
+        $editor = $this->editor([
+            'calendrier_editorial.update',
+            'calendrier_editorial.create',
+        ]);
+        $event = $this->validatedEvent($editor, false);
+
+        $imagePath = 'editorial-visuels/photo.jpg';
+        Storage::disk('public')->put($imagePath, 'image');
+        $event->visuels()->create([
+            'path' => $imagePath,
+            'nom' => 'photo.jpg',
+            'position' => 0,
+        ]);
+        $reelPath = UploadedFile::fake()->create('story.mp4', 200, 'video/mp4')->store('editorial-reels', 'public');
+        $event->forceFill([
+            'reel_path' => $reelPath,
+            'reel_nom' => 'story.mp4',
+        ])->save();
+
+        $this->actingAs($editor)
+            ->put(route('calendrier-editorial.update', $event), $this->payload([
+                'type_visuel' => 'images',
+            ]))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $event->refresh();
+        $this->assertNull($event->reel_path);
+        Storage::disk('public')->assertMissing($reelPath);
+        $this->assertSame(1, $event->visuels()->count());
+        Storage::disk('public')->assertExists($imagePath);
+
+        $this->actingAs($editor)
+            ->put(route('calendrier-editorial.update', $event), $this->payload([
+                'type_visuel' => 'reel',
+                'reel' => UploadedFile::fake()->create('nouveau.mp4', 300, 'video/mp4'),
+            ]))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $event->refresh();
+        $this->assertSame(0, EditorialEventVisuel::query()->where('editorial_event_id', $event->id)->count());
+        Storage::disk('public')->assertMissing($imagePath);
+        $this->assertNotNull($event->reel_path);
+        $this->assertSame('nouveau.mp4', $event->reel_nom);
+        Storage::disk('public')->assertExists($event->reel_path);
     }
 
     public function test_krismasy_ignores_a_reel_upload(): void
