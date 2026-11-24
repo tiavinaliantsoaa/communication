@@ -49,6 +49,7 @@ class EditorialEvent extends Model
         'booster',
         'date_debut',
         'date_fin',
+        'heure_publication',
         'statut',
         'valide',
         'urgent',

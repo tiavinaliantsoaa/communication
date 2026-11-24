@@ -196,6 +196,46 @@ class CalendrierEditorialValidationTest extends TestCase
         Storage::disk('public')->assertExists($event->reel_path);
     }
 
+    public function test_publication_time_is_stored_apart_from_the_publication_date(): void
+    {
+        $editor = $this->editor([
+            'calendrier_editorial.create',
+            'calendrier_editorial.update',
+            'calendrier_editorial.view',
+        ]);
+
+        $this->actingAs($editor)
+            ->post(route('calendrier-editorial.store'), $this->payload([
+                'titre' => 'Publication horaire',
+                'date_debut' => '2026-10-20',
+                'heure_publication' => '09:30',
+            ]))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $event = EditorialEvent::query()->where('titre', 'Publication horaire')->firstOrFail();
+        $this->assertSame('2026-10-20', $event->date_debut->toDateString());
+        $this->assertSame('09:30', substr((string) $event->heure_publication, 0, 5));
+
+        $this->actingAs($editor)
+            ->put(route('calendrier-editorial.update', $event), $this->payload([
+                'titre' => 'Publication horaire',
+                'date_debut' => '2026-10-21',
+                'heure_publication' => '',
+            ]))
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $event->refresh();
+        $this->assertSame('2026-10-21', $event->date_debut->toDateString());
+        $this->assertNull($event->heure_publication);
+
+        $this->actingAs($editor)
+            ->get(route('calendrier-editorial'))
+            ->assertOk()
+            ->assertSee('Heure de publication', false);
+    }
+
     public function test_krismasy_ignores_a_reel_upload(): void
     {
         Storage::fake('public');
