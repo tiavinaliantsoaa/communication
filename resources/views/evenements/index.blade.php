@@ -13,7 +13,7 @@
         <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
             <input type="checkbox" name="toutes" value="1" @checked($toutes) onchange="this.form.submit()"
                    class="rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
-            Afficher toutes les évènements
+            Afficher tous les évènements
         </label>
     </form>
     <a href="{{ route('evenements.create') }}" class="inline-flex items-center gap-2 bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
