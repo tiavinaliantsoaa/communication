@@ -1,12 +1,26 @@
 @php
     $title = 'Événements';
-    $subtitle = 'Événements — '.ucfirst(\App\Support\Periode::label());
+    $subtitle = $toutes
+        ? 'Tous les événements'
+        : 'Événements — '.ucfirst(\App\Support\Periode::label());
 @endphp
 
 @extends('layouts.app')
 
 @section('content')
-<x-page-actions :create-route="route('evenements.create')" create-label="Nouvel événement" />
+<div class="flex items-center justify-end gap-4 mb-6">
+    <form method="GET" action="{{ route('evenements.index') }}">
+        <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+            <input type="checkbox" name="toutes" value="1" @checked($toutes) onchange="this.form.submit()"
+                   class="rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
+            Afficher toutes les évènements
+        </label>
+    </form>
+    <a href="{{ route('evenements.create') }}" class="inline-flex items-center gap-2 bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Nouvel événement
+    </a>
+</div>
 
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
     <div class="overflow-x-auto">

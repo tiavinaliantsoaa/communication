@@ -14,14 +14,21 @@ use Illuminate\Validation\Rule;
 
 class EvenementController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $evenements = Periode::whereOverlaps(Evenement::with('depense'))
+        $toutes = $request->boolean('toutes');
+        $query = Evenement::with('depense');
+
+        if (! $toutes) {
+            $query = Periode::whereOverlaps($query);
+        }
+
+        $evenements = $query
             ->orderByDesc('date_debut')
             ->paginate(15)
             ->withQueryString();
 
-        return view('evenements.index', compact('evenements'));
+        return view('evenements.index', compact('evenements', 'toutes'));
     }
 
     public function create()
