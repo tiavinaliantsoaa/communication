@@ -31,6 +31,7 @@ class CalendrierEditorialController extends Controller
             ->whereDate('date_debut', '<=', $rangeEnd)
             ->whereRaw('COALESCE(date_fin, date_debut) >= ?', [$rangeStart->toDateString()])
             ->orderBy('date_debut')
+            ->orderBy('heure_publication')
             ->get()
             ->map(fn (EditorialEvent $event) => $this->mapEvent($event, $meta));
 
@@ -380,6 +381,7 @@ class CalendrierEditorialController extends Controller
             'urgent' => ['nullable', 'boolean'],
             'date_debut' => ['required', 'date'],
             'date_fin' => ['nullable', 'date', 'after_or_equal:date_debut'],
+            'heure_publication' => ['nullable', 'date_format:H:i'],
             'statut' => ['required', Rule::in(['planifie', 'en_cours', 'publie', 'annule'])],
             'valide' => ['nullable', 'boolean'],
             'texte_publication' => ['nullable', 'string', 'max:5000'],
@@ -416,6 +418,7 @@ class CalendrierEditorialController extends Controller
             'categorie.min' => 'Sélectionnez au moins une catégorie.',
             'type_contenu.required' => 'Veuillez choisir FI ou FP.',
             'date_fin.required' => 'La date de fin est obligatoire lorsque Booster est activé.',
+            'heure_publication.date_format' => 'L’heure de publication doit être au format HH:MM.',
             'visuels.max' => 'Vous pouvez envoyer au maximum '.EditorialEvent::MAX_VISUELS.' images.',
             'visuels.*.mimes' => 'Chaque visuel doit être une image (jpg, png, webp, gif).',
             'visuels.*.max' => 'Chaque visuel ne doit pas dépasser 5 Mo.',
@@ -567,6 +570,16 @@ class CalendrierEditorialController extends Controller
         ]);
     }
 
+    private function formatHeure(mixed $value): ?string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        return substr($value, 0, 5);
+    }
+
     private function mapEvent(EditorialEvent $event, array $meta): array
     {
         $catMeta = $event->categorie_meta;
@@ -586,6 +599,7 @@ class CalendrierEditorialController extends Controller
             'urgent' => (bool) $event->urgent,
             'date_debut' => $event->date_debut->toDateString(),
             'date_fin' => ($event->date_fin ?? $event->date_debut)->toDateString(),
+            'heure_publication' => $this->formatHeure($event->heure_publication),
             'statut' => $event->statut,
             'valide' => (bool) $event->valide,
             'texte_publication' => $event->texte_publication,

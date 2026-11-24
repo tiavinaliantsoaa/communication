@@ -40,6 +40,7 @@
             'urgent' => (bool) old('urgent', false),
             'date_debut' => old('date_debut', $currentDate),
             'date_fin' => old('date_fin', ''),
+            'heure_publication' => old('heure_publication', ''),
             'statut' => old('statut', 'planifie'),
             'valide' => (bool) old('valide', false),
             'texte_publication' => old('texte_publication', ''),
@@ -251,6 +252,7 @@
                                                 :style="isFlashing(ev) ? '' : `background:${ev.color};color:${ev.text}`"
                                                 :title="ev.titre + (ev.type_contenu ? ' [' + ev.type_contenu + ']' : '') + (ev.booster ? ' · Booster' : '') + (ev.urgent ? ' · Urgent' : '') + (isJMoinsUn(ev) ? ' · J−1' : '')"
                                             >
+                                                <span x-show="ev.heure_publication" class="opacity-90" x-text="ev.heure_publication + ' '"></span>
                                                 <span x-show="ev.type_contenu" class="opacity-90" x-text="'[' + ev.type_contenu + '] '"></span>
                                                 <span x-text="ev.titre"></span>
                                                 <span x-show="ev.booster" class="opacity-90"> · Boost</span>
@@ -287,6 +289,9 @@
                                         <div class="text-sm font-semibold text-slate-800 truncate" x-text="ev.titre"></div>
                                         <div class="text-xs text-slate-500 mt-0.5">
                                             <span x-text="formatDate(ev.date_debut)"></span>
+                                            <template x-if="ev.heure_publication">
+                                                <span x-text="' · ' + ev.heure_publication"></span>
+                                            </template>
                                             <template x-if="ev.date_fin !== ev.date_debut">
                                                 <span> → <span x-text="formatDate(ev.date_fin)"></span></span>
                                             </template>
@@ -372,6 +377,7 @@
                         <div class="flex gap-2" x-show="selectedEvent.urgent"><dt class="text-slate-500 w-28 shrink-0">Urgent</dt><dd class="text-red-600 font-semibold">Oui</dd></div>
                         <div class="flex gap-2" x-show="isJMoinsUn(selectedEvent)"><dt class="text-slate-500 w-28 shrink-0">Alerte</dt><dd class="text-red-600 font-semibold">J−1</dd></div>
                         <div class="flex gap-2"><dt class="text-slate-500 w-28 shrink-0">Début</dt><dd class="text-slate-800" x-text="formatDate(selectedEvent.date_debut)"></dd></div>
+                        <div class="flex gap-2" x-show="selectedEvent.heure_publication"><dt class="text-slate-500 w-28 shrink-0">Heure</dt><dd class="text-slate-800" x-text="selectedEvent.heure_publication"></dd></div>
                         <div class="flex gap-2" x-show="selectedEvent.date_fin !== selectedEvent.date_debut || selectedEvent.booster"><dt class="text-slate-500 w-28 shrink-0">Fin</dt><dd class="text-slate-800" x-text="formatDate(selectedEvent.date_fin)"></dd></div>
                         <div class="flex gap-2"><dt class="text-slate-500 w-28 shrink-0">Statut</dt><dd class="text-slate-800" x-text="statutLabel(selectedEvent.statut)"></dd></div>
                         <div class="flex gap-2"><dt class="text-slate-500 w-28 shrink-0">Validé</dt><dd class="text-slate-800" x-text="selectedEvent.valide ? 'Oui' : 'Non'"></dd></div>
@@ -555,6 +561,12 @@
                         <input type="date" name="date_fin" x-model="form.date_fin" :required="isFacebookFi && form.booster"
                                class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
                     </div>
+                </div>
+
+                <div class="sm:w-1/2">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Heure de publication</label>
+                    <input type="time" name="heure_publication" x-model="form.heure_publication"
+                           class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
                 </div>
 
                 <div>
@@ -750,6 +762,12 @@
                         <input type="date" name="date_fin" x-model="editForm.date_fin" :required="isEditFacebookFi && editForm.booster"
                                class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
                     </div>
+                </div>
+
+                <div class="sm:w-1/2">
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Heure de publication</label>
+                    <input type="time" name="heure_publication" x-model="editForm.heure_publication"
+                           class="w-full rounded-lg border-slate-300 shadow-sm focus:border-escm-primary focus:ring-escm-primary text-sm">
                 </div>
 
                 <div>
@@ -1055,6 +1073,7 @@ function editorialCalendar(config) {
             urgent: !!config.old.urgent,
             date_debut: config.old.date_debut || config.currentDate,
             date_fin: config.old.date_fin || '',
+            heure_publication: config.old.heure_publication || '',
             statut: config.old.statut || 'planifie',
             valide: !!config.old.valide,
             texte_publication: config.old.texte_publication || '',
@@ -1069,6 +1088,7 @@ function editorialCalendar(config) {
             urgent: false,
             date_debut: config.currentDate,
             date_fin: '',
+            heure_publication: '',
             statut: 'planifie',
             valide: false,
             texte_publication: '',
@@ -1248,6 +1268,7 @@ function editorialCalendar(config) {
                     urgent: !!config.old.urgent,
                     date_debut: config.old.date_debut || this.currentDate,
                     date_fin: config.old.date_fin || '',
+                    heure_publication: config.old.heure_publication || '',
                     statut: config.old.statut || 'planifie',
                     valide: !!config.old.valide,
                     texte_publication: config.old.texte_publication || '',
@@ -1500,6 +1521,7 @@ function editorialCalendar(config) {
                 urgent: false,
                 date_debut: dateStr || this.currentDate,
                 date_fin: '',
+                heure_publication: '',
                 statut: 'planifie',
                 valide: false,
                 texte_publication: '',
@@ -1553,6 +1575,7 @@ function editorialCalendar(config) {
                 urgent: !!ev.urgent,
                 date_debut: ev.date_debut || this.currentDate,
                 date_fin: (ev.date_fin && ev.date_fin !== ev.date_debut) ? ev.date_fin : '',
+                heure_publication: ev.heure_publication || '',
                 statut: ev.statut || 'planifie',
                 valide: !!ev.valide,
                 texte_publication: ev.texte_publication || '',
