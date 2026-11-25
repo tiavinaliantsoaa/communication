@@ -171,10 +171,10 @@
             <span class="text-[11px] text-slate-500">Ajout / remplacement possible — fiche profil verrouillée</span>
         @endif
     </div>
-    <div class="divide-y divide-slate-100">
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 px-5 py-4">
         @forelse($documentTypes as $docType)
             @php $docs = $docsByType->get($docType->id, collect()); @endphp
-            <div class="px-5 py-4 space-y-3">
+            <div class="min-w-0">
                 <div class="flex flex-col sm:flex-row sm:items-start gap-3">
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center gap-2 flex-wrap">
@@ -223,7 +223,7 @@
                 </div>
             </div>
         @empty
-            <div class="px-5 py-10 text-center text-sm text-slate-500">
+            <div class="sm:col-span-2 py-6 text-center text-sm text-slate-500">
                 Aucun type de document défini. Configurez-les dans <a href="{{ route('crm.settings') }}" class="text-escm-primary hover:underline">Paramètres CRM</a>.
             </div>
         @endforelse

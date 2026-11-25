@@ -4,6 +4,7 @@ namespace Tests\Feature\Crm;
 
 use App\Models\CrmActivity;
 use App\Models\CrmCandidate;
+use App\Models\CrmDocumentType;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
@@ -58,6 +59,38 @@ class CandidateAbandonTest extends TestCase
             'type' => CrmActivity::TYPE_ABANDON,
             'title' => 'Candidature abandonnée',
         ]);
+    }
+
+    public function test_documents_tab_lists_files_in_two_columns(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'super_admin',
+            'password' => 'password',
+        ]);
+        $candidate = CrmCandidate::create([
+            'prenom' => 'Daniel',
+            'nom' => 'Somity',
+            'statut' => 'prospect',
+            'advisor_id' => $user->id,
+            'abandon' => false,
+        ]);
+        CrmDocumentType::create(['label' => 'CV', 'actif' => true, 'position' => 1]);
+        CrmDocumentType::create(['label' => 'Diplôme', 'actif' => true, 'position' => 2]);
+
+        $html = $this->actingAs($user)
+            ->get(route('crm.candidats.show', ['candidat' => $candidate, 'tab' => 'documents']))
+            ->assertOk()
+            ->assertSee('Documents du dossier')
+            ->assertSee('Ajouter / remplacer des fichiers')
+            ->assertSee('CV')
+            ->assertSee('Diplôme')
+            ->getContent();
+
+        $start = strpos($html, 'Documents du dossier');
+        $form = strpos($html, 'Ajouter / remplacer des fichiers');
+        $this->assertNotFalse($start);
+        $this->assertGreaterThan($start, $form);
+        $this->assertStringContainsString('sm:grid-cols-2', substr($html, $start, $form - $start));
     }
 
     public function test_candidats_menu_lists_active_candidates_and_abandons_menu_lists_dropouts(): void
