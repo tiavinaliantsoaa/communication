@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Departement;
 use App\Models\ProjetActivite;
 use App\Models\ProjetCarte;
 use App\Models\ProjetChecklist;
@@ -43,11 +44,26 @@ class ProjetController extends Controller
         }]);
 
         $listes = $tableau->listes;
+        $departementId = auth()->user()?->currentDepartementId();
+        if ($departementId) {
+            ProjetCarte::mergeShared($listes, $departementId);
+        }
         $etiquettes = ProjetEtiquette::orderBy('nom')->get();
         $users = User::query()->inCurrentDepartement()->orderBy('name')->get(['id', 'name', 'email', 'avatar_path']);
+        $externalUsers = User::query()
+            ->where('role', '!=', 'parent')
+            ->whereNotNull('departement_id')
+            ->when($departementId, fn ($query) => $query->where('departement_id', '!=', $departementId))
+            ->with('departement:id,nom')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'avatar_path', 'departement_id']);
         $mentionUsers = $users->map->toMentionArray()->values();
         $cartes = $listes->flatMap(function (ProjetListe $liste) {
-            return $liste->cartes->each(fn (ProjetCarte $carte) => $carte->setRelation('liste', $liste));
+            return $liste->cartes->each(function (ProjetCarte $carte) use ($liste) {
+                if (empty($carte->externe)) {
+                    $carte->setRelation('liste', $liste);
+                }
+            });
         });
         $assignees = $users->map(function (User $user) use ($cartes) {
             $taches = $cartes
@@ -74,6 +90,7 @@ class ProjetController extends Controller
             'listes' => $listes,
             'etiquettes' => $etiquettes,
             'users' => $users,
+            'externalUsers' => $externalUsers,
             'mentionUsers' => $mentionUsers,
             'assignees' => $assignees,
         ]);
@@ -225,8 +242,8 @@ class ProjetController extends Controller
     public function show(ProjetCarte $projet)
     {
         $projet->load([
-            'liste',
-            'etiquettes',
+            'liste' => fn ($query) => $query->withoutGlobalScope('departement'),
+            'etiquettes' => fn ($query) => $query->withoutGlobalScope('departement'),
             'membres',
             'checklists.items',
             'commentaires.user',
@@ -237,7 +254,11 @@ class ProjetController extends Controller
             'createur',
         ]);
 
-        $listes = ProjetListe::orderBy('position')->get(['id', 'nom']);
+        $listes = ProjetListe::withoutGlobalScope('departement')
+            ->where('projet_tableau_id', $projet->liste?->projet_tableau_id)
+            ->orderBy('position')
+            ->get(['id', 'nom']);
+        $departementId = auth()->user()?->currentDepartementId();
 
         return response()->json([
             'id' => $projet->id,
@@ -250,6 +271,8 @@ class ProjetController extends Controller
             'date_badge' => $projet->dateBadgeLabel(),
             'is_overdue' => $projet->isOverdue(),
             'is_done' => $projet->isDone(),
+            'externe' => $departementId && (int) $projet->departement_id !== (int) $departementId,
+            'departement_source' => Departement::query()->whereKey($projet->departement_id)->value('nom'),
             'listes' => $listes,
             'etiquettes' => $projet->etiquettes->map(fn ($e) => [
                 'id' => $e->id,
@@ -294,7 +317,9 @@ class ProjetController extends Controller
         ]);
 
         if (isset($data['projet_liste_id'])) {
-            ProjetListe::query()->findOrFail($data['projet_liste_id']);
+            $liste = ProjetListe::withoutGlobalScope('departement')->findOrFail($data['projet_liste_id']);
+            $origine = ProjetListe::withoutGlobalScope('departement')->find($projet->projet_liste_id);
+            abort_unless($origine && (int) $liste->projet_tableau_id === (int) $origine->projet_tableau_id, 404);
         }
 
         $oldListeId = $projet->projet_liste_id;
@@ -356,11 +381,18 @@ class ProjetController extends Controller
         $carte = ProjetCarte::query()->findOrFail($data['carte_id']);
         $oldListeId = $carte->projet_liste_id;
         $liste = ProjetListe::query()->findOrFail($data['projet_liste_id']);
+        if ((int) $carte->departement_id !== (int) $liste->departement_id) {
+            return response()->json(['message' => 'Ce projet appartient à un autre département.'], 422);
+        }
         $ids = array_values(array_unique(array_map('intval', $data['ordered_ids'])));
         abort_unless(ProjetCarte::query()->whereIn('id', $ids)->count() === count($ids), 404);
 
         foreach ($data['ordered_ids'] as $index => $id) {
-            ProjetCarte::query()->whereKey($id)->update([
+            $row = ProjetCarte::query()->find($id);
+            if (! $row || (int) $row->departement_id !== (int) $liste->departement_id) {
+                continue;
+            }
+            $row->update([
                 'projet_liste_id' => $liste->id,
                 'position' => $index,
             ]);
@@ -386,8 +418,7 @@ class ProjetController extends Controller
         ]);
 
         $before = $projet->membres()->allRelatedIds()->map(fn ($id) => (int) $id);
-        $allowedIds = User::query()->inCurrentDepartement()->pluck('id');
-        $after = collect($data['user_ids'] ?? [])->map(fn ($id) => (int) $id)->unique()->intersect($allowedIds)->values();
+        $after = collect($data['user_ids'] ?? [])->map(fn ($id) => (int) $id)->unique()->values();
 
         $projet->membres()->sync($after->all());
         $projet->load('membres');

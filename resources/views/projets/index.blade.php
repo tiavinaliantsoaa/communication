@@ -144,6 +144,7 @@
                             <article
                                 data-id="{{ $carte->id }}"
                                 data-titre="{{ $carte->titre }}"
+                                @if(!empty($carte->externe)) data-externe="1" @endif
                                 x-show="matchesSearch(@js($carte->titre))"
                                 @click="openCard({{ $carte->id }})"
                                 class="group cursor-pointer bg-white rounded-lg border border-slate-200 shadow-sm hover:border-escm-primary/40 hover:shadow-md transition p-3"
@@ -159,6 +160,9 @@
                                     </div>
                                 @endif
 
+                                @if(!empty($carte->externe))
+                                    <p class="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{{ $carte->departement_source }}</p>
+                                @endif
                                 <p class="text-sm font-medium text-slate-900 leading-snug">{{ $carte->titre }}</p>
 
                                 <div class="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
@@ -335,6 +339,7 @@
 
                     <div class="grid grid-cols-1 lg:grid-cols-5 gap-0 min-w-0">
                         <div class="lg:col-span-3 p-5 space-y-5 border-b lg:border-b-0 lg:border-r border-slate-100 min-w-0">
+                            <p x-show="card.externe" x-cloak class="text-xs font-semibold uppercase tracking-wide text-slate-400" x-text="card.departement_source"></p>
                             <input
                                 type="text"
                                 x-model="card.titre"
@@ -350,7 +355,13 @@
                             </div>
 
                             <div x-show="showMembers" x-cloak class="rounded-lg border border-slate-200 p-3 bg-slate-50">
-                                <p class="text-xs font-semibold text-slate-600 mb-2">Membres</p>
+                                <div class="flex items-center justify-between gap-3 mb-2">
+                                    <p class="text-xs font-semibold text-slate-600">Membres</p>
+                                    <label class="inline-flex items-center gap-2 text-xs font-medium text-slate-600 cursor-pointer">
+                                        <input type="checkbox" x-model="membreExterne" class="rounded border-slate-300 text-escm-primary focus:ring-escm-primary">
+                                        Membre externe
+                                    </label>
+                                </div>
                                 <div class="space-y-1 max-h-40 overflow-y-auto">
                                     @foreach($users as $user)
                                         <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer hover:bg-white rounded px-2 py-1">
@@ -359,6 +370,16 @@
                                                    @change="toggleMember({{ $user->id }})">
                                             <x-user-avatar :user="$user" size="xs" />
                                             {{ $user->name }}
+                                        </label>
+                                    @endforeach
+                                    @foreach($externalUsers as $user)
+                                        <label x-show="membreExterne" x-cloak class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer hover:bg-white rounded px-2 py-1">
+                                            <input type="checkbox" value="{{ $user->id }}"
+                                                   :checked="card.membres.some(m => m.id === {{ $user->id }})"
+                                                   @change="toggleMember({{ $user->id }})">
+                                            <x-user-avatar :user="$user" size="xs" />
+                                            <span class="min-w-0 truncate">{{ $user->name }}</span>
+                                            <span class="ml-auto shrink-0 text-[11px] text-slate-400">{{ $user->departement?->nom }}</span>
                                         </label>
                                     @endforeach
                                 </div>
@@ -854,6 +875,7 @@ function projetBoard() {
         openAssigneeId: null,
         canDeleteChecklist: @json(auth()->user()?->isSuperAdmin() ?? false),
         showMembers: false,
+        membreExterne: false,
         showLabels: false,
         showAttach: false,
         newComment: '',
@@ -916,6 +938,8 @@ function projetBoard() {
                     animation: 150,
                     ghostClass: 'opacity-40',
                     draggable: 'article',
+                    filter: '[data-externe]',
+                    preventOnFilter: true,
                     onEnd: (evt) => this.onMove(evt),
                 });
             });
@@ -1013,6 +1037,7 @@ function projetBoard() {
             this.open = true;
             this.loading = true;
             this.showMembers = false;
+            this.membreExterne = false;
             this.showLabels = false;
             this.showAttach = false;
             this.editingDescription = false;

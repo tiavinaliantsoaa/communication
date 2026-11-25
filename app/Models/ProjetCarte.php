@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -131,6 +132,60 @@ class ProjetCarte extends Model
             'total' => $total,
             'percent' => $percent,
         ];
+    }
+
+    /**
+     * Cards owned by another department that include a member of this one
+     * are shown on the matching column of this department's board.
+     *
+     * @param  Collection<int, ProjetListe>  $listes
+     */
+    public static function mergeShared(Collection $listes, int $departementId): void
+    {
+        if ($listes->isEmpty()) {
+            return;
+        }
+
+        $shared = static::query()
+            ->where('departement_id', '!=', $departementId)
+            ->whereHas('membres', fn ($query) => $query->where('users.departement_id', $departementId))
+            ->with([
+                'etiquettes' => fn ($query) => $query->withoutGlobalScope('departement'),
+                'membres',
+                'checklists.items',
+                'commentaires',
+                'piecesJointes',
+                'liste' => fn ($query) => $query->withoutGlobalScope('departement'),
+            ])
+            ->orderBy('position')
+            ->get();
+
+        if ($shared->isEmpty()) {
+            return;
+        }
+
+        $noms = Departement::query()->pluck('nom', 'id');
+        $bySlug = $listes->keyBy('slug');
+        $byNom = $listes->keyBy(fn (ProjetListe $liste) => mb_strtolower($liste->nom));
+
+        foreach ($shared as $carte) {
+            $source = $carte->liste;
+            $liste = null;
+            if ($source) {
+                $liste = $bySlug->get($source->slug) ?: $byNom->get(mb_strtolower((string) $source->nom));
+            }
+            if (! $liste && $carte->isDone()) {
+                $liste = $listes->first(fn (ProjetListe $item) => $item->isTermine());
+            }
+            $liste ??= $listes->first(fn (ProjetListe $item) => ! $item->isTermine()) ?: $listes->first();
+            if (! $liste) {
+                continue;
+            }
+
+            $carte->externe = true;
+            $carte->departement_source = $noms[$carte->departement_id] ?? '';
+            $liste->setRelation('cartes', $liste->cartes->push($carte));
+        }
     }
 
     public function findTermineListe(): ?ProjetListe

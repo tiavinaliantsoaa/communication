@@ -22,7 +22,99 @@ class DepartementScope implements Scope
             return;
         }
 
-        $builder->where($model->getTable().'.departement_id', $departementId);
+        $table = $model->getTable();
+        if ($model instanceof ProjetCarte) {
+            $builder->where(function ($query) use ($table, $departementId) {
+                $query->where($table.'.departement_id', $departementId)
+                    ->orWhereExists(function ($member) use ($table, $departementId) {
+                        $this->memberOfDepartement($member, $table.'.id', $departementId);
+                    });
+            });
+
+            return;
+        }
+
+        $carteIdColumn = match ($model::class) {
+            ProjetChecklist::class, ProjetCommentaire::class, ProjetPieceJointe::class, ProjetActivite::class => $table.'.projet_carte_id',
+            default => null,
+        };
+        if ($carteIdColumn) {
+            $this->whereCarteVisible($builder, $table, $carteIdColumn, $departementId);
+
+            return;
+        }
+
+        if ($model instanceof ProjetChecklistItem) {
+            $this->whereOwnedOrLinked($builder, $table, function ($sub) use ($table, $departementId) {
+                $sub->selectRaw('1')
+                    ->from('projet_checklists')
+                    ->join('projet_cartes', 'projet_cartes.id', '=', 'projet_checklists.projet_carte_id')
+                    ->whereColumn('projet_checklists.id', $table.'.projet_checklist_id')
+                    ->where(function ($query) use ($departementId) {
+                        $query->where('projet_cartes.departement_id', $departementId)
+                            ->orWhereExists(function ($member) use ($departementId) {
+                                $this->memberOfDepartement($member, 'projet_cartes.id', $departementId);
+                            });
+                    });
+            }, $departementId);
+
+            return;
+        }
+
+        if ($model instanceof ProjetCommentaireImage || $model instanceof ProjetCommentaireReaction) {
+            $this->whereOwnedOrLinked($builder, $table, function ($sub) use ($table, $departementId) {
+                $sub->selectRaw('1')
+                    ->from('projet_commentaires')
+                    ->join('projet_cartes', 'projet_cartes.id', '=', 'projet_commentaires.projet_carte_id')
+                    ->whereColumn('projet_commentaires.id', $table.'.projet_commentaire_id')
+                    ->where(function ($query) use ($departementId) {
+                        $query->where('projet_cartes.departement_id', $departementId)
+                            ->orWhereExists(function ($member) use ($departementId) {
+                                $this->memberOfDepartement($member, 'projet_cartes.id', $departementId);
+                            });
+                    });
+            }, $departementId);
+
+            return;
+        }
+
+        $builder->where($table.'.departement_id', $departementId);
+    }
+
+    /**
+     * A row is visible when it belongs to the department, when its card does,
+     * or when that card includes a member of the department.
+     */
+    private function whereCarteVisible(Builder $builder, string $table, string $carteIdColumn, int $departementId): void
+    {
+        $this->whereOwnedOrLinked($builder, $table, function ($sub) use ($carteIdColumn, $departementId) {
+            $sub->selectRaw('1')
+                ->from('projet_cartes')
+                ->whereColumn('projet_cartes.id', $carteIdColumn)
+                ->where(function ($query) use ($departementId) {
+                    $query->where('projet_cartes.departement_id', $departementId)
+                        ->orWhereExists(function ($member) use ($departementId) {
+                            $this->memberOfDepartement($member, 'projet_cartes.id', $departementId);
+                        });
+                });
+        }, $departementId);
+    }
+
+    private function whereOwnedOrLinked(Builder $builder, string $table, \Closure $linked, int $departementId): void
+    {
+        $builder->where(function ($query) use ($table, $linked, $departementId) {
+            $query->where($table.'.departement_id', $departementId)
+                ->orWhereExists($linked);
+        });
+    }
+
+    private function memberOfDepartement($sub, string $carteIdColumn, int $departementId): void
+    {
+        $sub->selectRaw('1')
+            ->from('projet_carte_user')
+            ->join('users', 'users.id', '=', 'projet_carte_user.user_id')
+            ->whereColumn('projet_carte_user.projet_carte_id', $carteIdColumn)
+            ->where('users.departement_id', $departementId);
     }
 
     /**

@@ -26,6 +26,10 @@ class ProjetApiController extends Controller
                 'piecesJointes',
             ])->orderBy('position');
         }]);
+        $departementId = auth()->user()?->currentDepartementId();
+        if ($departementId) {
+            ProjetCarte::mergeShared($tableau->listes, $departementId);
+        }
 
         return response()->json([
             'tableau' => [
