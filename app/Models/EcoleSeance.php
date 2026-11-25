@@ -12,6 +12,7 @@ class EcoleSeance extends Model
         'ecole_groupe_id',
         'ecole_matiere_id',
         'ecole_enseignant_id',
+        'ecole_salle_id',
         'date',
         'jour',
         'heure_debut',
@@ -29,6 +30,11 @@ class EcoleSeance extends Model
     public function groupe(): BelongsTo
     {
         return $this->belongsTo(EcoleGroupe::class, 'ecole_groupe_id');
+    }
+
+    public function salleLiee(): BelongsTo
+    {
+        return $this->belongsTo(EcoleSalle::class, 'ecole_salle_id');
     }
 
     public function matiereLiee(): BelongsTo

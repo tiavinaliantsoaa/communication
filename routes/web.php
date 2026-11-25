@@ -116,6 +116,8 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         Route::delete('/retards-absences/{assiduite}', [EcoleController::class, 'destroyAbsence'])->name('absences.destroy');
         Route::get('/bulletins', [EcoleController::class, 'bulletins'])->name('bulletins.index');
         Route::get('/parametres', [EcoleController::class, 'parametres'])->name('parametres.index');
+        Route::post('/parametres/salles', [EcoleController::class, 'storeSalle'])->name('parametres.salles.store');
+        Route::delete('/parametres/salles/{salle}', [EcoleController::class, 'destroySalle'])->name('parametres.salles.destroy');
     });
 
     ResourceRoutes::register('budget-annuels', BudgetAnnuelController::class, 'budget_annuel');

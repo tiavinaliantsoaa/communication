@@ -35,6 +35,24 @@ class DiscussionTest extends TestCase
             ->assertDontSee('/statistiques', false);
     }
 
+    public function test_project_management_is_listed_under_campaigns(): void
+    {
+        $user = User::factory()->create([
+            'role' => 'super_admin',
+            'password' => 'password',
+        ]);
+
+        $html = $this->actingAs($user)->get(route('dashboard'))->assertOk()->getContent();
+        $campagnes = strpos($html, 'Campagnes');
+        $projet = strpos($html, 'Gestion de projet');
+        $suivi = strpos($html, 'Suivi de lien');
+
+        $this->assertNotFalse($campagnes);
+        $this->assertNotFalse($projet);
+        $this->assertGreaterThan($campagnes, $projet);
+        $this->assertGreaterThan($projet, $suivi);
+    }
+
     public function test_only_members_can_read_and_poll_a_group(): void
     {
         $author = $this->member('communication');

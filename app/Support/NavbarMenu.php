@@ -26,7 +26,7 @@ class NavbarMenu
             ['key' => 'budget_mensuel', 'label' => 'Budget mensuel', 'group' => 'Budget & Dépenses', 'permission' => 'budget_mensuel.view', 'routes' => ['budgets.*']],
             ['key' => 'depenses', 'label' => 'Dépenses', 'group' => 'Budget & Dépenses', 'permission' => 'depenses.view', 'routes' => ['depenses.*']],
             ['key' => 'fournisseurs', 'label' => 'Fournisseurs', 'group' => 'Budget & Dépenses', 'permission' => 'fournisseurs.view', 'routes' => ['fournisseurs.*']],
-            ['key' => 'gestion_projet', 'label' => 'Gestion de projet', 'group' => 'Budget & Dépenses', 'permission' => 'gestion_projet.view', 'routes' => ['gestion-projet.*']],
+            ['key' => 'gestion_projet', 'label' => 'Gestion de projet', 'group' => 'Campagnes', 'permission' => 'gestion_projet.view', 'routes' => ['gestion-projet.*']],
             ['key' => 'campagnes', 'label' => 'Campagnes (Boost FB)', 'group' => 'Campagnes', 'permission' => 'campagnes.view', 'routes' => ['campagnes.*']],
             ['key' => 'calendrier_editorial', 'label' => 'Calendrier ESCM', 'group' => 'Campagnes', 'permission' => 'calendrier_editorial.view', 'routes' => ['calendrier-editorial', 'calendrier-editorial.*']],
             ['key' => 'calendrier_saan', 'label' => 'Calendrier SAAN', 'group' => 'Campagnes', 'permission' => 'calendrier_saan.view', 'routes' => ['calendrier-saan', 'calendrier-saan.*']],

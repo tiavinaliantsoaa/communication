@@ -10,6 +10,7 @@ use App\Models\EcoleSeance;
 use App\Models\Permission;
 use App\Services\AccessService;
 use App\Models\EcoleMatiere;
+use App\Models\EcoleSalle;
 use App\Models\User;
 use App\Support\EcoleTimetable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -70,6 +71,11 @@ class EcoleDashboardTest extends TestCase
         $tropTot = EcoleMatiere::query()->where('nom', 'Trop tot')->firstOrFail();
         $autre = EcoleMatiere::query()->where('nom', 'COURS AUTRE SEMAINE')->firstOrFail();
         $professeur = EcoleEnseignant::query()->firstOrFail();
+        $this->post(route('ecole.parametres.salles.store'), [
+            'nom' => 'Grasse',
+            'capacite' => 30,
+        ])->assertRedirect(route('ecole.parametres.index'));
+        $grasse = EcoleSalle::query()->where('nom', 'Grasse')->firstOrFail();
 
         $jeudi = EcoleTimetable::monday()->addDays(3);
 
@@ -80,7 +86,7 @@ class EcoleDashboardTest extends TestCase
             'heure_fin' => '09:00',
             'ecole_matiere_id' => $com->id,
             'ecole_enseignant_id' => $professeur->id,
-            'salle' => 'Grasse',
+            'ecole_salle_id' => $grasse->id,
         ])->assertRedirect(route('ecole.emplois.index', [
             'groupe' => $b1->id,
             'semaine' => EcoleTimetable::monday()->toDateString(),
@@ -319,5 +325,72 @@ class EcoleDashboardTest extends TestCase
             ->assertSee('E26-011')
             ->assertSee('Antananarivo')
             ->assertSee('2026-2027: B1 G1');
+    }
+
+    public function test_a_classroom_is_refused_when_the_group_is_larger_than_its_capacity(): void
+    {
+        $pedagogique = Departement::query()->where('slug', 'pedagogique')->firstOrFail();
+        $admin = User::factory()->create([
+            'role' => 'super_admin',
+            'departement_id' => $pedagogique->id,
+            'password' => 'password',
+        ]);
+        $this->actingAs($admin)->withSession(['departement_actif_id' => $pedagogique->id]);
+
+        $this->post(route('ecole.parametres.salles.store'), [
+            'nom' => 'Grasse',
+            'capacite' => 1,
+        ])->assertRedirect(route('ecole.parametres.index'));
+
+        $this->get(route('ecole.parametres.index'))
+            ->assertOk()
+            ->assertSee('Liste des salles de classe')
+            ->assertSee('Grasse')
+            ->assertSee('1 étudiant');
+
+        $this->post(route('ecole.groupes.store'), ['nom' => 'B1'])->assertRedirect();
+        $groupe = EcoleGroupe::query()->where('nom', 'B1')->firstOrFail();
+        $this->post(route('ecole.etudiants.store'), ['prenom' => 'Aina', 'nom' => 'Rabe', 'ecole_groupe_id' => $groupe->id]);
+        $this->post(route('ecole.etudiants.store'), ['prenom' => 'Mialy', 'nom' => 'Rasoanaivo', 'ecole_groupe_id' => $groupe->id]);
+        $this->post(route('ecole.matieres.store'), ['nom' => 'COM']);
+        $this->post(route('ecole.enseignants.store'), ['prenom' => 'Hery', 'nom' => 'Rakoto']);
+
+        $salle = EcoleSalle::query()->where('nom', 'Grasse')->firstOrFail();
+        $jeudi = EcoleTimetable::monday()->addDays(3);
+
+        $this->get(route('ecole.emplois.index', ['groupe' => $groupe->id]))
+            ->assertOk()
+            ->assertSee('Grasse — 1 étudiant');
+
+        $this->from(route('ecole.emplois.index', ['groupe' => $groupe->id]))
+            ->post(route('ecole.emplois.store'), [
+            'ecole_groupe_id' => $groupe->id,
+            'date' => $jeudi->toDateString(),
+            'heure_debut' => '08:00',
+            'heure_fin' => '09:00',
+            'ecole_matiere_id' => EcoleMatiere::query()->where('nom', 'COM')->value('id'),
+            'ecole_enseignant_id' => EcoleEnseignant::query()->value('id'),
+            'ecole_salle_id' => $salle->id,
+        ])->assertRedirect(route('ecole.emplois.index', ['groupe' => $groupe->id]))
+            ->assertSessionHasErrors('ecole_salle_id');
+
+        $this->get(route('ecole.emplois.index', ['groupe' => $groupe->id]))
+            ->assertSee('Incompatibilité : le groupe B1 compte 2 élèves, la salle Grasse ne peut accueillir que 1 personne.');
+
+        $this->assertSame(0, EcoleSeance::query()->count());
+
+        $salle->update(['capacite' => 2]);
+
+        $this->post(route('ecole.emplois.store'), [
+            'ecole_groupe_id' => $groupe->id,
+            'date' => $jeudi->toDateString(),
+            'heure_debut' => '08:00',
+            'heure_fin' => '09:00',
+            'ecole_matiere_id' => EcoleMatiere::query()->where('nom', 'COM')->value('id'),
+            'ecole_enseignant_id' => EcoleEnseignant::query()->value('id'),
+            'ecole_salle_id' => $salle->id,
+        ])->assertRedirect();
+
+        $this->assertSame('Grasse', EcoleSeance::query()->firstOrFail()->salle);
     }
 }

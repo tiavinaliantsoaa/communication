@@ -67,10 +67,19 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Salle</label>
-                    <input type="text" name="salle" value="{{ old('salle') }}" maxlength="120" class="{{ $input }}" placeholder="Ex. Grasse">
+                    <select name="ecole_salle_id" class="{{ $input }}">
+                        <option value="">Aucune salle</option>
+                        @foreach($salles as $salle)
+                            <option value="{{ $salle->id }}" @selected((int) old('ecole_salle_id') === (int) $salle->id)>{{ $salle->nom }} — {{ $salle->capacite }} {{ $salle->capacite > 1 ? 'étudiants' : 'étudiant' }}</option>
+                        @endforeach
+                    </select>
+                    @error('ecole_salle_id')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    @if($salles->isEmpty())
+                        <a href="{{ route('ecole.parametres.index') }}" class="mt-2 inline-flex text-sm font-medium text-escm-primary hover:text-escm-primary-dark">Créer une salle de classe</a>
+                    @endif
                 </div>
                 <button type="submit" class="bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2.5 rounded-lg">Enregistrer</button>
-                <p class="text-xs text-slate-500">Ce créneau concerne uniquement cette date, entre 08h et 17h. Il s’affiche sur le dashboard de cette semaine.</p>
+                <p class="text-xs text-slate-500">Ce créneau concerne uniquement cette date, entre 08h et 17h. La salle est refusée si le groupe compte plus d’élèves que sa capacité.</p>
             </form>
         @endif
     </div>

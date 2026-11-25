@@ -9,6 +9,7 @@ use App\Models\EcoleEnseignant;
 use App\Models\EcoleEtudiant;
 use App\Models\EcoleGroupe;
 use App\Models\EcoleMatiere;
+use App\Models\EcoleSalle;
 use App\Models\EcoleSeance;
 use App\Models\Permission;
 use App\Models\User;
@@ -562,6 +563,7 @@ class EcoleController extends Controller
             'seances' => $this->seancesDeLaSemaine($groupe, $monday),
             'matieres' => EcoleMatiere::orderBy('nom')->get(),
             'enseignants' => EcoleEnseignant::orderBy('nom')->orderBy('prenom')->get(),
+            'salles' => EcoleSalle::orderBy('nom')->get(),
         ]);
     }
 
@@ -583,7 +585,11 @@ class EcoleController extends Controller
                 'integer',
                 Rule::exists('ecole_enseignants', 'id')->where(fn ($query) => $query->where('departement_id', $departementId)),
             ],
-            'salle' => ['nullable', 'string', 'max:120'],
+            'ecole_salle_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('ecole_salles', 'id')->where(fn ($query) => $query->where('departement_id', $departementId)),
+            ],
         ], [
             'ecole_groupe_id.required' => 'Choisissez un groupe.',
             'date.required' => 'Choisissez une date.',
@@ -591,11 +597,13 @@ class EcoleController extends Controller
             'ecole_matiere_id.exists' => 'Choisissez une matière.',
             'ecole_enseignant_id.required' => 'Choisissez un enseignant.',
             'ecole_enseignant_id.exists' => 'Choisissez un enseignant.',
+            'ecole_salle_id.exists' => 'Choisissez une salle de classe.',
         ]);
 
         $groupe = EcoleGroupe::findOrFail($data['ecole_groupe_id']);
         $matiere = EcoleMatiere::findOrFail($data['ecole_matiere_id']);
         $enseignant = EcoleEnseignant::findOrFail($data['ecole_enseignant_id']);
+        $salle = ! empty($data['ecole_salle_id']) ? EcoleSalle::findOrFail($data['ecole_salle_id']) : null;
         $date = Carbon::parse($data['date'])->startOfDay();
         if ($date->isoWeekday() > 5) {
             return back()->withErrors(['date' => 'Choisissez un jour du lundi au vendredi.'])->withInput();
@@ -607,6 +615,10 @@ class EcoleController extends Controller
             return back()->withErrors(['heure_debut' => $message])->withInput();
         }
 
+        if ($salle && ($message = $this->salleIncompatible($groupe, $salle))) {
+            return back()->withErrors(['ecole_salle_id' => $message])->withInput();
+        }
+
         EcoleSeance::create([
             'ecole_groupe_id' => $groupe->id,
             'date' => $date->toDateString(),
@@ -615,9 +627,10 @@ class EcoleController extends Controller
             'heure_fin' => $fin,
             'ecole_matiere_id' => $matiere->id,
             'ecole_enseignant_id' => $enseignant->id,
+            'ecole_salle_id' => $salle?->id,
             'matiere' => $matiere->nom,
             'professeur' => $enseignant->nom_complet,
-            'salle' => trim((string) ($data['salle'] ?? '')) ?: null,
+            'salle' => $salle?->nom,
         ]);
 
         return redirect()
@@ -717,7 +730,42 @@ class EcoleController extends Controller
             'annees' => AnneeUniversitaire::options(),
             'selection' => AnneeUniversitaire::selected(),
             'actuelle' => AnneeUniversitaire::current(),
+            'salles' => EcoleSalle::orderBy('nom')->get(),
         ]);
+    }
+
+    public function storeSalle(Request $request)
+    {
+        $departementId = $request->user()->currentDepartementId();
+        $data = $request->validate([
+            'nom' => [
+                'required',
+                'string',
+                'max:120',
+                Rule::unique('ecole_salles', 'nom')->where(fn ($query) => $query->where('departement_id', $departementId)),
+            ],
+            'capacite' => ['required', 'integer', 'min:1', 'max:999'],
+        ], [
+            'nom.required' => 'Le nom de la salle est obligatoire.',
+            'nom.unique' => 'Cette salle existe déjà.',
+            'capacite.required' => 'Indiquez le nombre d’étudiants que la salle peut accueillir.',
+            'capacite.integer' => 'Le nombre d’étudiants doit être un nombre entier.',
+            'capacite.min' => 'La salle doit pouvoir accueillir au moins un étudiant.',
+        ]);
+
+        EcoleSalle::create([
+            'nom' => trim($data['nom']),
+            'capacite' => $data['capacite'],
+        ]);
+
+        return redirect()->route('ecole.parametres.index')->with('success', 'Salle de classe ajoutée.');
+    }
+
+    public function destroySalle(EcoleSalle $salle)
+    {
+        $salle->delete();
+
+        return redirect()->route('ecole.parametres.index')->with('success', 'Salle de classe supprimée.');
     }
 
     public function annee(Request $request)
@@ -791,6 +839,19 @@ class EcoleController extends Controller
             ->orderBy('date')
             ->orderBy('heure_debut')
             ->get();
+    }
+
+    private function salleIncompatible(EcoleGroupe $groupe, EcoleSalle $salle): ?string
+    {
+        $effectif = $groupe->etudiants()->count();
+        if ($effectif <= $salle->capacite) {
+            return null;
+        }
+
+        $eleves = $effectif > 1 ? 'élèves' : 'élève';
+        $personnes = $salle->capacite > 1 ? 'personnes' : 'personne';
+
+        return "Incompatibilité : le groupe {$groupe->nom} compte {$effectif} {$eleves}, la salle {$salle->nom} ne peut accueillir que {$salle->capacite} {$personnes}.";
     }
 
     private function creneauInvalide(string $debut, string $fin): ?string
