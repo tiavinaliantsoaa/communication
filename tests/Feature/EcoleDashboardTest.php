@@ -393,4 +393,56 @@ class EcoleDashboardTest extends TestCase
 
         $this->assertSame('Grasse', EcoleSeance::query()->firstOrFail()->salle);
     }
+
+    public function test_the_week_calendar_shows_group_teacher_and_room_together(): void
+    {
+        $pedagogique = Departement::query()->where('slug', 'pedagogique')->firstOrFail();
+        $admin = User::factory()->create([
+            'role' => 'super_admin',
+            'departement_id' => $pedagogique->id,
+            'password' => 'password',
+        ]);
+        $this->actingAs($admin)->withSession(['departement_actif_id' => $pedagogique->id]);
+
+        $this->post(route('ecole.groupes.store'), ['nom' => 'B1'])->assertRedirect();
+        $this->post(route('ecole.groupes.store'), ['nom' => 'B2'])->assertRedirect();
+        $this->post(route('ecole.matieres.store'), ['nom' => 'COM']);
+        $this->post(route('ecole.enseignants.store'), ['prenom' => 'Hery', 'nom' => 'Rakoto']);
+        $this->post(route('ecole.parametres.salles.store'), ['nom' => 'Grasse', 'capacite' => 30]);
+
+        $b1 = EcoleGroupe::query()->where('nom', 'B1')->firstOrFail();
+        $b2 = EcoleGroupe::query()->where('nom', 'B2')->firstOrFail();
+        $professeur = EcoleEnseignant::query()->firstOrFail();
+        $salle = EcoleSalle::query()->where('nom', 'Grasse')->firstOrFail();
+        $jeudi = EcoleTimetable::monday()->addDays(3);
+
+        foreach ([[$b1, '08:00', '09:00', 'COURS GROUPE'], [$b2, '08:30', '09:30', 'COURS PROF'], [$b2, '14:00', '15:00', 'COURS SALLE']] as [$groupe, $debut, $fin, $matiere]) {
+            EcoleSeance::create([
+                'ecole_groupe_id' => $groupe->id,
+                'date' => $jeudi->toDateString(),
+                'jour' => $jeudi->isoWeekday(),
+                'heure_debut' => $debut,
+                'heure_fin' => $fin,
+                'matiere' => $matiere,
+                'professeur' => $professeur->nom_complet,
+                'salle' => 'Grasse',
+                'ecole_enseignant_id' => $professeur->id,
+                'ecole_salle_id' => $salle->id,
+            ]);
+        }
+
+        $this->get(route('ecole.emplois.index', [
+            'groupe' => $b1->id,
+            'enseignant' => $professeur->id,
+            'salle' => $salle->id,
+            'semaine' => EcoleTimetable::monday()->toDateString(),
+        ]))
+            ->assertOk()
+            ->assertSee('Disponibilités')
+            ->assertSee('COURS GROUPE')
+            ->assertSee('COURS PROF')
+            ->assertSee('COURS SALLE')
+            ->assertSee('Nouveau créneau')
+            ->assertSee('Ce créneau chevauche un programme déjà placé.');
+    }
 }

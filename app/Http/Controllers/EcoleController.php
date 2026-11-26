@@ -540,9 +540,32 @@ class EcoleController extends Controller
         $monday = $this->monday($request);
         $friday = $monday->copy()->addDays(4);
         $today = now()->startOfDay();
-        $dateParDefaut = $today->between($monday, $friday) && $today->isoWeekday() <= 5
+        $dateParDefaut = old('date', $today->between($monday, $friday) && $today->isoWeekday() <= 5
             ? $today->toDateString()
-            : $monday->toDateString();
+            : $monday->toDateString());
+        $seances = $this->seancesCalendrier($monday);
+        $semaineLabel = $monday->isoFormat('D MMM').' – '.$friday->isoFormat('D MMM YYYY');
+        $lectureParent = (bool) $request->user()?->isParent();
+        $matieres = EcoleMatiere::orderBy('nom')->get();
+        $enseignants = EcoleEnseignant::orderBy('nom')->orderBy('prenom')->get();
+        $salles = EcoleSalle::orderBy('nom')->get();
+        $enseignantId = $this->identifiant(old('ecole_enseignant_id', $request->query('enseignant')));
+        $salleId = $this->identifiant(old('ecole_salle_id', $request->query('salle')));
+        $peutCreer = ! $lectureParent && $groupes->isNotEmpty() && $matieres->isNotEmpty() && $enseignants->isNotEmpty();
+        $apercu = $peutCreer ? [
+            'date' => $dateParDefaut,
+            'debut' => old('heure_debut', '08:00'),
+            'fin' => old('heure_fin', '09:00'),
+        ] : null;
+        $grille = EcoleTimetable::disponibilites($monday, $seances, $groupe?->id, $enseignantId, $salleId, $apercu);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'monday' => $monday->toDateString(),
+                'label' => $semaineLabel,
+                'seances' => $this->serialiserSeances($seances),
+            ]);
+        }
 
         return view('ecole.emplois', [
             'title' => 'Emplois du temps',
@@ -550,20 +573,49 @@ class EcoleController extends Controller
             'groupes' => $groupes,
             'groupe' => $groupe,
             'monday' => $monday,
-            'semaineLabel' => $monday->isoFormat('D MMM').' – '.$friday->isoFormat('D MMM YYYY'),
+            'semaineLabel' => $semaineLabel,
             'prevUrl' => route('ecole.emplois.index', array_filter([
                 'groupe' => $groupe?->id,
                 'semaine' => $monday->copy()->subWeek()->toDateString(),
+                'enseignant' => $enseignantId,
+                'salle' => $salleId,
             ])),
             'nextUrl' => route('ecole.emplois.index', array_filter([
                 'groupe' => $groupe?->id,
                 'semaine' => $monday->copy()->addWeek()->toDateString(),
+                'enseignant' => $enseignantId,
+                'salle' => $salleId,
             ])),
-            'dateParDefaut' => old('date', $dateParDefaut),
-            'seances' => $this->seancesDeLaSemaine($groupe, $monday),
-            'matieres' => EcoleMatiere::orderBy('nom')->get(),
-            'enseignants' => EcoleEnseignant::orderBy('nom')->orderBy('prenom')->get(),
-            'salles' => EcoleSalle::orderBy('nom')->get(),
+            'dateParDefaut' => $dateParDefaut,
+            'enseignantId' => $enseignantId,
+            'salleId' => $salleId,
+            'columns' => $grille['columns'],
+            'conflit' => $grille['conflit'],
+            'calendrierVide' => $seances->isEmpty(),
+            'hours' => EcoleTimetable::hours(),
+            'nowTop' => EcoleTimetable::nowTop($monday),
+            'matieres' => $matieres,
+            'enseignants' => $enseignants,
+            'salles' => $salles,
+            'cal' => [
+                'lecture' => $lectureParent,
+                'peutCreer' => $peutCreer,
+                'groupeId' => $groupe?->id,
+                'enseignantId' => $enseignantId,
+                'salleId' => $salleId,
+                'date' => $dateParDefaut,
+                'debut' => old('heure_debut', '08:00'),
+                'fin' => old('heure_fin', '09:00'),
+                'monday' => $monday->toDateString(),
+                'label' => $semaineLabel,
+                'seances' => $this->serialiserSeances($seances),
+                'indexUrl' => route('ecole.emplois.index'),
+                'destroyBase' => url('/ecole/emplois-du-temps'),
+                'csrf' => csrf_token(),
+                'groupes' => $groupes->map(fn ($ligne) => ['id' => $ligne->id, 'nom' => $ligne->nom])->values(),
+                'conflit' => $grille['conflit'],
+                'vide' => $seances->isEmpty(),
+            ],
         ]);
     }
 
@@ -825,6 +877,44 @@ class EcoleController extends Controller
             'groupe' => $groupe?->id,
             'semaine' => $monday->toDateString(),
         ]));
+    }
+
+    private function identifiant(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (int) $value;
+    }
+
+    private function seancesCalendrier(Carbon $monday)
+    {
+        return EcoleSeance::query()
+            ->whereHas('groupe')
+            ->whereDate('date', '>=', $monday->toDateString())
+            ->whereDate('date', '<=', $monday->copy()->addDays(4)->toDateString())
+            ->with('groupe')
+            ->orderBy('date')
+            ->orderBy('heure_debut')
+            ->get();
+    }
+
+    private function serialiserSeances($seances): array
+    {
+        return $seances->map(fn (EcoleSeance $seance) => [
+            'id' => $seance->id,
+            'date' => $seance->date?->toDateString(),
+            'debut' => $seance->heure('heure_debut'),
+            'fin' => $seance->heure('heure_fin'),
+            'matiere' => $seance->matiere,
+            'professeur' => $seance->professeur,
+            'salle' => $seance->salle,
+            'groupe_id' => (int) $seance->ecole_groupe_id,
+            'groupe' => $seance->groupe?->nom,
+            'enseignant_id' => $seance->ecole_enseignant_id ? (int) $seance->ecole_enseignant_id : null,
+            'salle_id' => $seance->ecole_salle_id ? (int) $seance->ecole_salle_id : null,
+        ])->values()->all();
     }
 
     private function seancesDeLaSemaine(?EcoleGroupe $groupe, Carbon $monday)
