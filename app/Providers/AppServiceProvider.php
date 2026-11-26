@@ -7,6 +7,7 @@ use App\Models\DepartementScope;
 use App\Models\EcoleAssiduite;
 use App\Models\EcoleEtudiant;
 use App\Models\EcoleGroupe;
+use App\Models\EcolePresence;
 use App\Models\EcoleSeance;
 use App\Models\ParentScope;
 use App\Models\UserNotification;
@@ -36,7 +37,7 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        foreach ([EcoleEtudiant::class, EcoleGroupe::class, EcoleAssiduite::class, EcoleSeance::class] as $model) {
+        foreach ([EcoleEtudiant::class, EcoleGroupe::class, EcoleAssiduite::class, EcoleSeance::class, EcolePresence::class] as $model) {
             $model::addGlobalScope('parent', new ParentScope);
         }
 

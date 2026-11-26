@@ -27,7 +27,7 @@ class ParentScope implements Scope
             return;
         }
 
-        if ($model instanceof EcoleAssiduite) {
+        if ($model instanceof EcoleAssiduite || $model instanceof EcolePresence) {
             $builder->whereIn($table.'.ecole_etudiant_id', $eleveIds);
 
             return;

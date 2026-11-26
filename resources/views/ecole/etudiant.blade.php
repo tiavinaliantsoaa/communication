@@ -74,6 +74,30 @@
     </div>
 </div>
 
+<div class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div class="border-b border-slate-100 px-5 py-4">
+        <h3 class="text-sm font-semibold text-slate-900">Présences</h3>
+        <p class="mt-1 text-sm text-slate-600">Heures d’absence : <span class="font-semibold text-slate-900">{{ $heuresAbsence }}</span></p>
+    </div>
+    <div class="divide-y divide-slate-100">
+        @forelse($presencesEleve as $presence)
+            <div class="px-5 py-3 text-sm text-slate-700">
+                <span class="font-medium text-slate-900">{{ $presence->seance?->date?->locale('fr')->isoFormat('D MMM YYYY') }}</span>
+                · {{ $presence->seance?->matiere }}
+                · {{ \App\Models\EcolePresence::STATUTS[$presence->statut] ?? $presence->statut }}
+                @if($presence->statut === 'retard')
+                    · {{ $presence->minutes_retard }} min
+                    @if($presence->motif)
+                        · {{ $presence->motif }}
+                    @endif
+                @endif
+            </div>
+        @empty
+            <p class="px-5 py-4 text-sm text-slate-500">Aucune présence enregistrée pour le moment.</p>
+        @endforelse
+    </div>
+</div>
+
 <div class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
     <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
         <div>

@@ -109,6 +109,8 @@ Route::middleware(['auth', 'departement.menu', 'compte.ecole'])->group(function 
         Route::post('/enseignants', [EcoleController::class, 'storeEnseignant'])->name('enseignants.store');
         Route::delete('/enseignants/{enseignant}', [EcoleController::class, 'destroyEnseignant'])->name('enseignants.destroy');
         Route::post('/annee-universitaire', [EcoleController::class, 'annee'])->name('annee');
+        Route::get('/presence', [EcoleController::class, 'presence'])->name('presence.index');
+        Route::post('/presence', [EcoleController::class, 'storePresence'])->name('presence.store');
         Route::get('/emplois-du-temps', [EcoleController::class, 'emplois'])->name('emplois.index');
         Route::post('/emplois-du-temps', [EcoleController::class, 'storeSeance'])->name('emplois.store');
         Route::delete('/emplois-du-temps/{seance}', [EcoleController::class, 'destroySeance'])->name('emplois.destroy');

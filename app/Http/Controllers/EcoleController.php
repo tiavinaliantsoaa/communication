@@ -9,6 +9,7 @@ use App\Models\EcoleEnseignant;
 use App\Models\EcoleEtudiant;
 use App\Models\EcoleGroupe;
 use App\Models\EcoleMatiere;
+use App\Models\EcolePresence;
 use App\Models\EcoleSalle;
 use App\Models\EcoleSeance;
 use App\Models\Permission;
@@ -248,6 +249,18 @@ class EcoleController extends Controller
     {
         $this->bootPeriode($request);
         $etudiant->load(['groupe', 'candidat']);
+        $presencesEleve = EcolePresence::query()
+            ->where('ecole_etudiant_id', $etudiant->id)
+            ->with('seance')
+            ->latest()
+            ->get();
+        $minutesAbsence = 0;
+        foreach ($presencesEleve->where('statut', 'absent') as $presence) {
+            $seance = $presence->seance;
+            if ($seance) {
+                $minutesAbsence += max(0, EcoleTimetable::minutes($seance->heure('heure_fin')) - EcoleTimetable::minutes($seance->heure('heure_debut')));
+            }
+        }
         $groupe = $etudiant->groupe;
         $monday = $this->monday($request);
         $friday = $monday->copy()->addDays(4);
@@ -267,6 +280,8 @@ class EcoleController extends Controller
             'prevUrl' => route('ecole.etudiants.show', ['etudiant' => $etudiant, 'semaine' => $monday->copy()->subWeek()->toDateString()]),
             'nextUrl' => route('ecole.etudiants.show', ['etudiant' => $etudiant, 'semaine' => $monday->copy()->addWeek()->toDateString()]),
             'todayUrl' => route('ecole.etudiants.show', $etudiant),
+            'presencesEleve' => $presencesEleve,
+            'heuresAbsence' => $this->duree($minutesAbsence),
         ]);
     }
 
@@ -754,6 +769,88 @@ class EcoleController extends Controller
             ->with('success', 'Créneau supprimé.');
     }
 
+    public function presence(Request $request)
+    {
+        $enseignant = $this->enseignantConnecte($request);
+        $maintenant = now();
+        $seances = $this->seancesPresence($enseignant, $maintenant);
+        $seance = $seances->firstWhere('id', (int) $request->query('seance')) ?: $this->seancePresenceActive($seances, $maintenant);
+        $etudiants = $seance?->groupe?->etudiants()->orderBy('nom')->orderBy('prenom')->get() ?? collect();
+        $presences = $seance
+            ? EcolePresence::query()->where('ecole_seance_id', $seance->id)->get()->keyBy('ecole_etudiant_id')
+            : collect();
+        $absences = EcolePresence::query()
+            ->whereIn('ecole_etudiant_id', $etudiants->pluck('id')->all())
+            ->where('statut', 'absent')
+            ->with('seance')
+            ->get()
+            ->groupBy('ecole_etudiant_id');
+
+        return view('ecole.presence', [
+            'title' => 'Présence',
+            'subtitle' => 'Compte enseignant',
+            'seances' => $seances,
+            'seance' => $seance,
+            'etudiants' => $etudiants,
+            'presences' => $presences,
+            'absences' => $absences,
+            'editable' => $seance ? $this->presenceEditable($seance, $maintenant) : false,
+            'ouverture' => $seance ? $seance->date->copy()->setTimeFromTimeString($seance->heure('heure_debut')) : null,
+        ]);
+    }
+
+    public function storePresence(Request $request)
+    {
+        $enseignant = $this->enseignantConnecte($request);
+        $data = $request->validate([
+            'ecole_seance_id' => ['required', 'integer'],
+            'presences' => ['required', 'array'],
+            'presences.*.statut' => ['nullable', Rule::in(array_keys(EcolePresence::STATUTS))],
+            'presences.*.minutes' => ['nullable', 'integer', 'min:1', 'max:300'],
+            'presences.*.motif' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $seance = EcoleSeance::query()
+            ->where('ecole_enseignant_id', $enseignant->id)
+            ->findOrFail($data['ecole_seance_id']);
+        abort_unless($this->presenceEditable($seance, now()), 403, 'La présence ne peut pas encore être enregistrée.');
+
+        $eleves = $seance->groupe?->etudiants()->pluck('id')->map(fn ($id) => (int) $id)->all() ?? [];
+        DB::transaction(function () use ($data, $seance, $eleves) {
+            foreach ($data['presences'] as $etudiantId => $ligne) {
+                $etudiantId = (int) $etudiantId;
+                if (! in_array($etudiantId, $eleves, true)) {
+                    continue;
+                }
+                $statut = $ligne['statut'] ?? null;
+                if ($statut === 'retard' && (int) ($ligne['minutes'] ?? 0) < 1) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'presences' => 'Indiquez le nombre de minutes de retard.',
+                    ]);
+                }
+                if (! $statut) {
+                    EcolePresence::query()
+                        ->where('ecole_seance_id', $seance->id)
+                        ->where('ecole_etudiant_id', $etudiantId)
+                        ->delete();
+                    continue;
+                }
+                EcolePresence::query()->updateOrCreate(
+                    ['ecole_seance_id' => $seance->id, 'ecole_etudiant_id' => $etudiantId],
+                    [
+                        'statut' => $statut,
+                        'minutes_retard' => $statut === 'retard' ? (int) ($ligne['minutes'] ?? 0) : null,
+                        'motif' => $statut === 'retard' ? $this->vide($ligne['motif'] ?? null) : null,
+                    ]
+                );
+            }
+        });
+
+        return redirect()
+            ->route('ecole.presence.index', ['seance' => $seance->id])
+            ->with('success', 'Présence enregistrée.');
+    }
+
     public function absences(Request $request)
     {
         [$annee, $mois] = Periode::remember($request);
@@ -1036,6 +1133,65 @@ class EcoleController extends Controller
         ])->values()->all();
     }
 
+    private function enseignantConnecte(Request $request): EcoleEnseignant
+    {
+        $user = $request->user();
+        if ($user?->isEnseignant()) {
+            $fiche = $user->ficheEnseignant;
+            abort_unless($fiche, 403, 'Aucun cours n’est lié à ce compte enseignant.');
+
+            return $fiche;
+        }
+
+        if ($user?->isSuperAdmin() && ($enseignant = VueCompte::enseignant())) {
+            return $enseignant;
+        }
+
+        abort(403, 'Cette page est réservée au compte enseignant.');
+    }
+
+    private function seancesPresence(EcoleEnseignant $enseignant, Carbon $maintenant)
+    {
+        $debut = $maintenant->copy()->subDay()->startOfDay();
+        $fin = $maintenant->copy()->addDay()->endOfDay();
+
+        return EcoleSeance::query()
+            ->where('ecole_enseignant_id', $enseignant->id)
+            ->whereDate('date', '>=', $debut->toDateString())
+            ->whereDate('date', '<=', $fin->toDateString())
+            ->with('groupe')
+            ->orderBy('date')
+            ->orderBy('heure_debut')
+            ->get()
+            ->filter(function (EcoleSeance $seance) use ($maintenant) {
+                $start = $seance->date->copy()->setTimeFromTimeString($seance->heure('heure_debut'));
+
+                return $start->lte($maintenant->copy()->addHours(24))
+                    && $start->copy()->addHours(24)->gte($maintenant);
+            })
+            ->values();
+    }
+
+    private function seancePresenceActive($seances, Carbon $maintenant): ?EcoleSeance
+    {
+        $enCours = $seances->first(fn (EcoleSeance $seance) => $this->presenceEditable($seance, $maintenant)
+            && $maintenant->lte($seance->date->copy()->setTimeFromTimeString($seance->heure('heure_fin'))));
+        if ($enCours) {
+            return $enCours;
+        }
+
+        return $seances->first(fn (EcoleSeance $seance) => $seance->date->copy()->setTimeFromTimeString($seance->heure('heure_debut'))->gt($maintenant))
+            ?: $seances->last();
+    }
+
+    private function presenceEditable(EcoleSeance $seance, Carbon $maintenant): bool
+    {
+        $start = $seance->date->copy()->setTimeFromTimeString($seance->heure('heure_debut'));
+        $end = $seance->date->copy()->setTimeFromTimeString($seance->heure('heure_fin'));
+
+        return $maintenant->gte($start) && $maintenant->lte($end);
+    }
+
     private function seancesEnseignant(?EcoleEnseignant $enseignant, Carbon $monday)
     {
         if (! $enseignant?->id) {
@@ -1177,10 +1333,14 @@ class EcoleController extends Controller
             ->pluck('ecole_groupe_id', 'id');
         $absence = 0;
         $retard = 0;
+        $couvertes = $this->ajouterPresences($absence, $retard);
 
         foreach ($pointages as $pointage) {
+            if (! $pointage->date || isset($couvertes[$pointage->ecole_etudiant_id.'|'.$pointage->date->toDateString()])) {
+                continue;
+            }
             $groupeId = $groupesEleves[$pointage->ecole_etudiant_id] ?? null;
-            if (! $groupeId || ! $pointage->date) {
+            if (! $groupeId) {
                 continue;
             }
 
@@ -1241,10 +1401,14 @@ class EcoleController extends Controller
             ->get(['ecole_etudiant_id', 'date', 'statut']);
         $absence = 0;
         $retard = 0;
+        $couvertes = $this->ajouterPresences($absence, $retard, $eleveIds->all());
         $groupesEleves = $etudiants->pluck('ecole_groupe_id', 'id');
         foreach ($pointages as $pointage) {
+            if (! $pointage->date || isset($couvertes[$pointage->ecole_etudiant_id.'|'.$pointage->date->toDateString()])) {
+                continue;
+            }
             $groupeId = $groupesEleves[$pointage->ecole_etudiant_id] ?? null;
-            if (! $groupeId || ! $pointage->date) {
+            if (! $groupeId) {
                 continue;
             }
             $minutes = $minutesParJour[$groupeId.'|'.$pointage->date->toDateString()] ?? 0;
@@ -1263,6 +1427,35 @@ class EcoleController extends Controller
             'retard' => $this->duree($retard),
             'groupes' => $noms !== '' ? $noms : 'Aucun groupe',
         ];
+    }
+
+    /**
+     * @param  list<int>|null  $eleveIds
+     * @return array<string, true>
+     */
+    private function ajouterPresences(int &$absence, int &$retard, ?array $eleveIds = null): array
+    {
+        $couvertes = [];
+        $presences = EcolePresence::query()
+            ->with('seance')
+            ->whereIn('statut', ['absent', 'retard'])
+            ->when($eleveIds !== null, fn ($query) => $query->whereIn('ecole_etudiant_id', $eleveIds))
+            ->get();
+
+        foreach ($presences as $presence) {
+            $seance = $presence->seance;
+            if (! $seance?->date) {
+                continue;
+            }
+            $couvertes[$presence->ecole_etudiant_id.'|'.$seance->date->toDateString()] = true;
+            if ($presence->statut === 'absent') {
+                $absence += max(0, EcoleTimetable::minutes($seance->heure('heure_fin')) - EcoleTimetable::minutes($seance->heure('heure_debut')));
+            } else {
+                $retard += (int) $presence->minutes_retard;
+            }
+        }
+
+        return $couvertes;
     }
 
     private function duree(int $minutes): string

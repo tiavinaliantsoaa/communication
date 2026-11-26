@@ -234,7 +234,7 @@ class ParentCompteTest extends TestCase
                 ->assertSee('Total heure retard')
                 ->assertSee('B1 G1')
                 ->assertDontSee('AUTRE GROUPE')
-                ->assertDontSee('B2')
+                ->assertDontSee('Mialy Rasoanaivo')
                 ->assertDontSee('Statistique absence')
                 ->assertDontSee('Nombre étudiant');
         } finally {

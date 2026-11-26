@@ -156,6 +156,7 @@ class DepartementScope implements Scope
             'ecole_seances',
             'ecole_assiduites',
             'ecole_salles',
+            'ecole_presences',
         ];
     }
 
@@ -198,6 +199,7 @@ class DepartementScope implements Scope
             EcoleSeance::class,
             EcoleAssiduite::class,
             EcoleSalle::class,
+            EcolePresence::class,
         ];
     }
 }

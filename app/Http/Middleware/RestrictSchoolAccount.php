@@ -24,6 +24,11 @@ class RestrictSchoolAccount
             'profile.destroy',
         ];
 
+        if ($user->isEnseignant()) {
+            $autorisees[] = 'ecole.presence.index';
+            $autorisees[] = 'ecole.presence.store';
+        }
+
         if ($user->isParent() || $user->isEtudiant()) {
             $autorisees[] = 'ecole.absences.index';
             $autorisees[] = 'ecole.etudiants.show';
