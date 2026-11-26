@@ -78,7 +78,8 @@
                         <a href="{{ route('ecole.parametres.index') }}" class="mt-2 inline-flex text-sm font-medium text-escm-primary hover:text-escm-primary-dark">Créer une salle de classe</a>
                     @endif
                 </div>
-                <button type="submit" class="bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2.5 rounded-lg">Enregistrer</button>
+                <button type="submit" class="bg-escm-primary hover:bg-escm-primary-dark text-white text-sm font-medium px-4 py-2.5 rounded-lg disabled:opacity-60" :disabled="conflit">Enregistrer</button>
+                <p x-show="conflit" x-cloak class="text-sm text-red-600">Ce créneau se superpose à un cours déjà prévu. Un groupe, un enseignant et une salle ne peuvent pas avoir deux cours en même temps.</p>
                 <p class="text-xs text-slate-500">Ce créneau concerne uniquement cette date, entre 08h et 17h. La salle est refusée si le groupe compte plus d’élèves que sa capacité.</p>
             </form>
         @endif
@@ -124,7 +125,7 @@
                 <span class="inline-flex items-center gap-1.5"><span class="inline-block h-2.5 w-2.5 rounded-sm" style="background:#fdba74;"></span>Nouveau créneau</span>
             @endunless
         </div>
-        <p x-show="conflit" x-cloak class="px-5 pb-3 text-sm font-medium" style="color:#b45309;">Ce créneau chevauche un programme déjà placé.</p>
+        <p x-show="conflit" x-cloak class="px-5 pb-3 text-sm font-medium" style="color:#b45309;">Ce créneau se superpose à un cours déjà prévu. Il ne peut pas être enregistré.</p>
         <p x-show="vide" x-cloak class="px-5 pb-3 text-sm text-slate-500">Aucun emploi du temps pour le moment.</p>
         <div class="overflow-x-auto" x-ref="grille">
             <div style="min-width: 920px;">

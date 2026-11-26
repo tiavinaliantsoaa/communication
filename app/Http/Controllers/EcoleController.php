@@ -671,6 +671,10 @@ class EcoleController extends Controller
             return back()->withErrors(['ecole_salle_id' => $message])->withInput();
         }
 
+        if ($message = $this->creneauSuperpose($groupe, $enseignant, $salle, $date, $debut, $fin)) {
+            return back()->withErrors(['heure_debut' => $message])->withInput();
+        }
+
         EcoleSeance::create([
             'ecole_groupe_id' => $groupe->id,
             'date' => $date->toDateString(),
@@ -942,6 +946,58 @@ class EcoleController extends Controller
         $personnes = $salle->capacite > 1 ? 'personnes' : 'personne';
 
         return "Incompatibilité : le groupe {$groupe->nom} compte {$effectif} {$eleves}, la salle {$salle->nom} ne peut accueillir que {$salle->capacite} {$personnes}.";
+    }
+
+    private function creneauSuperpose(EcoleGroupe $groupe, EcoleEnseignant $enseignant, ?EcoleSalle $salle, Carbon $date, string $debut, string $fin): ?string
+    {
+        $debutMin = EcoleTimetable::minutes($debut);
+        $finMin = EcoleTimetable::minutes($fin);
+        $groupeConflit = null;
+        $profConflit = null;
+        $salleConflit = null;
+
+        $seances = EcoleSeance::query()
+            ->whereDate('date', $date->toDateString())
+            ->where(function ($query) use ($groupe, $enseignant, $salle) {
+                $query->where('ecole_groupe_id', $groupe->id)
+                    ->orWhere('ecole_enseignant_id', $enseignant->id);
+                if ($salle) {
+                    $query->orWhere('ecole_salle_id', $salle->id);
+                }
+            })
+            ->get();
+
+        foreach ($seances as $seance) {
+            $start = EcoleTimetable::minutes($seance->heure('heure_debut'));
+            $end = EcoleTimetable::minutes($seance->heure('heure_fin'));
+            if ($debutMin >= $end || $finMin <= $start) {
+                continue;
+            }
+
+            $horaire = EcoleTimetable::label($seance->heure('heure_debut')).' – '.EcoleTimetable::label($seance->heure('heure_fin'));
+            $detail = $seance->matiere.', '.$horaire;
+            if ((int) $seance->ecole_groupe_id === (int) $groupe->id) {
+                $groupeConflit ??= $detail;
+            }
+            if ((int) $seance->ecole_enseignant_id === (int) $enseignant->id) {
+                $profConflit ??= $detail;
+            }
+            if ($salle && (int) $seance->ecole_salle_id === (int) $salle->id) {
+                $salleConflit ??= $detail;
+            }
+        }
+
+        if ($groupeConflit) {
+            return 'Ce groupe a déjà un cours sur cet horaire : '.$groupeConflit.'. Deux cours ne peuvent pas se superposer.';
+        }
+        if ($profConflit) {
+            return 'Cet enseignant a déjà un cours sur cet horaire : '.$profConflit.'. Deux cours ne peuvent pas se superposer.';
+        }
+        if ($salleConflit) {
+            return 'Cette salle est déjà occupée sur cet horaire : '.$salleConflit.'. Deux cours ne peuvent pas se superposer.';
+        }
+
+        return null;
     }
 
     private function creneauInvalide(string $debut, string $fin): ?string

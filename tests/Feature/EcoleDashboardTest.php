@@ -443,6 +443,75 @@ class EcoleDashboardTest extends TestCase
             ->assertSee('COURS PROF')
             ->assertSee('COURS SALLE')
             ->assertSee('Nouveau créneau')
-            ->assertSee('Ce créneau chevauche un programme déjà placé.');
+            ->assertSee('Ce créneau se superpose à un cours déjà prévu. Il ne peut pas être enregistré.');
+    }
+
+    public function test_a_slot_cannot_overlap_the_group_the_teacher_or_the_room(): void
+    {
+        $pedagogique = Departement::query()->where('slug', 'pedagogique')->firstOrFail();
+        $admin = User::factory()->create([
+            'role' => 'super_admin',
+            'departement_id' => $pedagogique->id,
+            'password' => 'password',
+        ]);
+        $this->actingAs($admin)->withSession(['departement_actif_id' => $pedagogique->id]);
+
+        $this->post(route('ecole.groupes.store'), ['nom' => 'B1'])->assertRedirect();
+        $this->post(route('ecole.groupes.store'), ['nom' => 'B2'])->assertRedirect();
+        $this->post(route('ecole.matieres.store'), ['nom' => 'Anglais']);
+        $this->post(route('ecole.enseignants.store'), ['prenom' => 'Lorem', 'nom' => 'Test']);
+        $this->post(route('ecole.enseignants.store'), ['prenom' => 'Nina', 'nom' => 'Rabe']);
+        $this->post(route('ecole.parametres.salles.store'), ['nom' => 'Grasse', 'capacite' => 30]);
+
+        $b1 = EcoleGroupe::query()->where('nom', 'B1')->firstOrFail();
+        $b2 = EcoleGroupe::query()->where('nom', 'B2')->firstOrFail();
+        $lorem = EcoleEnseignant::query()->where('prenom', 'Lorem')->firstOrFail();
+        $nina = EcoleEnseignant::query()->where('prenom', 'Nina')->firstOrFail();
+        $salle = EcoleSalle::query()->where('nom', 'Grasse')->firstOrFail();
+        $matiere = EcoleMatiere::query()->where('nom', 'Anglais')->value('id');
+        $vendredi = EcoleTimetable::monday()->addDays(4);
+        $creneau = [
+            'date' => $vendredi->toDateString(),
+            'ecole_matiere_id' => $matiere,
+            'ecole_salle_id' => $salle->id,
+        ];
+
+        $this->post(route('ecole.emplois.store'), array_merge($creneau, [
+            'ecole_groupe_id' => $b1->id,
+            'ecole_enseignant_id' => $lorem->id,
+            'heure_debut' => '08:00',
+            'heure_fin' => '09:00',
+        ]))->assertRedirect();
+
+        $this->post(route('ecole.emplois.store'), array_merge($creneau, [
+            'ecole_groupe_id' => $b1->id,
+            'ecole_enseignant_id' => $nina->id,
+            'heure_debut' => '08:30',
+            'heure_fin' => '09:30',
+        ]))->assertSessionHasErrors('heure_debut');
+        $this->assertSame(1, EcoleSeance::query()->count());
+
+        $this->post(route('ecole.emplois.store'), array_merge($creneau, [
+            'ecole_groupe_id' => $b1->id,
+            'ecole_enseignant_id' => $nina->id,
+            'heure_debut' => '09:00',
+            'heure_fin' => '10:00',
+        ]))->assertRedirect();
+
+        $this->post(route('ecole.emplois.store'), array_merge($creneau, [
+            'ecole_groupe_id' => $b2->id,
+            'ecole_enseignant_id' => $lorem->id,
+            'heure_debut' => '08:15',
+            'heure_fin' => '08:45',
+        ]))->assertSessionHasErrors('heure_debut');
+
+        $this->post(route('ecole.emplois.store'), array_merge($creneau, [
+            'ecole_groupe_id' => $b2->id,
+            'ecole_enseignant_id' => $nina->id,
+            'heure_debut' => '08:15',
+            'heure_fin' => '08:45',
+        ]))->assertSessionHasErrors('heure_debut');
+
+        $this->assertSame(2, EcoleSeance::query()->count());
     }
 }
