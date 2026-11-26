@@ -29,7 +29,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        if ($request->user()?->isParent()) {
+        if ($request->user()?->isCompteEcole()) {
             AnneeUniversitaire::select(AnneeUniversitaire::current());
         }
 

@@ -67,5 +67,6 @@ class Kernel extends HttpKernel
         'role' => \App\Http\Middleware\EnsureUserHasRole::class,
         'permission' => \App\Http\Middleware\EnsureUserHasPermission::class,
         'departement.menu' => \App\Http\Middleware\EnsureDepartementMenu::class,
+        'compte.ecole' => \App\Http\Middleware\RestrictSchoolAccount::class,
     ];
 }

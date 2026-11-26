@@ -23,6 +23,8 @@ class User extends Authenticatable
         'gestionnaire_budget' => 'Gestionnaire Budget',
         'stagiaire' => 'Stagiaire',
         'parent' => 'Parent',
+        'enseignant' => 'Enseignant',
+        'etudiant' => 'Étudiant',
     ];
 
     protected $fillable = [
@@ -62,6 +64,26 @@ class User extends Authenticatable
     public function isParent(): bool
     {
         return $this->role === 'parent';
+    }
+
+    public function isEnseignant(): bool
+    {
+        return $this->role === 'enseignant';
+    }
+
+    public function isEtudiant(): bool
+    {
+        return $this->role === 'etudiant';
+    }
+
+    public function isCompteEcole(): bool
+    {
+        return $this->isParent() || $this->isEnseignant() || $this->isEtudiant();
+    }
+
+    public function ficheEnseignant(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(EcoleEnseignant::class, 'user_id');
     }
 
     /**
@@ -206,7 +228,7 @@ class User extends Authenticatable
      */
     public function homeRouteName(): string
     {
-        if ($this->isParent()) {
+        if ($this->isCompteEcole()) {
             return 'ecole.dashboard';
         }
 

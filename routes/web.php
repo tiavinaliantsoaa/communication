@@ -59,7 +59,7 @@ Route::prefix('t')->name('online-tests.take.')->where(['token' => '[A-Za-z0-9]+'
     Route::post('/{token}/submit', [OnlineTestTakeController::class, 'submit'])->name('submit');
 });
 
-Route::middleware(['auth', 'departement.menu'])->group(function () {
+Route::middleware(['auth', 'departement.menu', 'compte.ecole'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->middleware('permission:dashboard.view')
         ->name('dashboard');

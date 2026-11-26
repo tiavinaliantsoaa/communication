@@ -148,6 +148,7 @@
                 </div>
             </div>
 
+            @unless(auth()->user()->isCompteEcole())
             {{-- Notifications --}}
             <a
                 href="{{ route('dashboard', ['annee' => $pickerAnnee, 'mois' => $pickerMois]) }}#alertes"
@@ -169,6 +170,7 @@
 
             {{-- Pense-bête --}}
             @include('layouts.partials.sticky-note')
+            @endunless
 
             {{-- User profile --}}
             @include('layouts.partials.header-user')

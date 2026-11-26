@@ -60,6 +60,13 @@ class EcoleController extends Controller
 
     public function dashboard(Request $request)
     {
+        if ($request->user()?->isEnseignant()) {
+            return $this->rendreDashboard($request, $request->user()->ficheEnseignant ?? new EcoleEnseignant);
+        }
+        if ($request->user()?->isEtudiant()) {
+            return $this->rendreDashboard($request, null, collect([new EcoleEtudiant]));
+        }
+
         $vue = VueCompte::current();
         if ($vue && $vue['type'] === 'enseignant') {
             return $this->rendreDashboard($request, VueCompte::enseignant());
@@ -498,20 +505,40 @@ class EcoleController extends Controller
 
     public function storeEnseignant(Request $request)
     {
+        $compte = $request->boolean('creer_compte_enseignant');
         $data = $request->validate([
             'prenom' => ['required', 'string', 'max:80'],
             'nom' => ['required', 'string', 'max:80'],
+            'creer_compte_enseignant' => ['nullable', 'boolean'],
+            'enseignant_email' => [Rule::requiredIf($compte), 'nullable', 'email', 'max:255'],
+            'enseignant_password' => [Rule::requiredIf($compte), 'nullable', 'string', 'min:8', 'max:100'],
         ], [
             'prenom.required' => 'Le prénom est obligatoire.',
             'nom.required' => 'Le nom est obligatoire.',
+            'enseignant_email.required' => 'L’email de l’enseignant est obligatoire.',
+            'enseignant_email.email' => 'L’email de l’enseignant n’est pas valide.',
+            'enseignant_password.required' => 'Le mot de passe de l’enseignant est obligatoire.',
+            'enseignant_password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
         ]);
 
-        EcoleEnseignant::create([
-            'prenom' => trim($data['prenom']),
-            'nom' => trim($data['nom']),
-        ]);
+        $compteCree = false;
+        DB::transaction(function () use ($request, $data, $compte, &$compteCree) {
+            $user = $compte ? $this->compteEnseignantUtilisateur($request, $data, $compteCree) : null;
+            EcoleEnseignant::create([
+                'prenom' => trim($data['prenom']),
+                'nom' => trim($data['nom']),
+                'user_id' => $user?->id,
+            ]);
+        });
 
-        return redirect()->route('ecole.enseignants.index')->with('success', 'Enseignant ajouté.');
+        $message = 'Enseignant ajouté.';
+        if ($compte) {
+            $message = $compteCree
+                ? 'Enseignant ajouté. Compte enseignant créé.'
+                : 'Enseignant ajouté. Compte enseignant associé.';
+        }
+
+        return redirect()->route('ecole.enseignants.index')->with('success', $message);
     }
 
     public function destroyEnseignant(EcoleEnseignant $enseignant)
@@ -533,11 +560,16 @@ class EcoleController extends Controller
             ? $today->toDateString()
             : $monday->toDateString());
         $seances = $this->seancesCalendrier($monday);
+        $ficheEnseignant = $request->user()?->isEnseignant() ? $request->user()->ficheEnseignant : null;
         $vue = VueCompte::current();
         $apercuEnseignant = $request->query('apercu') === 'enseignant'
             ? $this->identifiant($request->query('enseignant'))
             : null;
-        if ($vue && $vue['type'] === 'enseignant') {
+        if ($ficheEnseignant) {
+            $seances = $seances->where('ecole_enseignant_id', $ficheEnseignant->id)->values();
+            $groupes = $groupes->whereIn('id', $seances->pluck('ecole_groupe_id')->unique()->all())->values();
+            $groupe = $groupes->first();
+        } elseif ($vue && $vue['type'] === 'enseignant') {
             $seances = $seances->where('ecole_enseignant_id', $vue['id'])->values();
             $groupes = $groupes->whereIn('id', $seances->pluck('ecole_groupe_id')->unique()->all())->values();
             $groupe = $groupes->first();
@@ -552,7 +584,7 @@ class EcoleController extends Controller
             $groupe = $this->selectedGroupe($request, $groupes);
         }
         $semaineLabel = $monday->isoFormat('D MMM').' – '.$friday->isoFormat('D MMM YYYY');
-        $lectureParent = (bool) $request->user()?->isParent() || $vue !== null || $apercuEnseignant !== null;
+        $lectureParent = (bool) $request->user()?->isCompteEcole() || $vue !== null || $apercuEnseignant !== null;
         $matieres = EcoleMatiere::orderBy('nom')->get();
         $enseignants = EcoleEnseignant::orderBy('nom')->orderBy('prenom')->get();
         $salles = EcoleSalle::orderBy('nom')->get();
@@ -1004,8 +1036,12 @@ class EcoleController extends Controller
         ])->values()->all();
     }
 
-    private function seancesEnseignant(EcoleEnseignant $enseignant, Carbon $monday)
+    private function seancesEnseignant(?EcoleEnseignant $enseignant, Carbon $monday)
     {
+        if (! $enseignant?->id) {
+            return collect();
+        }
+
         return EcoleSeance::query()
             ->where('ecole_enseignant_id', $enseignant->id)
             ->whereDate('date', '>=', $monday->toDateString())
@@ -1174,6 +1210,15 @@ class EcoleController extends Controller
     {
         $maintenant = now();
         $groupeIds = $etudiants->pluck('ecole_groupe_id')->filter()->unique()->values();
+        $eleveIds = $etudiants->pluck('id')->filter()->values();
+        if ($groupeIds->isEmpty()) {
+            return [
+                'cours' => $this->duree(0),
+                'absence' => $this->duree(0),
+                'retard' => $this->duree(0),
+                'groupes' => 'Aucun groupe',
+            ];
+        }
         $seances = EcoleSeance::query()->whereIn('ecole_groupe_id', $groupeIds->all())->get();
         $cours = 0;
         $minutesParJour = [];
@@ -1192,7 +1237,7 @@ class EcoleController extends Controller
         }
 
         $pointages = EcoleAssiduite::query()
-            ->whereIn('ecole_etudiant_id', $etudiants->pluck('id')->all())
+            ->whereIn('ecole_etudiant_id', $eleveIds->all())
             ->get(['ecole_etudiant_id', 'date', 'statut']);
         $absence = 0;
         $retard = 0;
@@ -1295,6 +1340,55 @@ class EcoleController extends Controller
         }
         if ($permissionId) {
             $user->permissions()->syncWithoutDetaching([$permissionId]);
+        }
+
+        return $user;
+    }
+
+    private function compteEnseignantUtilisateur(Request $request, array $data, bool &$cree): User
+    {
+        $departementId = $request->user()->currentDepartementId();
+        if (! $departementId) {
+            throw ValidationException::withMessages([
+                'enseignant_email' => 'Choisissez le département pédagogique avant de créer un compte enseignant.',
+            ]);
+        }
+
+        $email = mb_strtolower(trim($data['enseignant_email']));
+        $existant = User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
+
+        if ($existant && (! $existant->isEnseignant() || (int) $existant->departement_id !== (int) $departementId)) {
+            throw ValidationException::withMessages([
+                'enseignant_email' => 'Cet email est déjà utilisé par un autre compte.',
+            ]);
+        }
+
+        $nom = trim($data['prenom'].' '.$data['nom']);
+        if ($existant) {
+            $existant->forceFill([
+                'name' => $nom,
+                'password' => $data['enseignant_password'],
+            ])->save();
+            $user = $existant;
+            $cree = false;
+        } else {
+            $user = User::create([
+                'name' => $nom,
+                'email' => $email,
+                'password' => $data['enseignant_password'],
+                'role' => 'enseignant',
+                'departement_id' => $departementId,
+            ]);
+            $cree = true;
+        }
+
+        $permissionId = Permission::query()->where('key', 'ecole.view')->value('id');
+        if (! $permissionId) {
+            Permission::syncCatalog();
+            $permissionId = Permission::query()->where('key', 'ecole.view')->value('id');
+        }
+        if ($permissionId) {
+            $user->permissions()->sync([$permissionId]);
         }
 
         return $user;
