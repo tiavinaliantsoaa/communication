@@ -45,7 +45,7 @@ class NavbarMenu
             ['key' => 'ecole_groupes', 'label' => 'Gestion Groupe', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.groupes.*']],
             ['key' => 'ecole_matieres', 'label' => 'Matière', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.matieres.*']],
             ['key' => 'ecole_enseignants', 'label' => 'Enseignant', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.enseignants.*']],
-            ['key' => 'ecole_compte_enseignant', 'label' => 'Compte enseignant', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.compte-enseignant']],
+            ['key' => 'ecole_compte_enseignant', 'label' => 'Compte enseignant', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.compte-enseignant', 'ecole.compte-enseignant.*']],
             ['key' => 'ecole_presence', 'label' => 'Présence', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.presence.*']],
             ['key' => 'ecole_emplois', 'label' => 'Emplois du temps', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.emplois.*']],
             ['key' => 'ecole_absences', 'label' => 'Retard et Absence', 'group' => 'Gestion École', 'permission' => 'ecole.view', 'routes' => ['ecole.absences.*']],

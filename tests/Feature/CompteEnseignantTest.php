@@ -61,6 +61,22 @@ class CompteEnseignantTest extends TestCase
         $this->assertTrue($compte->canAccess('ecole.view'));
         $this->assertFalse($compte->canAccess('dashboard.view'));
 
+        $this->get(route('users.create'))
+            ->assertOk()
+            ->assertSee('Étudiant')
+            ->assertSee('Parent')
+            ->assertSee('Enseignant');
+
+        $this->get(route('ecole.compte-enseignant'))
+            ->assertOk()
+            ->assertSee('lorem@example.test')
+            ->assertSee('Réinitialiser');
+
+        $this->post(route('ecole.compte-enseignant.password', $lorem), [
+            'password' => 'Nouveau123',
+        ])->assertRedirect(route('ecole.compte-enseignant'));
+        $this->assertTrue(Hash::check('Nouveau123', $compte->fresh()->password));
+
         $this->post(route('ecole.enseignants.store'), [
             'prenom' => 'Nina',
             'nom' => 'Rabe',
@@ -93,7 +109,7 @@ class CompteEnseignantTest extends TestCase
         auth()->logout();
         $this->post('/login', [
             'email' => 'lorem@example.test',
-            'password' => 'Secret12345',
+            'password' => 'Nouveau123',
         ])->assertRedirect(route('ecole.dashboard'));
 
         $this->get(route('ecole.dashboard'))

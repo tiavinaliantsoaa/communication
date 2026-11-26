@@ -81,7 +81,7 @@ class EcoleController extends Controller
 
     public function compteEnseignant(Request $request)
     {
-        $enseignants = EcoleEnseignant::orderBy('nom')->orderBy('prenom')->get();
+        $enseignants = EcoleEnseignant::with('compte')->orderBy('nom')->orderBy('prenom')->get();
         $enseignant = $enseignants->firstWhere('id', (int) $request->query('enseignant'))
             ?: VueCompte::enseignant();
 
@@ -96,6 +96,25 @@ class EcoleController extends Controller
             'subtitle' => 'Gestion École — '.AnneeUniversitaire::selected(),
             'enseignants' => $enseignants,
         ]);
+    }
+
+    public function reinitialiserMotDePasseEnseignant(Request $request, EcoleEnseignant $enseignant)
+    {
+        $data = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'max:100'],
+        ], [
+            'password.required' => 'Le mot de passe est obligatoire.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+        ]);
+
+        $compte = $enseignant->compte;
+        abort_unless($compte && $compte->isEnseignant(), 404, 'Cet enseignant n’a pas de compte.');
+
+        $compte->forceFill(['password' => $data['password']])->save();
+
+        return redirect()
+            ->route('ecole.compte-enseignant')
+            ->with('success', 'Mot de passe de '.$enseignant->nom_complet.' réinitialisé.');
     }
 
     public function etudiants(Request $request)

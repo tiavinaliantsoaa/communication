@@ -72,6 +72,9 @@ class AccessService
             'responsable_communication' => $comm,
             'gestionnaire_budget' => $budget,
             'stagiaire' => $stagiaire,
+            'etudiant' => ['ecole.view'],
+            'parent' => ['ecole.view'],
+            'enseignant' => ['ecole.view'],
         ];
     }
 
