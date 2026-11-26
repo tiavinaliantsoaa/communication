@@ -61,7 +61,7 @@
 <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
     <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-100">
         <div>
-            <h3 class="text-sm font-semibold text-slate-900">Emploi du temps{{ $groupe ? ' — '.$groupe->nom : '' }}</h3>
+            <h3 class="text-sm font-semibold text-slate-900">Emploi du temps{{ $enseignantVu ? ' — '.$enseignantVu->nom_complet : ($groupe ? ' — '.$groupe->nom : '') }}</h3>
             <p class="text-xs text-slate-500 mt-0.5">Semaine {{ $weekNumber }}</p>
         </div>
 
@@ -76,6 +76,7 @@
             </a>
         </div>
 
+        @unless($enseignantVu)
         <form method="GET" action="{{ route('ecole.dashboard') }}" class="flex items-center gap-2">
             <input type="hidden" name="semaine" value="{{ $monday->toDateString() }}">
             <label for="groupe-emploi" class="text-xs font-semibold uppercase tracking-wider text-slate-500">Groupe</label>
@@ -87,13 +88,16 @@
                 @endforelse
             </select>
         </form>
+        @endunless
     </div>
 
     @include('ecole.partials.emploi-grille')
 
     <div class="px-5 py-3 border-t border-slate-100 text-center">
-        @if($groupe)
-            <a href="{{ route('ecole.emplois.index', ['groupe' => $groupe->id]) }}" class="text-sm font-medium text-escm-primary hover:text-escm-primary-dark">{{ auth()->user()?->isParent() ? 'Voir l’emploi du temps de '.$groupe->nom : 'Gérer l’emploi du temps de '.$groupe->nom }}</a>
+        @if($enseignantVu)
+            <a href="{{ $lienEmploi }}" class="text-sm font-medium text-escm-primary hover:text-escm-primary-dark">Voir l’emploi du temps de {{ $enseignantVu->nom_complet }}</a>
+        @elseif($groupe)
+            <a href="{{ $lienEmploi ?? route('ecole.emplois.index', ['groupe' => $groupe->id]) }}" class="text-sm font-medium text-escm-primary hover:text-escm-primary-dark">{{ auth()->user()?->isParent() || \App\Support\VueCompte::current() ? 'Voir l’emploi du temps de '.$groupe->nom : 'Gérer l’emploi du temps de '.$groupe->nom }}</a>
         @elseif(! auth()->user()?->isParent())
             <a href="{{ route('ecole.groupes.index') }}" class="text-sm font-medium text-escm-primary hover:text-escm-primary-dark">Créer un groupe</a>
         @endif

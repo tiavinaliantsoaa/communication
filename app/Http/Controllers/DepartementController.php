@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Departement;
+use App\Support\VueCompte;
 use App\Services\ActivityLogger;
 use App\Support\NavbarMenu;
 use Illuminate\Http\Request;
@@ -95,10 +96,28 @@ class DepartementController extends Controller
     {
         abort_unless($request->user()?->isSuperAdmin(), 403);
 
+        if ($request->filled('vue')) {
+            $data = $request->validate([
+                'vue' => ['required', 'string', 'regex:/^(departement|enseignant|etudiant|parent):\d+$/'],
+            ]);
+            [$type, $id] = explode(':', $data['vue'], 2);
+            if ($type === 'departement') {
+                VueCompte::oublier();
+                session(['departement_actif_id' => (int) $id]);
+
+                return back();
+            }
+
+            VueCompte::definir($type, (int) $id);
+
+            return redirect()->route('ecole.dashboard');
+        }
+
         $data = $request->validate([
             'departement_id' => ['required', 'exists:departements,id'],
         ]);
 
+        VueCompte::oublier();
         session(['departement_actif_id' => (int) $data['departement_id']]);
 
         return back();

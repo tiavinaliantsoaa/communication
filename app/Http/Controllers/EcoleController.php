@@ -17,6 +17,7 @@ use App\Services\CrmActivityLogger;
 use App\Support\AnneeUniversitaire;
 use App\Support\EcoleTimetable;
 use App\Support\Periode;
+use App\Support\VueCompte;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -47,57 +48,45 @@ class EcoleController extends Controller
 
             return $next($request);
         });
+
+        $this->middleware(function (Request $request, $next) {
+            if (VueCompte::current() && ! $request->isMethod('GET') && ! $request->isMethod('HEAD')) {
+                abort(403, 'Ce tableau de bord est en lecture seule.');
+            }
+
+            return $next($request);
+        });
     }
 
     public function dashboard(Request $request)
     {
-        [$annee, $mois] = Periode::remember($request);
-        $groupes = EcoleGroupe::withCount('etudiants')->orderBy('nom')->get();
-        $groupe = $this->selectedGroupe($request, $groupes);
-        $monday = $this->monday($request);
-        $friday = $monday->copy()->addDays(4);
-        $counts = Periode::whereMonth(EcoleAssiduite::query(), 'date')
-            ->selectRaw('statut, COUNT(*) as total')
-            ->groupBy('statut')
-            ->pluck('total', 'statut');
-        $present = (int) ($counts['present'] ?? 0);
-        $absent = (int) ($counts['absent'] ?? 0);
-        $retard = (int) ($counts['retard'] ?? 0);
-        $pointages = $present + $absent + $retard;
-        $moisLabel = Carbon::create($annee, $mois, 1)->locale('fr')->isoFormat('MMMM YYYY');
-        $heuresParent = $request->user()?->isParent() ? $this->heuresParent() : null;
+        $vue = VueCompte::current();
+        if ($vue && $vue['type'] === 'enseignant') {
+            return $this->rendreDashboard($request, VueCompte::enseignant());
+        }
+        if ($vue && in_array($vue['type'], ['etudiant', 'parent'], true)) {
+            return $this->rendreDashboard($request, null, VueCompte::etudiants());
+        }
 
-        return view('ecole.dashboard', [
-            'title' => 'Dashboard',
+        return $this->rendreDashboard($request);
+    }
+
+    public function compteEnseignant(Request $request)
+    {
+        $enseignants = EcoleEnseignant::orderBy('nom')->orderBy('prenom')->get();
+        $enseignant = $enseignants->firstWhere('id', (int) $request->query('enseignant'))
+            ?: VueCompte::enseignant();
+
+        if ($enseignant) {
+            return $this->rendreDashboard($request, $enseignant, null, 'ecole.compte-enseignant', [
+                'enseignant' => $enseignant->id,
+            ]);
+        }
+
+        return view('ecole.compte-enseignant', [
+            'title' => 'Compte enseignant',
             'subtitle' => 'Gestion École — '.AnneeUniversitaire::selected(),
-            'annee' => $annee,
-            'mois' => $mois,
-            'moisLabel' => $moisLabel,
-            'nbEtudiants' => EcoleEtudiant::count(),
-            'nbGroupes' => $groupes->count(),
-            'groupes' => $groupes,
-            'groupe' => $groupe,
-            'present' => $present,
-            'absent' => $absent,
-            'retard' => $retard,
-            'pctPresence' => $pointages > 0 ? (int) round(($present / $pointages) * 100) : 0,
-            'pctAbsence' => $pointages > 0 ? (int) round(($absent / $pointages) * 100) : 0,
-            'presenceLabel' => $this->compte($present, 'présence', 'présences').' en '.$moisLabel,
-            'absenceLabel' => $this->compte($absent, 'absence', 'absences').' en '.$moisLabel
-                .($retard > 0 ? ' · '.$this->compte($retard, 'retard', 'retards') : ''),
-            'heuresParent' => $heuresParent,
-            'monday' => $monday,
-            'semaineLabel' => $monday->isoFormat('D MMM').' – '.$friday->isoFormat('D MMM YYYY'),
-            'weekNumber' => $monday->isoWeek(),
-            'hours' => EcoleTimetable::hours(),
-            'columns' => EcoleTimetable::columns(
-                $monday,
-                $groupe ? $this->seancesDeLaSemaine($groupe, $monday) : collect()
-            ),
-            'nowTop' => EcoleTimetable::nowTop($monday),
-            'prevUrl' => $this->dashboardUrl($groupe, $monday->copy()->subWeek()),
-            'nextUrl' => $this->dashboardUrl($groupe, $monday->copy()->addWeek()),
-            'todayUrl' => $this->dashboardUrl($groupe, EcoleTimetable::monday()),
+            'enseignants' => $enseignants,
         ]);
     }
 
@@ -544,8 +533,26 @@ class EcoleController extends Controller
             ? $today->toDateString()
             : $monday->toDateString());
         $seances = $this->seancesCalendrier($monday);
+        $vue = VueCompte::current();
+        $apercuEnseignant = $request->query('apercu') === 'enseignant'
+            ? $this->identifiant($request->query('enseignant'))
+            : null;
+        if ($vue && $vue['type'] === 'enseignant') {
+            $seances = $seances->where('ecole_enseignant_id', $vue['id'])->values();
+            $groupes = $groupes->whereIn('id', $seances->pluck('ecole_groupe_id')->unique()->all())->values();
+            $groupe = $groupes->first();
+        } elseif ($apercuEnseignant) {
+            $seances = $seances->where('ecole_enseignant_id', $apercuEnseignant)->values();
+            $groupes = $groupes->whereIn('id', $seances->pluck('ecole_groupe_id')->unique()->all())->values();
+            $groupe = $groupes->first();
+        } elseif ($vue && in_array($vue['type'], ['etudiant', 'parent'], true)) {
+            $groupeIds = VueCompte::etudiants()->pluck('ecole_groupe_id')->filter()->all();
+            $seances = $seances->whereIn('ecole_groupe_id', $groupeIds)->values();
+            $groupes = $groupes->whereIn('id', $groupeIds)->values();
+            $groupe = $this->selectedGroupe($request, $groupes);
+        }
         $semaineLabel = $monday->isoFormat('D MMM').' – '.$friday->isoFormat('D MMM YYYY');
-        $lectureParent = (bool) $request->user()?->isParent();
+        $lectureParent = (bool) $request->user()?->isParent() || $vue !== null || $apercuEnseignant !== null;
         $matieres = EcoleMatiere::orderBy('nom')->get();
         $enseignants = EcoleEnseignant::orderBy('nom')->orderBy('prenom')->get();
         $salles = EcoleSalle::orderBy('nom')->get();
@@ -612,6 +619,10 @@ class EcoleController extends Controller
                 'indexUrl' => route('ecole.emplois.index'),
                 'destroyBase' => url('/ecole/emplois-du-temps'),
                 'csrf' => csrf_token(),
+                'extra' => array_filter([
+                    'apercu' => $apercuEnseignant ? 'enseignant' : null,
+                    'enseignant' => ($vue && $vue['type'] === 'enseignant') ? $vue['id'] : $apercuEnseignant,
+                ]),
                 'groupes' => $groupes->map(fn ($ligne) => ['id' => $ligne->id, 'nom' => $ligne->nom])->values(),
                 'conflit' => $grille['conflit'],
                 'vide' => $seances->isEmpty(),
@@ -728,6 +739,9 @@ class EcoleController extends Controller
             'etudiants' => EcoleEtudiant::with('groupe')->orderBy('nom')->orderBy('prenom')->get(),
             'statuts' => EcoleAssiduite::STATUTS,
             'assiduites' => Periode::whereMonth(EcoleAssiduite::with('etudiant.groupe'), 'date')
+                ->when(VueCompte::current() && in_array(VueCompte::current()['type'], ['etudiant', 'parent'], true), function ($query) {
+                    $query->whereIn('ecole_etudiant_id', VueCompte::etudiants()->pluck('id')->all());
+                })
                 ->orderByDesc('date')
                 ->orderByDesc('id')
                 ->get(),
@@ -875,6 +889,75 @@ class EcoleController extends Controller
         }
     }
 
+    private function rendreDashboard(Request $request, ?EcoleEnseignant $enseignant = null, $etudiants = null, string $route = 'ecole.dashboard', array $extra = [])
+    {
+        [$annee, $mois] = Periode::remember($request);
+        $groupes = EcoleGroupe::withCount('etudiants')->orderBy('nom')->get();
+        $etudiants = $etudiants instanceof \Illuminate\Support\Collection ? $etudiants : collect();
+        if ($etudiants->isNotEmpty()) {
+            $groupes = $groupes->whereIn('id', $etudiants->pluck('ecole_groupe_id')->filter()->all())->values();
+        }
+        $groupe = $this->selectedGroupe($request, $groupes);
+        $monday = $this->monday($request);
+        $friday = $monday->copy()->addDays(4);
+        $counts = Periode::whereMonth(EcoleAssiduite::query(), 'date')
+            ->when($etudiants->isNotEmpty(), fn ($query) => $query->whereIn('ecole_etudiant_id', $etudiants->pluck('id')->all()))
+            ->selectRaw('statut, COUNT(*) as total')
+            ->groupBy('statut')
+            ->pluck('total', 'statut');
+        $present = (int) ($counts['present'] ?? 0);
+        $absent = (int) ($counts['absent'] ?? 0);
+        $retard = (int) ($counts['retard'] ?? 0);
+        $pointages = $present + $absent + $retard;
+        $moisLabel = Carbon::create($annee, $mois, 1)->locale('fr')->isoFormat('MMMM YYYY');
+        $heuresParent = $request->user()?->isParent()
+            ? $this->heuresParent()
+            : ($etudiants->isNotEmpty() ? $this->heuresDesEtudiants($etudiants) : null);
+        $seances = $enseignant
+            ? $this->seancesEnseignant($enseignant, $monday)
+            : ($groupe ? $this->seancesDeLaSemaine($groupe, $monday) : collect());
+        $lien = array_filter(array_merge($extra, [
+            'groupe' => $enseignant ? null : $groupe?->id,
+            'semaine' => $monday->toDateString(),
+        ]));
+
+        return view('ecole.dashboard', [
+            'title' => $enseignant ? 'Compte enseignant' : 'Dashboard',
+            'subtitle' => 'Gestion École — '.AnneeUniversitaire::selected(),
+            'annee' => $annee,
+            'mois' => $mois,
+            'moisLabel' => $moisLabel,
+            'nbEtudiants' => $etudiants->isNotEmpty() ? $etudiants->count() : EcoleEtudiant::count(),
+            'nbGroupes' => $groupes->count(),
+            'groupes' => $groupes,
+            'groupe' => $groupe,
+            'enseignantVu' => $enseignant,
+            'present' => $present,
+            'absent' => $absent,
+            'retard' => $retard,
+            'pctPresence' => $pointages > 0 ? (int) round(($present / $pointages) * 100) : 0,
+            'pctAbsence' => $pointages > 0 ? (int) round(($absent / $pointages) * 100) : 0,
+            'presenceLabel' => $this->compte($present, 'présence', 'présences').' en '.$moisLabel,
+            'absenceLabel' => $this->compte($absent, 'absence', 'absences').' en '.$moisLabel
+                .($retard > 0 ? ' · '.$this->compte($retard, 'retard', 'retards') : ''),
+            'heuresParent' => $heuresParent,
+            'monday' => $monday,
+            'semaineLabel' => $monday->isoFormat('D MMM').' – '.$friday->isoFormat('D MMM YYYY'),
+            'weekNumber' => $monday->isoWeek(),
+            'hours' => EcoleTimetable::hours(),
+            'columns' => EcoleTimetable::columns($monday, $seances),
+            'nowTop' => EcoleTimetable::nowTop($monday),
+            'prevUrl' => route($route, array_merge($lien, ['semaine' => $monday->copy()->subWeek()->toDateString()])),
+            'nextUrl' => route($route, array_merge($lien, ['semaine' => $monday->copy()->addWeek()->toDateString()])),
+            'todayUrl' => route($route, array_merge($lien, ['semaine' => EcoleTimetable::monday()->toDateString()])),
+            'lienEmploi' => route('ecole.emplois.index', array_filter([
+                'groupe' => $enseignant ? null : $groupe?->id,
+                'enseignant' => $enseignant?->id,
+                'apercu' => $enseignant ? 'enseignant' : null,
+            ])),
+        ]);
+    }
+
     private function dashboardUrl(?EcoleGroupe $groupe, Carbon $monday): string
     {
         return route('ecole.dashboard', array_filter([
@@ -919,6 +1002,17 @@ class EcoleController extends Controller
             'enseignant_id' => $seance->ecole_enseignant_id ? (int) $seance->ecole_enseignant_id : null,
             'salle_id' => $seance->ecole_salle_id ? (int) $seance->ecole_salle_id : null,
         ])->values()->all();
+    }
+
+    private function seancesEnseignant(EcoleEnseignant $enseignant, Carbon $monday)
+    {
+        return EcoleSeance::query()
+            ->where('ecole_enseignant_id', $enseignant->id)
+            ->whereDate('date', '>=', $monday->toDateString())
+            ->whereDate('date', '<=', $monday->copy()->addDays(4)->toDateString())
+            ->orderBy('date')
+            ->orderBy('heure_debut')
+            ->get();
     }
 
     private function seancesDeLaSemaine(?EcoleGroupe $groupe, Carbon $monday)
@@ -1063,6 +1157,60 @@ class EcoleController extends Controller
         }
 
         $noms = EcoleGroupe::query()->orderBy('nom')->pluck('nom')->filter()->implode(', ');
+
+        return [
+            'cours' => $this->duree($cours),
+            'absence' => $this->duree($absence),
+            'retard' => $this->duree($retard),
+            'groupes' => $noms !== '' ? $noms : 'Aucun groupe',
+        ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, EcoleEtudiant>  $etudiants
+     * @return array{cours: string, absence: string, retard: string, groupes: string}
+     */
+    private function heuresDesEtudiants($etudiants): array
+    {
+        $maintenant = now();
+        $groupeIds = $etudiants->pluck('ecole_groupe_id')->filter()->unique()->values();
+        $seances = EcoleSeance::query()->whereIn('ecole_groupe_id', $groupeIds->all())->get();
+        $cours = 0;
+        $minutesParJour = [];
+
+        foreach ($seances as $seance) {
+            if (! $seance->date) {
+                continue;
+            }
+            $minutes = max(0, EcoleTimetable::minutes($seance->heure('heure_fin')) - EcoleTimetable::minutes($seance->heure('heure_debut')));
+            $cle = $seance->ecole_groupe_id.'|'.$seance->date->toDateString();
+            $minutesParJour[$cle] = ($minutesParJour[$cle] ?? 0) + $minutes;
+            $fin = $seance->date->copy()->setTimeFromTimeString($seance->heure('heure_fin'));
+            if ($fin->lte($maintenant)) {
+                $cours += $minutes;
+            }
+        }
+
+        $pointages = EcoleAssiduite::query()
+            ->whereIn('ecole_etudiant_id', $etudiants->pluck('id')->all())
+            ->get(['ecole_etudiant_id', 'date', 'statut']);
+        $absence = 0;
+        $retard = 0;
+        $groupesEleves = $etudiants->pluck('ecole_groupe_id', 'id');
+        foreach ($pointages as $pointage) {
+            $groupeId = $groupesEleves[$pointage->ecole_etudiant_id] ?? null;
+            if (! $groupeId || ! $pointage->date) {
+                continue;
+            }
+            $minutes = $minutesParJour[$groupeId.'|'.$pointage->date->toDateString()] ?? 0;
+            if ($pointage->statut === 'absent') {
+                $absence += $minutes;
+            } elseif ($pointage->statut === 'retard') {
+                $retard += $minutes;
+            }
+        }
+
+        $noms = EcoleGroupe::query()->whereIn('id', $groupeIds->all())->orderBy('nom')->pluck('nom')->implode(', ');
 
         return [
             'cours' => $this->duree($cours),

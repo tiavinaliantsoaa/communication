@@ -28,19 +28,56 @@
 
         <div class="flex items-center gap-3 sm:gap-5">
             @if(auth()->user()->isSuperAdmin() && ($departementsListe ?? collect())->isNotEmpty())
+                @php
+                    $vueCle = \App\Support\VueCompte::cle();
+                    $vueSelection = $vueCle ?: ('departement:'.(int) optional($departementActif)->id);
+                    $enseignantsVue = \App\Models\EcoleEnseignant::withoutGlobalScope('departement')->orderBy('nom')->orderBy('prenom')->get();
+                    $etudiantsVue = \App\Models\EcoleEtudiant::withoutGlobalScopes(['departement', 'annee'])
+                        ->whereHas('groupe', function ($query) {
+                            $query->withoutGlobalScope('departement')
+                                ->where('annee_universitaire', \App\Support\AnneeUniversitaire::selected());
+                        })
+                        ->orderBy('nom')
+                        ->orderBy('prenom')
+                        ->get();
+                    $parentsVue = \App\Models\User::query()->where('role', 'parent')->orderBy('name')->get();
+                @endphp
                 <form method="POST" action="{{ route('departement.switch') }}">
                     @csrf
-                    <label class="sr-only" for="departement-actif">Département affiché</label>
+                    <label class="sr-only" for="departement-actif">Département ou compte affiché</label>
                     <select
                         id="departement-actif"
-                        name="departement_id"
+                        name="vue"
                         onchange="this.form.submit()"
-                        class="bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-700 shadow-sm focus:border-escm-primary focus:ring-escm-primary"
-                        title="Département dont les données sont affichées"
+                        class="bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-sm font-medium text-slate-700 shadow-sm focus:border-escm-primary focus:ring-escm-primary max-w-[14rem]"
+                        title="Département ou compte dont le tableau de bord est affiché"
                     >
-                        @foreach($departementsListe as $departement)
-                            <option value="{{ $departement->id }}" @selected((int) optional($departementActif)->id === (int) $departement->id)>{{ $departement->nom }}</option>
-                        @endforeach
+                        <optgroup label="Départements">
+                            @foreach($departementsListe as $departement)
+                                <option value="departement:{{ $departement->id }}" @selected($vueSelection === 'departement:'.$departement->id)>{{ $departement->nom }}</option>
+                            @endforeach
+                        </optgroup>
+                        <optgroup label="Enseignants">
+                            @forelse($enseignantsVue as $enseignant)
+                                <option value="enseignant:{{ $enseignant->id }}" @selected($vueSelection === 'enseignant:'.$enseignant->id)>{{ $enseignant->nom_complet }}</option>
+                            @empty
+                                <option value="" disabled>Aucun enseignant</option>
+                            @endforelse
+                        </optgroup>
+                        <optgroup label="Étudiants">
+                            @forelse($etudiantsVue as $etudiant)
+                                <option value="etudiant:{{ $etudiant->id }}" @selected($vueSelection === 'etudiant:'.$etudiant->id)>{{ $etudiant->nom_complet }}</option>
+                            @empty
+                                <option value="" disabled>Aucun étudiant</option>
+                            @endforelse
+                        </optgroup>
+                        <optgroup label="Parents">
+                            @forelse($parentsVue as $parent)
+                                <option value="parent:{{ $parent->id }}" @selected($vueSelection === 'parent:'.$parent->id)>{{ $parent->name }}</option>
+                            @empty
+                                <option value="" disabled>Aucun parent</option>
+                            @endforelse
+                        </optgroup>
                     </select>
                 </form>
             @elseif($departementActif)

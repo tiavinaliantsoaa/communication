@@ -104,6 +104,7 @@ Route::middleware(['auth', 'departement.menu'])->group(function () {
         Route::get('/matieres', [EcoleController::class, 'matieres'])->name('matieres.index');
         Route::post('/matieres', [EcoleController::class, 'storeMatiere'])->name('matieres.store');
         Route::delete('/matieres/{matiere}', [EcoleController::class, 'destroyMatiere'])->name('matieres.destroy');
+        Route::get('/compte-enseignant', [EcoleController::class, 'compteEnseignant'])->name('compte-enseignant');
         Route::get('/enseignants', [EcoleController::class, 'enseignants'])->name('enseignants.index');
         Route::post('/enseignants', [EcoleController::class, 'storeEnseignant'])->name('enseignants.store');
         Route::delete('/enseignants/{enseignant}', [EcoleController::class, 'destroyEnseignant'])->name('enseignants.destroy');

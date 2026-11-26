@@ -5,7 +5,7 @@
 @extends('layouts.app')
 
 @section('content')
-@php $lectureParent = auth()->user()?->isParent(); @endphp
+@php $lectureParent = auth()->user()?->isParent() || \App\Support\VueCompte::current() !== null || request('apercu') === 'enseignant'; @endphp
 <div class="grid grid-cols-1 {{ $lectureParent ? '' : 'xl:grid-cols-3' }} gap-6" x-data="calendrierEmploi(window.calendrierBoot)" x-init="dessiner()">
     @unless($lectureParent)
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
@@ -285,6 +285,9 @@ function calendrierEmploi(cal) {
             if (this.groupeId) url.searchParams.set('groupe', this.groupeId);
             if (this.enseignantId) url.searchParams.set('enseignant', this.enseignantId);
             if (this.salleId) url.searchParams.set('salle', this.salleId);
+            Object.entries(cal.extra || {}).forEach(([cle, valeur]) => {
+                if (valeur) url.searchParams.set(cle, valeur);
+            });
             const reponse = await fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
             if (!reponse.ok) return;
             const data = await reponse.json();

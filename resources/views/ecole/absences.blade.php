@@ -5,7 +5,7 @@
 @extends('layouts.app')
 
 @section('content')
-@php $lectureParent = auth()->user()?->isParent(); @endphp
+@php $lectureParent = auth()->user()?->isParent() || \App\Support\VueCompte::current(); @endphp
 <div class="grid grid-cols-1 {{ $lectureParent ? '' : 'xl:grid-cols-3' }} gap-6">
     @unless($lectureParent)
     <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
