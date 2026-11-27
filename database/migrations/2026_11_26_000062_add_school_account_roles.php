@@ -17,6 +17,7 @@ return new class extends Migration
             ['name' => 'Étudiant', 'slug' => 'etudiant', 'description' => 'Compte étudiant de la gestion école'],
             ['name' => 'Parent', 'slug' => 'parent', 'description' => 'Compte parent de la gestion école'],
             ['name' => 'Enseignant', 'slug' => 'enseignant', 'description' => 'Compte enseignant de la gestion école'],
+            ['name' => 'Direction', 'slug' => 'direction', 'description' => 'Consultation des sections de l’application'],
         ];
 
         foreach ($roles as $role) {
@@ -39,26 +40,35 @@ return new class extends Migration
         }
 
         $permissionId = DB::table('permissions')->where('key', 'ecole.view')->value('id');
-        if (! $permissionId) {
-            return;
+        if ($permissionId) {
+            foreach (['etudiant', 'parent', 'enseignant'] as $slug) {
+                $roleId = DB::table('roles')->where('slug', $slug)->value('id');
+                if (! $roleId) {
+                    continue;
+                }
+                $linked = DB::table('permission_role')
+                    ->where('role_id', $roleId)
+                    ->where('permission_id', $permissionId)
+                    ->exists();
+                if ($linked) {
+                    continue;
+                }
+                DB::table('permission_role')->insert([
+                    'role_id' => $roleId,
+                    'permission_id' => $permissionId,
+                ]);
+            }
         }
 
-        foreach (['etudiant', 'parent', 'enseignant'] as $slug) {
-            $roleId = DB::table('roles')->where('slug', $slug)->value('id');
-            if (! $roleId) {
-                continue;
+        $directionId = DB::table('roles')->where('slug', 'direction')->value('id');
+        if ($directionId && DB::table('permission_role')->where('role_id', $directionId)->doesntExist()) {
+            $viewIds = DB::table('permissions')->where('key', 'like', '%.view')->pluck('id');
+            foreach ($viewIds as $viewId) {
+                DB::table('permission_role')->insert([
+                    'role_id' => $directionId,
+                    'permission_id' => $viewId,
+                ]);
             }
-            $linked = DB::table('permission_role')
-                ->where('role_id', $roleId)
-                ->where('permission_id', $permissionId)
-                ->exists();
-            if ($linked) {
-                continue;
-            }
-            DB::table('permission_role')->insert([
-                'role_id' => $roleId,
-                'permission_id' => $permissionId,
-            ]);
         }
     }
 
@@ -68,7 +78,7 @@ return new class extends Migration
             return;
         }
 
-        $ids = DB::table('roles')->whereIn('slug', ['etudiant', 'parent', 'enseignant'])->pluck('id');
+        $ids = DB::table('roles')->whereIn('slug', ['etudiant', 'parent', 'enseignant', 'direction'])->pluck('id');
         if ($ids->isEmpty()) {
             return;
         }
@@ -77,6 +87,6 @@ return new class extends Migration
             DB::table('permission_role')->whereIn('role_id', $ids)->delete();
         }
 
-        DB::table('roles')->whereIn('id', $ids)->delete();
+        DB::table('roles')->whereIn('slug', ['etudiant', 'parent', 'enseignant', 'direction'])->delete();
     }
 };

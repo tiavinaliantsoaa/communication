@@ -66,8 +66,11 @@ class AccessService
             'enseignants.view',
         ];
 
+        $lecture = collect(Permission::catalog())->pluck('key')->filter(fn ($key) => str_ends_with($key, '.view'))->values()->all();
+
         return [
             'super_admin' => $all,
+            'direction' => $lecture,
             'administrateur' => $admin,
             'responsable_communication' => $comm,
             'gestionnaire_budget' => $budget,

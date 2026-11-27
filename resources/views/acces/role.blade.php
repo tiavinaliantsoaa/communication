@@ -46,27 +46,7 @@
             <p class="text-[11px] text-slate-500 ml-auto">La mise à jour réapplique ces droits aux utilisateurs de ce rôle.</p>
         </div>
 
-        <div class="divide-y divide-slate-100">
-            @foreach($permissionGroups as $group => $perms)
-                <div class="px-5 py-4">
-                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">{{ $group }}</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                        @foreach($perms as $perm)
-                            <label class="flex items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50 cursor-pointer text-sm text-slate-700">
-                                <input
-                                    type="checkbox"
-                                    name="permissions[]"
-                                    value="{{ $perm->key }}"
-                                    class="perm-check rounded border-slate-300 text-escm-primary focus:ring-escm-primary"
-                                    @checked(in_array($perm->key, old('permissions', $roleKeys), true))
-                                >
-                                {{ $perm->label }}
-                            </label>
-                        @endforeach
-                    </div>
-                </div>
-            @endforeach
-        </div>
+        @include('acces._sections', ['permissionGroups' => $permissionGroups, 'selectedKeys' => old('permissions', $roleKeys)])
 
         <div class="px-5 py-4 border-t border-slate-100 flex justify-end gap-2 bg-slate-50">
             <a href="{{ route('acces.index') }}" class="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-white">Annuler</a>

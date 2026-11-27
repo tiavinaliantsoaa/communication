@@ -18,6 +18,7 @@ class User extends Authenticatable
 
     public const ROLES = [
         'super_admin' => 'Super Admin',
+        'direction' => 'Direction',
         'administrateur' => 'Administrateur',
         'responsable_communication' => 'Responsable Communication',
         'gestionnaire_budget' => 'Gestionnaire Budget',
