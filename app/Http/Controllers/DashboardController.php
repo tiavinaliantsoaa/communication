@@ -23,7 +23,7 @@ class DashboardController extends Controller
         }
 
         $actif = Departement::query()->find($request->user()->currentDepartementId());
-        if ($actif?->slug === 'direction') {
+        if ($request->user()->isDirection() || $actif?->slug === 'direction') {
             return $this->directionIndex($request, $alerteService, $budgetMensuel);
         }
 

@@ -62,6 +62,11 @@ class User extends Authenticatable
         return $this->hasMany(EcoleEtudiant::class, 'parent_user_id');
     }
 
+    public function isDirection(): bool
+    {
+        return $this->role === 'direction';
+    }
+
     public function isParent(): bool
     {
         return $this->role === 'parent';

@@ -6,6 +6,7 @@ use App\Models\Budget;
 use App\Models\BudgetAnnuel;
 use App\Models\Departement;
 use App\Models\Depense;
+use App\Models\Permission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
@@ -85,6 +86,24 @@ class DashboardDirectionTest extends TestCase
             ->assertSee('Pédagogique')
             ->assertSee('Cahier pedagogique unique')
             ->assertSee('Direction — Aucun budget mensuel');
+
+        $compte = User::factory()->create([
+            'role' => 'direction',
+            'departement_id' => $communication->id,
+            'password' => 'password',
+        ]);
+        $compte->permissions()->sync(
+            Permission::query()->where('key', 'dashboard.view')->pluck('id')
+        );
+
+        $this->actingAs($compte)
+            ->get(route('dashboard'))
+            ->assertOk()
+            ->assertSee('Vue d\'ensemble de tous les départements')
+            ->assertSee('210 000 Ar')
+            ->assertSee('34 000 Ar')
+            ->assertSee('Cahier pedagogique unique')
+            ->assertDontSee('Vue d\'ensemble du service communication');
     }
 
     private function annuel(int $departementId, int $annee, float $montant): void
