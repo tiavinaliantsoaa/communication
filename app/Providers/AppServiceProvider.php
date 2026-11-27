@@ -44,11 +44,29 @@ class AppServiceProvider extends ServiceProvider
         foreach (DepartementScope::models() as $model) {
             $model::addGlobalScope('departement', new DepartementScope);
             $model::creating(function ($record) {
+                if ($record instanceof \App\Models\EditorialEventVisuel && ! $record->departement_id && $record->editorial_event_id) {
+                    $record->departement_id = \App\Models\EditorialEvent::withoutGlobalScope('departement')
+                        ->whereKey($record->editorial_event_id)
+                        ->value('departement_id');
+                }
+
                 if ($record->departement_id) {
                     return;
                 }
 
                 $departementId = auth()->user()?->currentDepartementId();
+                if ($record instanceof \App\Models\EditorialEvent && $departementId) {
+                    $slug = Departement::query()->whereKey($departementId)->value('slug');
+                    if ($slug === 'direction') {
+                        $communicationId = Departement::query()->where('slug', 'communication')->value('id');
+                        if ($communicationId) {
+                            $record->departement_id = (int) $communicationId;
+
+                            return;
+                        }
+                    }
+                }
+
                 if ($departementId) {
                     $record->departement_id = $departementId;
                 }

@@ -22,6 +22,10 @@ class DepartementScope implements Scope
             return;
         }
 
+        if ($this->directionVoitLesCalendriers($departementId, $model)) {
+            return;
+        }
+
         $table = $model->getTable();
         if ($model instanceof ProjetCarte) {
             $builder->where(function ($query) use ($table, $departementId) {
@@ -106,6 +110,19 @@ class DepartementScope implements Scope
             $query->where($table.'.departement_id', $departementId)
                 ->orWhereExists($linked);
         });
+    }
+
+    /**
+     * Direction oversees the editorial calendars of every department.
+     * Other sections stay limited to the active department.
+     */
+    private function directionVoitLesCalendriers(int $departementId, Model $model): bool
+    {
+        if (! in_array($model::class, [EditorialEvent::class, EditorialEventVisuel::class], true)) {
+            return false;
+        }
+
+        return Departement::query()->whereKey($departementId)->value('slug') === 'direction';
     }
 
     private function memberOfDepartement($sub, string $carteIdColumn, int $departementId): void

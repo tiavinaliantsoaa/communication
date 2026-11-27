@@ -279,7 +279,9 @@ class CalendrierEditorialController extends Controller
                     $duplicatePayload['date_fin'] = $duplicatePayload['date_fin'] ?? null;
                 }
 
-                $duplicate = EditorialEvent::create($duplicatePayload);
+                $duplicate = new EditorialEvent($duplicatePayload);
+                $duplicate->departement_id = $editorialEvent->departement_id;
+                $duplicate->save();
 
                 foreach ($sourceVisuels as $visuel) {
                     $path = $visuel->path;
