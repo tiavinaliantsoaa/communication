@@ -14,10 +14,10 @@ return new class extends Migration
 
         $now = now();
         $roles = [
-            ['name' => 'Étudiant', 'slug' => 'etudiant', 'description' => 'Compte étudiant de la gestion école'],
-            ['name' => 'Parent', 'slug' => 'parent', 'description' => 'Compte parent de la gestion école'],
-            ['name' => 'Enseignant', 'slug' => 'enseignant', 'description' => 'Compte enseignant de la gestion école'],
-            ['name' => 'Direction', 'slug' => 'direction', 'description' => 'Consultation des sections de l’application'],
+            ['name' => 'Étudiant', 'slug' => 'etudiant', 'description' => 'Compte étudiant de la gestion école', 'home_route' => 'ecole.dashboard'],
+            ['name' => 'Parent', 'slug' => 'parent', 'description' => 'Compte parent de la gestion école', 'home_route' => 'ecole.dashboard'],
+            ['name' => 'Enseignant', 'slug' => 'enseignant', 'description' => 'Compte enseignant de la gestion école', 'home_route' => 'ecole.dashboard'],
+            ['name' => 'Direction', 'slug' => 'direction', 'description' => 'Consultation des sections de l’application', 'home_route' => 'dashboard'],
         ];
 
         foreach ($roles as $role) {
@@ -28,7 +28,6 @@ return new class extends Migration
 
             DB::table('roles')->insert([
                 ...$role,
-                'home_route' => 'ecole.dashboard',
                 'is_system' => true,
                 'created_at' => $now,
                 'updated_at' => $now,

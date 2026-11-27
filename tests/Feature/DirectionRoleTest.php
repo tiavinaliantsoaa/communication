@@ -27,6 +27,7 @@ class DirectionRoleTest extends TestCase
         ]);
         $direction = Role::query()->where('slug', 'direction')->firstOrFail();
         $this->assertTrue($direction->is_system);
+        $this->assertSame('dashboard', $direction->home_route);
         $this->assertTrue($direction->permissions()->where('key', 'calendrier_editorial.view')->exists());
         $this->assertFalse($direction->permissions()->where('key', 'calendrier_editorial.create')->exists());
 
@@ -66,5 +67,27 @@ class DirectionRoleTest extends TestCase
             ->assertRedirect();
 
         $this->assertTrue($direction->permissions()->where('key', 'calendrier_editorial.update')->exists());
+    }
+
+    public function test_access_page_restores_direction_when_the_role_is_missing(): void
+    {
+        $admin = User::factory()->create([
+            'role' => 'super_admin',
+            'password' => 'password',
+        ]);
+        $direction = Role::query()->where('slug', 'direction')->firstOrFail();
+        $direction->permissions()->detach();
+        $direction->delete();
+
+        $this->actingAs($admin)
+            ->get(route('acces.index'))
+            ->assertOk()
+            ->assertSee('Direction');
+
+        $restored = Role::query()->where('slug', 'direction')->firstOrFail();
+        $this->assertTrue($restored->is_system);
+        $this->assertSame('dashboard', $restored->home_route);
+        $this->assertTrue($restored->permissions()->where('key', 'calendrier_saan.view')->exists());
+        $this->assertFalse($restored->permissions()->where('key', 'calendrier_saan.create')->exists());
     }
 }

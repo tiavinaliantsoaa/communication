@@ -84,6 +84,7 @@ class AccessService
     public static function bootstrap(): void
     {
         Permission::syncCatalog();
+        static::ensureDirectionRole();
 
         $map = static::defaultRolePermissions();
         $permissions = Permission::pluck('id', 'key');
@@ -105,6 +106,19 @@ class AccessService
         User::query()->whereDoesntHave('permissions')->each(function (User $user) {
             static::syncUserPermissionsFromRole($user);
         });
+    }
+
+    public static function ensureDirectionRole(): void
+    {
+        Role::query()->firstOrCreate(
+            ['slug' => 'direction'],
+            [
+                'name' => 'Direction',
+                'description' => 'Consultation des sections de l’application',
+                'home_route' => 'dashboard',
+                'is_system' => true,
+            ]
+        );
     }
 
     public static function syncUserPermissionsFromRole(User $user): void
